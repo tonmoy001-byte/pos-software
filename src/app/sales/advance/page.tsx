@@ -526,33 +526,6 @@ export default function AdvanceOrderPage() {
             </div>
 
             <div className="w-[400px] bg-surface border-l border-border flex flex-col shadow-2xl">
-              <div className="p-6 border-b border-border">
-                <h3 className="font-black text-lg mb-4">Customer Details</h3>
-                {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold mb-4 flex items-center justify-between">{error}<button onClick={() => setError(null)}><X className="w-4 h-4" /></button></div>}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary w-4 h-4" />
-                  <input value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)} placeholder="Search by name or phone..." className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-border outline-none focus:border-primary font-medium" />
-                  {customerResults.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded-2xl mt-2 z-10 shadow-2xl overflow-hidden max-h-[300px] overflow-y-auto">
-                      {customerResults.map(c => (<button key={c.id} onClick={() => { setSelectedCustomer(c); setCustomerSearch(""); setCustomerResults([]); }} className="w-full p-4 text-left hover:bg-primary/5 border-b border-border/50 last:border-0"><p className="font-bold">{c.name}</p><p className="text-xs text-secondary flex items-center gap-1 mt-1"><Phone className="w-3 h-3" /> {c.phone}</p></button>))}
-                    </div>
-                  )}
-                </div>
-                {selectedCustomer ? (
-                  <div className="mt-4 p-4 bg-primary/5 rounded-2xl border border-primary/20 flex justify-between items-center">
-                    <div>
-                      <p className="text-xs font-bold text-primary uppercase tracking-widest">Selected Customer</p>
-                      <p className="font-black text-foreground mt-0.5">{selectedCustomer.name}</p>
-                    </div>
-                    <button onClick={() => setSelectedCustomer(null)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"><X className="w-4 h-4" /></button>
-                  </div>
-                ) : (
-                  <button onClick={() => setIsAddingCustomer(true)} className="w-full mt-4 py-3 border-2 border-dashed border-border rounded-xl text-sm font-bold text-secondary hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2">
-                    <UserPlus className="w-4 h-4" />
-                    New Customer
-                  </button>
-                )}
-              </div>
               <div className="flex-1 overflow-y-auto p-6 space-y-3">
                 <p className="text-[10px] font-black text-secondary uppercase tracking-[0.2em] mb-2">Cart Items</p>
                 {cart.map((item) => (
