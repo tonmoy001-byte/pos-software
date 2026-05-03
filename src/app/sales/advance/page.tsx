@@ -19,7 +19,8 @@ import {
   X,
   UserPlus,
   Wallet,
-  Clock
+  Clock,
+  ClipboardList
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
@@ -56,6 +57,20 @@ export default function AdvanceOrderPage() {
   const [barcodeInput, setBarcodeInput] = useState("");
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const [currentStore, setCurrentStore] = useState<any>(null);
+  const [advances, setAdvances] = useState<any[]>([]);
+  const [advancesLoading, setAdvancesLoading] = useState(false);
+
+  const fetchAdvances = async () => {
+    setAdvancesLoading(true);
+    try {
+      const res = await fetch("/api/advances");
+      const data = await res.json();
+      setAdvances(data);
+    } catch (err) {
+      console.error("Failed to fetch advances:", err);
+    }
+    setAdvancesLoading(false);
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -464,7 +479,7 @@ export default function AdvanceOrderPage() {
               New Order
             </button>
             <button 
-              onClick={() => router.push("/sales/advance/ledger")}
+              onClick={() => { setActiveTab("ledger"); fetchAdvances(); }}
               className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'ledger' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-secondary hover:text-foreground'}`}
             >
               Ledger
@@ -474,40 +489,98 @@ export default function AdvanceOrderPage() {
       </div>
 
       <div className="flex-1 flex flex-col p-6 space-y-6 overflow-hidden">
-        <div className="flex gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary w-5 h-5" />
-            <input type="text" placeholder="Search by Product Name or IMEI..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-12 pr-4 py-4 rounded-2xl bg-surface border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all card-shadow" />
-            <input ref={barcodeInputRef} type="text" value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} onKeyDown={handleBarcodeScan} placeholder="Scan barcode..." className="hidden" />
-          </div>
-          <button onClick={focusBarcodeInput} className="bg-primary/10 text-primary p-4 rounded-2xl border border-primary/20 hover:bg-primary/20 transition-colors" title="Click to scan barcode">
-            <Scan className="w-6 h-6" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredProducts.map((product) => (
-              <div key={product.id} onClick={() => addToCart(product)} className="bg-surface p-4 rounded-2xl border border-border hover:border-primary/30 transition-all cursor-pointer group card-shadow flex flex-col justify-between">
-                <div>
-                  <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
-                    <Smartphone className="w-12 h-12 text-primary/20 group-hover:scale-110 transition-transform" />
-                    <span className={`absolute top-2 right-2 text-white text-[10px] font-bold px-2 py-1 rounded-md ${product._count?.items > 0 ? 'bg-primary' : 'bg-red-500'}`}>
-                      Stock: {product._count?.items || 0}
-                    </span>
-                  </div>
-                  <h4 className="font-bold text-sm">{product.name}</h4>
-                  <p className="text-xs text-secondary mt-1">{product.model} | {product.brand}</p>
-                </div>
-                <div className="flex justify-between items-center mt-4">
-                  <span className="font-bold text-primary">{formatCurrency(product.price)}</span>
-                  <Plus className="w-5 h-5 text-primary" />
-                </div>
+        {activeTab === "sale" ? (
+          <>
+            <div className="flex gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary w-5 h-5" />
+                <input type="text" placeholder="Search by Product Name or IMEI..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-12 pr-4 py-4 rounded-2xl bg-surface border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all card-shadow" />
+                <input ref={barcodeInputRef} type="text" value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} onKeyDown={handleBarcodeScan} placeholder="Scan barcode..." className="hidden" />
               </div>
-            ))}
-            {products.length === 0 && <p className="text-secondary italic">No products in inventory.</p>}
+              <button onClick={focusBarcodeInput} className="bg-primary/10 text-primary p-4 rounded-2xl border border-primary/20 hover:bg-primary/20 transition-colors" title="Click to scan barcode">
+                <Scan className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredProducts.map((product) => (
+                  <div key={product.id} onClick={() => addToCart(product)} className="bg-surface p-4 rounded-2xl border border-border hover:border-primary/30 transition-all cursor-pointer group card-shadow flex flex-col justify-between">
+                    <div>
+                      <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
+                        <Smartphone className="w-12 h-12 text-primary/20 group-hover:scale-110 transition-transform" />
+                        <span className={`absolute top-2 right-2 text-white text-[10px] font-bold px-2 py-1 rounded-md ${product._count?.items > 0 ? 'bg-primary' : 'bg-red-500'}`}>
+                          Stock: {product._count?.items || 0}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-sm">{product.name}</h4>
+                      <p className="text-xs text-secondary mt-1">{product.model} | {product.brand}</p>
+                    </div>
+                    <div className="flex justify-between items-center mt-4">
+                      <span className="font-bold text-primary">{formatCurrency(product.price)}</span>
+                      <Plus className="w-5 h-5 text-primary" />
+                    </div>
+                  </div>
+                ))}
+                {products.length === 0 && <p className="text-secondary italic">No products in inventory.</p>}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 overflow-y-auto">
+            {advancesLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : advances.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 text-secondary">
+                <ClipboardList className="w-16 h-16 mb-4 opacity-50" />
+                <p className="text-lg font-semibold">No advance orders yet</p>
+                <p className="text-sm">Advance orders will appear here</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {advances.map((advance) => (
+                  <div key={advance.id} className="bg-surface p-4 rounded-2xl border border-border card-shadow">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="font-bold text-foreground">#{advance.invoiceNumber}</p>
+                        <p className="text-sm text-secondary">{advance.customer?.name || "Walking Customer"}</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${advance.status === "PENDING" ? "bg-yellow-500/20 text-yellow-600" : "bg-green-500/20 text-green-600"}`}>
+                        {advance.status}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <p className="text-secondary">Total</p>
+                        <p className="font-bold">{formatCurrency(advance.total)}</p>
+                      </div>
+                      <div>
+                        <p className="text-secondary">Paid</p>
+                        <p className="font-bold text-green-600">{formatCurrency(advance.paidAmount)}</p>
+                      </div>
+                      <div>
+                        <p className="text-secondary">Due</p>
+                        <p className="font-bold text-red-600">{formatCurrency(advance.total - advance.paidAmount)}</p>
+                      </div>
+                    </div>
+                    {advance.deliveryDate && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <p className="text-xs text-secondary">Delivery: <span className="font-semibold text-foreground">{new Date(advance.deliveryDate).toLocaleDateString()}</span></p>
+                      </div>
+                    )}
+                    {advance.status === "PENDING" && (
+                      <button className="mt-3 w-full py-2 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors">
+                        Complete Order
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
 
       <div className="w-[500px] bg-surface border-l border-border flex flex-col card-shadow">
