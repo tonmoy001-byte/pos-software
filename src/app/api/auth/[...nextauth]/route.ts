@@ -1,0 +1,80 @@
+export const dynamic = "force-dynamic";
+import NextAuth, { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { prisma } from "@/lib/prisma";
+import { compare } from "bcryptjs";
+
+export const authOptions: NextAuthOptions = {
+  session: {
+    strategy: "jwt",
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
+  providers: [
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        username: { label: "Username", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.username || !credentials?.password) return null;
+
+        const user = await prisma.user.findUnique({
+          where: { username: credentials.username },
+          include: { store: true },
+        });
+
+        if (!user) return null;
+
+        const isPasswordValid = await compare(credentials.password, user.password);
+
+        if (!isPasswordValid) return null;
+
+        return {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          role: user.role,
+          storeId: user.storeId,
+          storeName: user.store.name,
+        };
+      },
+    }),
+  ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = user.role;
+        token.storeId = user.storeId;
+        token.storeName = user.storeName;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.role = token.role;
+        session.user.storeId = token.storeId;
+        session.user.storeName = token.storeName;
+      }
+      return session;
+    },
+  },
+  pages: {
+    signIn: "/auth/signin",
+  },
+};
+
+const handler = NextAuth(authOptions);
+
+export { handler as GET, handler as POST };
+
