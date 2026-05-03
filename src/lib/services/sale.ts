@@ -17,11 +17,13 @@ interface SaleCreateInput {
   dueAmount: number;
   paymentMethod?: string;
   discount?: number;
+  saleType?: string;
+  deliveryDate?: string | null;
 }
 
 export class SaleService {
   async create(input: SaleCreateInput, storeId: string, userId: string) {
-    const { items, customerId, totalAmount, paidAmount, dueAmount, paymentMethod, discount } = input;
+    const { items, customerId, totalAmount, paidAmount, dueAmount, paymentMethod, discount, saleType, deliveryDate } = input;
 
     return prisma.$transaction(async (tx) => {
       let totalCost = 0;
@@ -40,15 +42,17 @@ export class SaleService {
       const sale = await tx.sale.create({
         data: {
           invoiceId,
+          saleType: saleType || "REGULAR",
           totalAmount,
           paidAmount,
           dueAmount,
           discount: discount || 0,
-          costAmount: 0, // Will update after calculating from items
-          profit: 0,     // Will update after calculating from items
+          costAmount: 0,
+          profit: 0,
           status: dueAmount > 0 ? (paidAmount > 0 ? "PARTIAL" : "DUE") : "PAID",
           customerId: customerId || null,
           storeId,
+          deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
           payments: paidAmount > 0
             ? {
                 create: {

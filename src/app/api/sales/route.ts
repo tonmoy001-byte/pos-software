@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 
   try {
     const data = await req.json();
-    const { items, customerId, totalAmount, paidAmount, dueAmount, paymentMethod, discount } = data;
+    const { items, customerId, totalAmount, paidAmount, dueAmount, paymentMethod, discount, saleType, deliveryDate } = data;
 
     // Fetch product costs for profit calculation
     const productIds = items.map((i: any) => i.productId);
@@ -73,7 +73,9 @@ export async function POST(req: Request) {
       paidAmount: Number(paidAmount),
       dueAmount: Number(dueAmount),
       paymentMethod: paymentMethod || "CASH",
-      discount: Number(discount || 0)
+      discount: Number(discount || 0),
+      saleType: saleType || "REGULAR",
+      deliveryDate: deliveryDate || null
     }, session.user.storeId, session.user.id);
 
     return NextResponse.json(sale);
