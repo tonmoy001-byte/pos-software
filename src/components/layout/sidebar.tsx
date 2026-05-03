@@ -58,6 +58,7 @@ const menuItems = [
       { label: "Store Settings", href: "/settings/store", roles: ["ADMIN"] },
       { label: "Invoice Settings", href: "/settings/invoice", roles: ["ADMIN"] },
       { label: "Barcode Settings", href: "/settings/barcode", roles: ["ADMIN"] },
+      { label: "Print Barcodes", href: "/settings/barcode/print", roles: ["ADMIN"] },
     ]
   },
 ];
