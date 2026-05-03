@@ -20,6 +20,7 @@ import {
   Wallet
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { playBeep } from "@/lib/audio";
 import { InvoiceRenderer, ReceiptModal } from "@/components/invoice";
 
 export default function POSPage() {
@@ -126,10 +127,12 @@ const [barcodeInput, setBarcodeInput] = useState("");
       
       if (found) {
         addToCart(found);
+        playBeep(true);
         setBarcodeInput("");
       } else if (barcodeInput.length >= 8) {
         // Only show error for longer barcodes to avoid false positives
         setError("Product not found for this IMEI/Barcode");
+        playBeep(false);
         setTimeout(() => setError(null), 3000);
         setBarcodeInput("");
       }

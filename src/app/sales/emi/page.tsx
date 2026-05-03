@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Search, Trash2, Plus, Scan, Receipt, Banknote, Percent, Users, Smartphone, Check, SmartphoneNfc, X, Wallet, Calendar } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { playBeep } from "@/lib/audio";
 import { ReceiptModal } from "@/components/invoice";
 
 export default function EMISalePage() {
@@ -67,7 +68,7 @@ export default function EMISalePage() {
       const trimmed = barcodeInput.trim();
       const foundProduct = products.find(p => p.items?.some((item: any) => item.imei === trimmed || item.barcode === trimmed));
       const found = foundProduct || products.find(p => p.barcode === trimmed);
-      if (found) { addToCart(found); setBarcodeInput(""); }
+      if (found) { addToCart(found); playBeep(true); setBarcodeInput(""); }
     }, 100);
     return () => clearTimeout(timer);
   }, [barcodeInput, products]);
@@ -76,7 +77,7 @@ export default function EMISalePage() {
     if (e.key === 'Enter' && barcodeInput.trim()) {
       const foundProduct = products.find(p => p.items?.some((item: any) => item.imei === barcodeInput.trim() || item.barcode === barcodeInput.trim()));
       const found = foundProduct || products.find(p => p.barcode === barcodeInput.trim());
-      if (found) { addToCart(found); setBarcodeInput(""); }
+      if (found) { addToCart(found); playBeep(true); setBarcodeInput(""); }
     }
   };
   const confirmIMEIs = (product: any, selectedImeis: string[]) => {

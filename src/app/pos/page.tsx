@@ -20,6 +20,7 @@ import {
   Wallet
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { playBeep } from "@/lib/audio";
 import { ThermalReceipt } from "@/components/pos/receipt";
 
 export default function POSPage() {
@@ -112,11 +113,14 @@ export default function POSPage() {
       const foundByProductBarcode = products.find(p => p.barcode === trimmed);
       const found = foundProduct || foundByProductBarcode;
       
-      if (found) {
+if (found) {
         addToCart(found);
+        playBeep(true);
         setBarcodeInput("");
       } else if (barcodeInput.length >= 8) {
+        // Only show error for longer barcodes to avoid false positives
         setError("Product not found for this IMEI/Barcode");
+        playBeep(false);
         setTimeout(() => setError(null), 3000);
         setBarcodeInput("");
       }

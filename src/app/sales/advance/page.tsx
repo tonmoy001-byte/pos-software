@@ -27,6 +27,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { playBeep } from "@/lib/audio";
 import { ReceiptModal } from "@/components/invoice";
 
 export default function AdvanceOrderPage() {
@@ -141,9 +142,11 @@ export default function AdvanceOrderPage() {
       const found = products.find(p => p.barcode === trimmed);
       if (found) {
         addToCart(found);
+        playBeep(true);
         setBarcodeInput("");
       } else if (barcodeInput.length >= 8) {
         setError("Product not found for this IMEI/Barcode");
+        playBeep(false);
         setTimeout(() => setError(null), 4000);
         setBarcodeInput("");
       }

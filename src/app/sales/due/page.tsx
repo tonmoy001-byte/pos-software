@@ -5,6 +5,7 @@ import {
   Search, Trash2, Plus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, Check, SmartphoneNfc, X, UserPlus, Wallet, Clock, Filter, Calendar, ChevronRight, AlertTriangle, Phone
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { playBeep } from "@/lib/audio";
 import { ReceiptModal } from "@/components/invoice";
 
 export default function DueSalePage() {
