@@ -410,7 +410,7 @@ export default function AdvanceOrderPage() {
                 <button 
                   disabled={submitting}
                   onClick={handleCheckout}
-                  className="w-full py-6 bg-gradient-to-r from-primary to-primary/80 text-white rounded-2xl font-black text-xl shadow-2xl shadow-primary/40 hover:shadow-primary/60 hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                  className="w-full py-6 bg-gradient-to-r from-primary to-primary/80 text-white rounded-lg font-black text-xl shadow-2xl shadow-primary/40 hover:shadow-primary/60 hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-3"
                 >
                   {submitting ? (
                     <div className="flex items-center gap-2">
@@ -419,7 +419,7 @@ export default function AdvanceOrderPage() {
                     </div>
                   ) : (
                     <>
-                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                      <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
                         <Check className="w-6 h-6" />
                       </div>
                       Confirm Advance Order
@@ -571,7 +571,7 @@ export default function AdvanceOrderPage() {
                 )}
               </div>
               <button onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0 || !selectedCustomer} className="w-full p-6 border-t border-border bg-gradient-to-r from-primary to-primary/80 text-white font-black text-lg shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
                   <Clock className="w-5 h-5" />
                 </div>
                 <div className="text-left">
