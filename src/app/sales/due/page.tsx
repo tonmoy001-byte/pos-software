@@ -378,6 +378,37 @@ export default function DueSalePage() {
                     New Customer
                   </button>
                 )}
+                {isAddingCustomer && (
+                  <div className="mt-4 p-4 bg-background rounded-2xl border border-border space-y-3">
+                    <input 
+                      placeholder="Customer Name" 
+                      value={newCustomer.name} 
+                      onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})} 
+                      className="w-full px-3 py-2 rounded-lg border border-border text-sm font-medium" 
+                    />
+                    <input 
+                      placeholder="Phone Number" 
+                      value={newCustomer.phone} 
+                      onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})} 
+                      className="w-full px-3 py-2 rounded-lg border border-border text-sm font-medium" 
+                    />
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setIsAddingCustomer(false)} 
+                        className="flex-1 py-2 bg-secondary/10 text-secondary rounded-lg text-sm font-bold"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        onClick={handleAddCustomer} 
+                        disabled={!newCustomer.name || !newCustomer.phone} 
+                        className="flex-1 py-2 bg-primary text-white rounded-lg text-sm font-bold disabled:opacity-50"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex-1 overflow-y-auto p-6 space-y-3">
                 <p className="text-[10px] font-black text-secondary uppercase tracking-[0.2em] mb-2">Cart Items</p>
