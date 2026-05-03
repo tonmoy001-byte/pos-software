@@ -7,6 +7,7 @@ import {
   User, 
   Trash2, 
   Plus, 
+  Minus,
   Scan, 
   Receipt, 
   CreditCard, 
@@ -165,6 +166,14 @@ export default function AdvanceOrderPage() {
 
   const removeFromCart = (productId: string) => {
     setCart(cart.filter(item => item.productId !== productId));
+  };
+
+  const updateQuantity = (productId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      setCart(cart.filter(item => item.productId !== productId));
+    } else {
+      setCart(cart.map(item => item.productId === productId ? { ...item, quantity: newQuantity } : item));
+    }
   };
 
   const handleAddCustomer = async () => {
@@ -555,11 +564,20 @@ export default function AdvanceOrderPage() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <p className="font-black text-sm">{item.name}</p>
-                        <p className="text-xs text-secondary">Qty: {item.quantity}</p>
+                        <p className="text-xs text-secondary">Unit: {formatCurrency(item.price)}</p>
                       </div>
                       <button onClick={() => removeFromCart(item.productId)} className="text-secondary hover:text-red-500 p-1 transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-border/30">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => updateQuantity(item.productId, item.quantity - 1)} className="w-7 h-7 bg-surface border border-border rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:border-primary transition-colors">
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="font-bold text-sm w-8 text-center">{item.quantity}</span>
+                        <button onClick={() => updateQuantity(item.productId, item.quantity + 1)} className="w-7 h-7 bg-surface border border-border rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:border-primary transition-colors">
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
                       <span className="font-black text-foreground">{formatCurrency(item.price * item.quantity)}</span>
                     </div>
                   </div>
