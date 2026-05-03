@@ -15,7 +15,8 @@ import {
   Check,
   AlertCircle,
   Search,
-  Send
+  Send,
+  Clock
 } from "lucide-react";
 import { Button, Input, Card, CardTitle, Modal } from "@/components/ui";
 import { formatCurrency, formatTime } from "@/lib/utils";
@@ -269,6 +270,13 @@ export default function ActivityDashboard() {
             <p className="text-xs text-secondary">F5</p>
           </div>
           <Package className="w-6 h-6" />
+        </Button>
+        <Button variant="secondary" onClick={() => router.push("/sales/advance/ledger")} size="lg" className="flex justify-between">
+          <div>
+            <p className="font-bold">Advance Ledger</p>
+            <p className="text-xs text-secondary">F6</p>
+          </div>
+          <Clock className="w-6 h-6" />
         </Button>
       </div>
 
