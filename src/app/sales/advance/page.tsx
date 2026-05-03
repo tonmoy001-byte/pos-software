@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { 
   Search, 
   User, 
@@ -24,6 +25,8 @@ import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
 
 export default function AdvanceOrderPage() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"sale" | "ledger">("sale");
   const [products, setProducts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<any[]>([]);
@@ -449,14 +452,24 @@ export default function AdvanceOrderPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-black text-foreground">Advance Orders</h1>
-            <p className="text-xs text-secondary font-bold uppercase tracking-widest mt-1">Create New Advance Order</p>
+            <p className="text-xs text-secondary font-bold uppercase tracking-widest mt-1">
+              {activeTab === "sale" ? "Create New Advance Order" : "Advance Orders Ledger"}
+            </p>
           </div>
-          <a 
-            href="/sales/advance/ledger"
-            className="px-6 py-2 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors"
-          >
-            View Ledger
-          </a>
+          <div className="flex bg-background p-1 rounded-2xl border border-border">
+            <button 
+              onClick={() => setActiveTab("sale")}
+              className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'sale' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-secondary hover:text-foreground'}`}
+            >
+              New Order
+            </button>
+            <button 
+              onClick={() => router.push("/sales/advance/ledger")}
+              className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'ledger' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-secondary hover:text-foreground'}`}
+            >
+              Ledger
+            </button>
+          </div>
         </div>
       </div>
 
