@@ -509,9 +509,6 @@ export default function AdvanceOrderPage() {
                       <button onClick={() => removeFromCart(item.productId)} className="text-secondary hover:text-red-500 p-1 transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-border/30">
-                      <div className="flex gap-1 flex-wrap">
-                        {item.imeis.map((imei: string) => <span key={imei} className="text-[9px] bg-surface px-1.5 py-0.5 rounded border border-border text-secondary font-medium">{imei}</span>)}
-                      </div>
                       <span className="font-black text-foreground">{formatCurrency(item.price * item.quantity)}</span>
                     </div>
                   </div>
@@ -523,51 +520,10 @@ export default function AdvanceOrderPage() {
                   </div>
                 )}
               </div>
-              <div className="p-6 border-t border-border bg-background/50 space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm text-secondary font-medium"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-                  <div className="flex justify-between items-center text-sm text-secondary font-medium mt-2">
-                    <span>Discount</span>
-                    <div className="flex items-center gap-2">
-                      <Percent className="w-3 h-3" />
-                      <input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="w-20 text-right bg-transparent border-b border-border outline-none focus:border-primary font-bold text-foreground" />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex justify-between items-end py-2">
-                  <span className="font-black text-secondary">Total</span>
-                  <span className="font-black text-2xl text-foreground">{formatCurrency(total)}</span>
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-secondary font-medium">Advance ({advancePercent}%)</span>
-                    <span className="font-bold text-green-600">{formatCurrency(advanceAmount)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-secondary font-medium">Remaining Due</span>
-                    <span className="font-bold text-primary">{formatCurrency(remainingDue)}</span>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[10px] font-black text-secondary uppercase tracking-widest block mb-2">Advance Percentage</label>
-                    <input type="range" min="10" max="100" value={advancePercent} onChange={(e) => setAdvancePercent(Number(e.target.value))} className="w-full accent-primary" />
-                    <div className="flex justify-between text-[10px] text-secondary mt-1">
-                      <span>10%</span>
-                      <span className="font-bold text-primary">{advancePercent}%</span>
-                      <span>100%</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-secondary uppercase tracking-widest block mb-2">Delivery Date</label>
-                    <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none focus:border-primary font-medium" />
-                  </div>
-                </div>
-                <button onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0} className="w-full py-4 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3">
-                  <Clock className="w-5 h-5" />
-                  Create Advance Order
-                </button>
-              </div>
+              <button onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0} className="w-full p-6 border-t border-border bg-primary text-white font-black text-lg shadow-xl shadow-primary/30 hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-3">
+                <Clock className="w-5 h-5" />
+                Create Advance Order
+              </button>
             </div>
           </div>
         ) : (
