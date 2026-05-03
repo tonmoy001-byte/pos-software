@@ -109,9 +109,10 @@ export default function AdvanceOrderPage() {
   }, [customerSearch]);
 
   const addToCart = (product: any) => {
-    const availableStock = product._count?.items || 0;
+    const availableStock = product._count?.items ?? 0;
+    console.log("Adding product:", product.name, "Stock:", availableStock);
     if (availableStock > 0) {
-      setError("Product available in stock. Please complete sale from POS sales page.");
+      setError(`Product available in stock (${availableStock} units). Please complete sale from POS sales page.`);
       setTimeout(() => setError(null), 4000);
       return;
     }
@@ -457,11 +458,11 @@ export default function AdvanceOrderPage() {
                   {filteredProducts.map((product) => (
                     <div key={product.id} onClick={() => addToCart(product)} className={`bg-surface p-4 rounded-2xl border ${product._count?.items > 0 ? 'border-green-300 opacity-60' : 'border-border hover:border-primary/30'} cursor-pointer group transition-all`}>
                       <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
-                        <Smartphone className={`w-12 h-12 ${product._count?.items > 0 ? 'text-green-300' : 'text-primary/20 group-hover:scale-110'} transition-transform`} />
-                        <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-md ${product._count?.items > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
-                          {product._count?.items > 0 ? 'IN STOCK' : 'OUT OF STOCK'}
+                        <Smartphone className={`w-12 h-12 ${(product._count?.items ?? 0) > 0 ? 'text-green-300' : 'text-primary/20 group-hover:scale-110'} transition-transform`} />
+                        <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-md ${(product._count?.items ?? 0) > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                          {(product._count?.items ?? 0) > 0 ? 'IN STOCK' : 'OUT OF STOCK'}
                         </span>
-                        {product._count?.items > 0 && (
+                        {(product._count?.items ?? 0) > 0 && (
                           <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-1 rounded-md bg-white/90 text-green-600">
                             {product._count?.items || 0} units
                           </span>
@@ -471,7 +472,7 @@ export default function AdvanceOrderPage() {
                       <p className="text-xs text-secondary mt-1">{product.model} | {product.brand}</p>
                       <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/50">
                         <span className="font-black text-primary">{formatCurrency(product.price)}</span>
-                        {product._count?.items <= 0 && (
+                        {(!product._count?.items || product._count.items <= 0) && (
                           <div className="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all"><Plus className="w-4 h-4" /></div>
                         )}
                         {product._count?.items > 0 && (
