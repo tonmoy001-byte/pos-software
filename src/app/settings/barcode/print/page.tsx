@@ -56,12 +56,15 @@ export default function BarcodePrintPage() {
           : p
       ));
     } else {
-      const imeis = product.items?.slice(0, 1).map(i => i.imei) || [];
+      // Use product barcode as fallback if no IMEIs available
+      const imeis = product.items?.slice(0, 10).map(i => i.imei) || [];
+      const fallbackValue = product.barcode || product.id;
+      const allItems = imeis.length > 0 ? imeis : [fallbackValue];
       setPrintItems([...printItems, {
         productId: product.id,
         product,
         quantity: 1,
-        items: imeis
+        items: allItems
       }]);
     }
   };
@@ -250,8 +253,8 @@ export default function BarcodePrintPage() {
                     productName={barcodeSettings?.showProductName ? item.product.name : undefined}
                     price={barcodeSettings?.showPrice ? item.product.price.toString() : undefined}
                     sku={barcodeSettings?.showSku ? item.product.barcode : undefined}
-                    imei={barcodeSettings?.showImei ? item.items[0] : undefined}
-                    barcodeValue={item.items[idx % item.items.length] || item.product.barcode || item.productId}
+                    imei={barcodeSettings?.showImei && item.items.length > 0 ? item.items[0] : undefined}
+                    barcodeValue={item.items.length > 0 ? item.items[idx % item.items.length] : (item.product.barcode || item.productId)}
                     settings={barcodeSettings || {
                       barcodeType: "CODE128",
                       showProductName: true,
