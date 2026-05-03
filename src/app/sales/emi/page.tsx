@@ -59,6 +59,19 @@ export default function EMISalePage() {
   }, [customerSearch]);
 
   const addToCart = (product: any) => { setSelectedProduct(product); setIsIMEIOpen(true); };
+  
+  // Instant barcode detection
+  useEffect(() => {
+    if (!barcodeInput.trim() || barcodeInput.length < 3) return;
+    const timer = setTimeout(() => {
+      const trimmed = barcodeInput.trim();
+      const foundProduct = products.find(p => p.items?.some((item: any) => item.imei === trimmed || item.barcode === trimmed));
+      const found = foundProduct || products.find(p => p.barcode === trimmed);
+      if (found) { addToCart(found); setBarcodeInput(""); }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [barcodeInput, products]);
+
   const handleBarcodeScan = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && barcodeInput.trim()) {
       const foundProduct = products.find(p => p.items?.some((item: any) => item.imei === barcodeInput.trim() || item.barcode === barcodeInput.trim()));

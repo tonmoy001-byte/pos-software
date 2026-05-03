@@ -111,6 +111,33 @@ const [barcodeInput, setBarcodeInput] = useState("");
     setIsIMEIOpen(true);
   };
 
+  // Instant barcode detection - no need to press Enter
+  useEffect(() => {
+    if (!barcodeInput.trim() || barcodeInput.length < 3) return;
+    
+    // Check if we've already processed this barcode recently
+    const timer = setTimeout(() => {
+      const trimmed = barcodeInput.trim();
+      const foundProduct = products.find(p => 
+        p.items?.some((item: any) => item.imei === trimmed || item.barcode === trimmed)
+      );
+      const foundByProductBarcode = products.find(p => p.barcode === trimmed);
+      const found = foundProduct || foundByProductBarcode;
+      
+      if (found) {
+        addToCart(found);
+        setBarcodeInput("");
+      } else if (barcodeInput.length >= 8) {
+        // Only show error for longer barcodes to avoid false positives
+        setError("Product not found for this IMEI/Barcode");
+        setTimeout(() => setError(null), 3000);
+        setBarcodeInput("");
+      }
+    }, 100); // Small delay to allow full barcode to be scanned
+    
+    return () => clearTimeout(timer);
+  }, [barcodeInput, products]);
+
   const handleBarcodeScan = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && barcodeInput.trim()) {
       const foundProduct = products.find(p => 

@@ -133,6 +133,24 @@ export default function AdvanceOrderPage() {
     }
   };
 
+  // Instant barcode detection
+  useEffect(() => {
+    if (!barcodeInput.trim() || barcodeInput.length < 3) return;
+    const timer = setTimeout(() => {
+      const trimmed = barcodeInput.trim();
+      const found = products.find(p => p.barcode === trimmed);
+      if (found) {
+        addToCart(found);
+        setBarcodeInput("");
+      } else if (barcodeInput.length >= 8) {
+        setError("Product not found for this IMEI/Barcode");
+        setTimeout(() => setError(null), 4000);
+        setBarcodeInput("");
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [barcodeInput, products]);
+
   const handleBarcodeScan = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && barcodeInput.trim()) {
       const foundProduct = products.find(p => 

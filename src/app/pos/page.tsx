@@ -100,6 +100,31 @@ export default function POSPage() {
     setIsIMEIOpen(true);
   };
 
+  // Instant barcode detection - no need to press Enter
+  useEffect(() => {
+    if (!barcodeInput.trim() || barcodeInput.length < 3) return;
+    
+    const timer = setTimeout(() => {
+      const trimmed = barcodeInput.trim();
+      const foundProduct = products.find(p => 
+        p.items?.some((item: any) => item.imei === trimmed || item.barcode === trimmed)
+      );
+      const foundByProductBarcode = products.find(p => p.barcode === trimmed);
+      const found = foundProduct || foundByProductBarcode;
+      
+      if (found) {
+        addToCart(found);
+        setBarcodeInput("");
+      } else if (barcodeInput.length >= 8) {
+        setError("Product not found for this IMEI/Barcode");
+        setTimeout(() => setError(null), 3000);
+        setBarcodeInput("");
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [barcodeInput, products]);
+
   const handleBarcodeScan = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && barcodeInput.trim()) {
       // Search by imei or barcode in serialized items
