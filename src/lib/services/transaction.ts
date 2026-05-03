@@ -127,28 +127,29 @@ export class TransactionService {
 
   async getDailySummary(storeId: string, isAdmin?: boolean): Promise<DailySummary> {
     const today = new Date();
-    const dayStart = startOfDay(today);
-    const dayEnd = endOfDay(today);
+    today.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(today);
+    dayEnd.setHours(23, 59, 59, 999);
     const storeFilter = getTenantFilter(storeId, !isAdmin);
 
     const [sales, collections, expenses, transactions, profitAgg] = await Promise.all([
       prisma.sale.aggregate({
-        where: { ...storeFilter, createdAt: { gte: dayStart, lte: dayEnd } },
+        where: { ...storeFilter, createdAt: { gte: today, lte: dayEnd } },
         _sum: { totalAmount: true, paidAmount: true, dueAmount: true },
       }),
       prisma.payment.aggregate({
-        where: { ...storeFilter, date: { gte: dayStart, lte: dayEnd } },
+        where: { ...storeFilter, date: { gte: today, lte: dayEnd } },
         _sum: { amount: true },
       }),
       prisma.expense.aggregate({
-        where: storeFilter,
+        where: { ...storeFilter, createdAt: { gte: today, lte: dayEnd } },
         _sum: { amount: true },
       }),
       prisma.transaction.count({
-        where: { ...storeFilter, createdAt: { gte: dayStart, lte: dayEnd } },
+        where: { ...storeFilter, createdAt: { gte: today, lte: dayEnd } },
       }),
       prisma.transaction.aggregate({
-        where: { ...storeFilter, createdAt: { gte: dayStart, lte: dayEnd }, type: "SALE" },
+        where: { ...storeFilter, createdAt: { gte: today, lte: dayEnd }, type: "SALE" },
         _sum: { profit: true },
       }),
     ]);
@@ -158,13 +159,20 @@ export class TransactionService {
     const collectionsAmount = Number(collections._sum.amount || 0);
     const expensesAmount = Number(expenses._sum.amount || 0);
 
+    const expenseFromTransactions = await prisma.transaction.aggregate({
+      where: { ...storeFilter, createdAt: { gte: today, lte: dayEnd }, type: "EXPENSE" },
+      _sum: { amount: true },
+    });
+    
+    const totalExpenses = expensesAmount + Number(expenseFromTransactions._sum.amount || 0);
+
     return {
       totalSales: cashSales + dueSales,
       cashSales,
       dueSales,
       collections: collectionsAmount,
-      expenses: expensesAmount,
-      netCash: cashSales + collectionsAmount - expensesAmount,
+      expenses: totalExpenses,
+      netCash: cashSales + collectionsAmount - totalExpenses,
       transactionCount: transactions,
     };
   }

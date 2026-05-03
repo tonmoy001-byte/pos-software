@@ -75,6 +75,21 @@ export function Sidebar({ userRole }: { userRole: string }) {
         <h1 className="text-2xl font-bold text-primary tracking-tight">Dinex POS</h1>
         <p className="text-xs text-secondary font-medium">Retail Management</p>
       </div>
+
+      <div className="px-4 mb-4">
+        <Link
+          href="/sales/pos"
+          className={cn(
+            "flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold transition-all duration-200",
+            pathname === "/sales/pos"
+              ? "bg-primary text-white shadow-lg shadow-primary/20" 
+              : "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20"
+          )}
+        >
+          <ShoppingCart className="w-5 h-5" />
+          POS
+        </Link>
+      </div>
       
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
         {menuItems.filter(item => item.roles.includes(userRole)).map((item) => {

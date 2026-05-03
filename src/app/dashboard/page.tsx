@@ -24,8 +24,9 @@ import type { DailySummary, CapitalSummary, TransactionType } from "@/types";
 export default function ActivityDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
-  const [capital, setCapital] = useState<CapitalSummary | null>(null);
+  const [dailySummary, setDailySummary] = useState<any>(null);
+  const [capital, setCapital] = useState<any>(null);
+  const [customerDue, setCustomerDue] = useState<number>(0);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -45,6 +46,7 @@ export default function ActivityDashboard() {
 
   const fetchData = useCallback(async () => {
     try {
+      setLoading(true);
       const [statsRes, productsRes, customersRes] = await Promise.all([
         fetch("/api/dashboard/stats"),
         fetch("/api/products"),
@@ -52,9 +54,16 @@ export default function ActivityDashboard() {
       ]);
       
       const statsData = await statsRes.json();
-      setDailySummary(statsData.summary);
-      setCapital(statsData.capital);
-      setTransactions(statsData.transactions || []);
+      
+      if (statsRes.ok) {
+        setDailySummary(statsData.summary);
+        setCapital(statsData.capital);
+        setCustomerDue(statsData.customerDue || 0);
+        setTransactions(statsData.transactions || []);
+      } else {
+        console.error("Dashboard API error:", statsData);
+      }
+      
       setProducts(await productsRes.json());
       setCustomers(await customersRes.json());
     } catch (err) {
@@ -178,44 +187,53 @@ export default function ActivityDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6 space-y-4">
-      {/* Quick Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <div className="min-h-screen bg-background p-4 md:p-6 space-y-6">
+      {/* Quick Stats Bar - Using CSS Grid for full width */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
         <Card className="p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Wallet className="w-4 h-4 text-green-600" />
-            <span className="text-xs text-secondary font-bold uppercase">Cash</span>
+          <div className="flex items-center gap-2 mb-2">
+            <Wallet className="w-5 h-5 text-green-600" />
+            <span className="text-sm font-bold text-secondary uppercase">Cash</span>
           </div>
-          <p className="text-2xl font-black">{formatCurrency(dailySummary?.netCash || 0)}</p>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="w-4 h-4 text-blue-600" />
-            <span className="text-xs text-secondary font-bold uppercase">Sales</span>
-          </div>
-          <p className="text-2xl font-black">{formatCurrency(dailySummary?.totalSales || 0)}</p>
+          <p className="text-3xl font-black">{formatCurrency(dailySummary?.netCash || 0)}</p>
         </Card>
         <Card className="p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <CreditCard className="w-4 h-4 text-purple-600" />
-            <span className="text-xs text-secondary font-bold uppercase">Collections</span>
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-5 h-5 text-blue-600" />
+            <span className="text-sm font-bold text-secondary uppercase">Sales</span>
           </div>
-          <p className="text-2xl font-black">{formatCurrency(dailySummary?.collections || 0)}</p>
+          <p className="text-3xl font-black">{formatCurrency(dailySummary?.totalSales || 0)}</p>
         </Card>
         <Card className="p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <ArrowDownRight className="w-4 h-4 text-red-600" />
-            <span className="text-xs text-secondary font-bold uppercase">Expenses</span>
+          <div className="flex items-center gap-2 mb-2">
+            <CreditCard className="w-5 h-5 text-purple-600" />
+            <span className="text-sm font-bold text-secondary uppercase">Collections</span>
           </div>
-          <p className="text-2xl font-black">{formatCurrency(dailySummary?.expenses || 0)}</p>
+          <p className="text-3xl font-black">{formatCurrency(dailySummary?.collections || 0)}</p>
         </Card>
-        <Card className="p-4 cursor-pointer hover:border-primary/50" onClick={() => router.push("/dues")}>
-          <div className="flex items-center gap-2 mb-1">
-            <AlertCircle className="w-4 h-4 text-red-600" />
-            <span className="text-xs text-secondary font-bold uppercase">Due</span>
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <ArrowDownRight className="w-5 h-5 text-red-600" />
+            <span className="text-sm font-bold text-secondary uppercase">Expenses</span>
           </div>
-          <p className="text-2xl font-black text-red-600">{formatCurrency(capital?.supplierDue || 0)}</p>
+          <p className="text-3xl font-black">{formatCurrency(dailySummary?.expenses || 0)}</p>
         </Card>
+        <div className="col-span-2 md:col-span-4 lg:col-span-1 flex flex-col sm:flex-row gap-2">
+          <Card className="p-4 flex-1 cursor-pointer hover:border-primary/50" onClick={() => router.push("/customers")}>
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-5 h-5 text-orange-600" />
+              <span className="text-sm font-bold text-secondary uppercase">C. Due</span>
+            </div>
+            <p className="text-2xl font-black text-orange-600">{formatCurrency(customerDue)}</p>
+          </Card>
+          <Card className="p-4 flex-1 cursor-pointer hover:border-primary/50" onClick={() => router.push("/suppliers")}>
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+              <span className="text-sm font-bold text-secondary uppercase">S. Due</span>
+            </div>
+            <p className="text-2xl font-black text-red-600">{formatCurrency(capital?.supplierDue || 0)}</p>
+          </Card>
+        </div>
       </div>
 
       {/* Main Action Grid */}
