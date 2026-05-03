@@ -227,7 +227,7 @@ export default function AdvanceOrderPage() {
   if (loading) return <div className="p-8 animate-pulse text-secondary font-bold">Loading Inventory...</div>;
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
       {isIMEIOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-surface w-full max-w-lg rounded-3xl p-8 card-shadow space-y-6 relative animate-in zoom-in-95 duration-200">
