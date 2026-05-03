@@ -166,19 +166,20 @@ model Sale {
   saleType       String     @default("REGULAR")
   totalAmount    Decimal
   paidAmount     Decimal
-  dueAmount     Decimal
+  dueAmount      Decimal
   discount       Decimal    @default(0)
-  costAmount    Decimal    @default(0)
-  profit       Decimal    @default(0)
-  status        SaleStatus
-  customerId    String?
-  customer     Customer?  @relation(fields: [customerId], references: [id])
-  storeId      String
-  store        Store      @relation(fields: [storeId], references: [id])
-  items        SaleItem[]
-  payments     Payment[]
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  costAmount     Decimal    @default(0)
+  profit         Decimal    @default(0)
+  status         SaleStatus
+  customerId     String?
+  customer       Customer?  @relation(fields: [customerId], references: [id])
+  storeId        String
+  store          Store      @relation(fields: [storeId], references: [id])
+  items          SaleItem[]
+  payments       Payment[]
+  deliveryDate   DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 }
 
 model SaleItem {
