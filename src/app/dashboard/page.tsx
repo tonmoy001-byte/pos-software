@@ -43,6 +43,7 @@ export default function ActivityDashboard() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{type: "success"|"error", text: string} | null>(null);
+  const [showExpenses, setShowExpenses] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -85,7 +86,7 @@ export default function ActivityDashboard() {
       }
       if (e.key === "F2") setActiveForm("SALE");
       if (e.key === "F3") setActiveForm("EXPENSE");
-      if (e.key === "F4") router.push("/dues");
+      if (e.key === "F4") router.push("/sales/due");
       if (e.key === "F5") router.push("/inventory");
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -188,8 +189,8 @@ export default function ActivityDashboard() {
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 space-y-6">
-      {/* Quick Stats Bar - Using CSS Grid for full width */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* Quick Stats Bar - First Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4 border-l-4 border-l-green-600">
           <div className="flex items-center gap-2 mb-2">
             <Wallet className="w-5 h-5 text-green-600" />
@@ -211,6 +212,17 @@ export default function ActivityDashboard() {
           </div>
           <p className="text-3xl font-black text-emerald-600">{formatCurrency(dailySummary?.profit || 0)}</p>
         </Card>
+        <Card className="p-4 border-l-4 border-l-orange-600 cursor-pointer hover:border-orange-300" onClick={() => router.push("/customers")}>
+          <div className="flex items-center gap-2 mb-2">
+            <AlertCircle className="w-5 h-5 text-orange-600" />
+            <span className="text-sm font-bold text-secondary uppercase">Dues</span>
+          </div>
+          <p className="text-3xl font-black text-orange-600">{formatCurrency(customerDue)}</p>
+        </Card>
+      </div>
+
+      {/* Quick Stats Bar - Second Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4 border-l-4 border-l-purple-600">
           <div className="flex items-center gap-2 mb-2">
             <CreditCard className="w-5 h-5 text-purple-600" />
@@ -218,19 +230,12 @@ export default function ActivityDashboard() {
           </div>
           <p className="text-3xl font-black">{formatCurrency(dailySummary?.collections || 0)}</p>
         </Card>
-        <Card className="p-4 border-l-4 border-l-red-600">
+        <Card className="p-4 border-l-4 border-l-red-600 cursor-pointer hover:border-red-300" onClick={() => setShowExpenses(true)}>
           <div className="flex items-center gap-2 mb-2">
             <ArrowDownRight className="w-5 h-5 text-red-600" />
             <span className="text-sm font-bold text-secondary uppercase">Expenses</span>
           </div>
           <p className="text-3xl font-black">{formatCurrency(dailySummary?.expenses || 0)}</p>
-        </Card>
-        <Card className="p-4 border-l-4 border-l-orange-600 cursor-pointer hover:border-orange-300" onClick={() => router.push("/customers")}>
-          <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="w-5 h-5 text-orange-600" />
-            <span className="text-sm font-bold text-secondary uppercase">Dues</span>
-          </div>
-          <p className="text-3xl font-black text-orange-600">{formatCurrency(customerDue)}</p>
         </Card>
       </div>
 
@@ -251,7 +256,7 @@ export default function ActivityDashboard() {
           </div>
           <Calculator className="w-6 h-6" />
         </Button>
-        <Button variant="secondary" onClick={() => router.push("/dues")} size="lg" className="flex justify-between">
+        <Button variant="secondary" onClick={() => router.push("/sales/due")} size="lg" className="flex justify-between">
           <div>
             <p className="font-bold">Collect Due</p>
             <p className="text-xs text-secondary">F4</p>
@@ -372,6 +377,33 @@ export default function ActivityDashboard() {
           >
             {submitting ? "Processing..." : <><Send className="w-5 h-5" /> Complete</>}
           </Button>
+        </div>
+      </Modal>
+
+      {/* Expenses List Modal */}
+      <Modal isOpen={showExpenses} onClose={() => setShowExpenses(false)} title="Today's Expenses">
+        <div className="space-y-3">
+          {transactions.filter(tx => tx.type === "EXPENSE").length === 0 ? (
+            <p className="py-8 text-center text-secondary italic">No expenses today.</p>
+          ) : (
+            transactions.filter(tx => tx.type === "EXPENSE").map((expense) => (
+              <div key={expense.id} className="flex items-center justify-between p-3 bg-background rounded-lg">
+                <div>
+                  <p className="font-bold text-sm">{expense.description || "Expense"}</p>
+                  <p className="text-xs text-secondary">{formatTime(expense.createdAt)}</p>
+                </div>
+                <p className="font-bold text-red-600">-{formatCurrency(expense.amount)}</p>
+              </div>
+            ))
+          )}
+          {transactions.filter(tx => tx.type === "EXPENSE").length > 0 && (
+            <div className="pt-3 border-t border-border">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-secondary">Total Expenses</span>
+                <span className="text-2xl font-black text-red-600">{formatCurrency(dailySummary?.expenses || 0)}</span>
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
 
