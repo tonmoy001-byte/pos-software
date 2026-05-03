@@ -322,66 +322,8 @@ export default function AdvanceOrderPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-10">
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center px-1">
-                    <label className="text-xs font-black text-secondary uppercase tracking-widest">Customer Information</label>
-                    <button onClick={() => setIsAddingCustomer(!isAddingCustomer)} className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
-                      <UserPlus className="w-3 h-3" />
-                      {isAddingCustomer ? "Search Existing" : "New Customer"}
-                    </button>
-                  </div>
-
-                  {isAddingCustomer ? (
-                    <div className="space-y-3 p-5 bg-background rounded-3xl border-2 border-primary/10 animate-in slide-in-from-top-2">
-                      <input placeholder="Full Name" value={newCustomer.name} onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})} className="w-full bg-transparent border-b border-border py-2 text-sm outline-none focus:border-primary font-bold" />
-                      <input placeholder="Phone Number" value={newCustomer.phone} onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})} className="w-full bg-transparent border-b border-border py-2 text-sm outline-none focus:border-primary font-bold" />
-                      <button onClick={handleAddCustomer} className="w-full py-3 bg-primary/10 text-primary rounded-xl text-xs font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all">
-                        Create & Select
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      {selectedCustomer ? (
-                        <div className="p-4 bg-primary/5 border-2 border-primary rounded-2xl flex items-center justify-between group">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center font-black">
-                              {selectedCustomer.name[0]}
-                            </div>
-                            <div>
-                              <p className="text-sm font-black">{selectedCustomer.name}</p>
-                              <p className="text-[10px] text-secondary font-bold">{selectedCustomer.phone}</p>
-                            </div>
-                          </div>
-                          <button onClick={() => setSelectedCustomer(null)} className="text-secondary hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary w-4 h-4" />
-                          <input value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)} placeholder="Search by name or phone..." className="w-full pl-12 pr-4 py-4 rounded-2xl bg-background border-2 border-border focus:border-primary outline-none transition-all font-bold text-sm" />
-                          {customerResults.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 bg-surface border-2 border-border rounded-2xl mt-2 overflow-hidden z-10 shadow-xl">
-                              {customerResults.map(c => (
-                                <button key={c.id} onClick={() => { setSelectedCustomer(c); setCustomerSearch(""); setCustomerResults([]); }} className="w-full p-4 text-left hover:bg-primary/5 transition-colors border-b border-border last:border-0 flex items-center justify-between">
-                                  <div>
-                                    <p className="text-sm font-black">{c.name}</p>
-                                    <p className="text-xs text-secondary font-medium">{c.phone}</p>
-                                  </div>
-                                  <Plus className="w-4 h-4 text-primary" />
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-xs font-black text-secondary uppercase tracking-widest px-1">Advance Percentage</label>
+              <div className="space-y-3">
+                <label className="text-xs font-black text-secondary uppercase tracking-widest px-1">Advance Percentage</label>
                   <div className="grid grid-cols-4 gap-2">
                     {[10, 20, 30, 50].map(p => (
                       <button
@@ -413,6 +355,7 @@ export default function AdvanceOrderPage() {
               </div>
 
               <div className="space-y-6 bg-background/50 p-8 rounded-[2rem] border-2 border-border">
+                <div className="space-y-4">
                 <div className="space-y-4">
                   <div className="flex justify-between text-secondary font-bold">
                     <span>Total Order Value</span>
