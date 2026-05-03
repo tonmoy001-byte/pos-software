@@ -82,6 +82,7 @@ model Store {
   dailyBalances     DailyBalance[]
   events            Event[]
   invoiceSettings   InvoiceSettings?
+  barcodeSettings   BarcodeSettings?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 }
@@ -325,4 +326,34 @@ model SecondHandRecord {
   encryptionIv   String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+}
+
+model BarcodeSettings {
+  id              String   @id @default(uuid())
+  storeId         String   @unique
+  store           Store    @relation(fields: [storeId], references: [id])
+  
+  // Barcode Type
+  barcodeType     String   @default("CODE128")
+  
+  // Label Size
+  labelWidth      Int      @default(50)
+  labelHeight     Int      @default(25)
+  labelSizeName   String   @default("50x25mm")
+  
+  // Field Visibility
+  showProductName Boolean  @default(true)
+  showPrice        Boolean  @default(true)
+  showSku          Boolean  @default(true)
+  showImei         Boolean  @default(true)
+  showBarcode      Boolean  @default(true)
+  showQrCode       Boolean  @default(false)
+  showWarranty     Boolean  @default(false)
+  
+  // Additional Options
+  includeCurrency Boolean  @default(true)
+  fontSize         Int      @default(10)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
