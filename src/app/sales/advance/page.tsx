@@ -20,7 +20,9 @@ import {
   UserPlus,
   Wallet,
   Clock,
-  ClipboardList
+  ClipboardList,
+  Phone,
+  Filter
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
@@ -59,6 +61,7 @@ export default function AdvanceOrderPage() {
   const [currentStore, setCurrentStore] = useState<any>(null);
   const [advances, setAdvances] = useState<any[]>([]);
   const [advancesLoading, setAdvancesLoading] = useState(false);
+  const [duesSearch, setDuesSearch] = useState("");
 
   const fetchAdvances = async () => {
     setAdvancesLoading(true);
@@ -488,25 +491,22 @@ export default function AdvanceOrderPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col p-6 space-y-6 overflow-hidden">
+      <div className="flex-1 overflow-hidden">
         {activeTab === "sale" ? (
-          <>
-            <div className="flex gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary w-5 h-5" />
-                <input type="text" placeholder="Search by Product Name or IMEI..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-12 pr-4 py-4 rounded-2xl bg-surface border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all card-shadow" />
-                <input ref={barcodeInputRef} type="text" value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} onKeyDown={handleBarcodeScan} placeholder="Scan barcode..." className="hidden" />
+          <div className="flex h-full overflow-hidden">
+            <div className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden">
+              <div className="flex gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary w-5 h-5" />
+                  <input type="text" placeholder="Search products..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-12 pr-4 py-4 rounded-2xl bg-surface border border-border focus:border-primary outline-none font-medium" />
+                  <input ref={barcodeInputRef} type="text" value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} onKeyDown={handleBarcodeScan} className="hidden" />
+                </div>
+                <button onClick={() => barcodeInputRef.current?.focus()} className="bg-primary/10 text-primary px-6 py-4 rounded-2xl font-bold flex items-center gap-2"><Scan className="w-6 h-6" /> Scan</button>
               </div>
-              <button onClick={focusBarcodeInput} className="bg-primary/10 text-primary p-4 rounded-2xl border border-primary/20 hover:bg-primary/20 transition-colors" title="Click to scan barcode">
-                <Scan className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredProducts.map((product) => (
-                  <div key={product.id} onClick={() => addToCart(product)} className="bg-surface p-4 rounded-2xl border border-border hover:border-primary/30 transition-all cursor-pointer group card-shadow flex flex-col justify-between">
-                    <div>
+              <div className="flex-1 overflow-y-auto pb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {filteredProducts.map((product) => (
+                    <div key={product.id} onClick={() => addToCart(product)} className="bg-surface p-4 rounded-2xl border border-border hover:border-primary/30 cursor-pointer group transition-all">
                       <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
                         <Smartphone className="w-12 h-12 text-primary/20 group-hover:scale-110 transition-transform" />
                         <span className={`absolute top-2 right-2 text-white text-[10px] font-bold px-2 py-1 rounded-md ${product._count?.items > 0 ? 'bg-primary' : 'bg-red-500'}`}>
@@ -515,70 +515,208 @@ export default function AdvanceOrderPage() {
                       </div>
                       <h4 className="font-bold text-sm">{product.name}</h4>
                       <p className="text-xs text-secondary mt-1">{product.model} | {product.brand}</p>
+                      <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/50">
+                        <span className="font-black text-primary">{formatCurrency(product.price)}</span>
+                        <div className="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all"><Plus className="w-4 h-4" /></div>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center mt-4">
-                      <span className="font-bold text-primary">{formatCurrency(product.price)}</span>
-                      <Plus className="w-5 h-5 text-primary" />
-                    </div>
-                  </div>
-                ))}
-                {products.length === 0 && <p className="text-secondary italic">No products in inventory.</p>}
+                  ))}
+                </div>
               </div>
             </div>
-          </>
-        ) : (
-          <div className="flex-1 overflow-y-auto">
-            {advancesLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : advances.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 text-secondary">
-                <ClipboardList className="w-16 h-16 mb-4 opacity-50" />
-                <p className="text-lg font-semibold">No advance orders yet</p>
-                <p className="text-sm">Advance orders will appear here</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {advances.map((advance) => (
-                  <div key={advance.id} className="bg-surface p-4 rounded-2xl border border-border card-shadow">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <p className="font-bold text-foreground">#{advance.invoiceNumber}</p>
-                        <p className="text-sm text-secondary">{advance.customer?.name || "Walking Customer"}</p>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${advance.status === "PENDING" ? "bg-yellow-500/20 text-yellow-600" : "bg-green-500/20 text-green-600"}`}>
-                        {advance.status}
-                      </span>
+
+            <div className="w-[400px] bg-surface border-l border-border flex flex-col shadow-2xl">
+              <div className="p-6 border-b border-border">
+                <h3 className="font-black text-lg mb-4">Customer Details</h3>
+                {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold mb-4 flex items-center justify-between">{error}<button onClick={() => setError(null)}><X className="w-4 h-4" /></button></div>}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary w-4 h-4" />
+                  <input value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)} placeholder="Search by name or phone..." className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-border outline-none focus:border-primary font-medium" />
+                  {customerResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded-2xl mt-2 z-10 shadow-2xl overflow-hidden max-h-[300px] overflow-y-auto">
+                      {customerResults.map(c => (<button key={c.id} onClick={() => { setSelectedCustomer(c); setCustomerSearch(""); setCustomerResults([]); }} className="w-full p-4 text-left hover:bg-primary/5 border-b border-border/50 last:border-0"><p className="font-bold">{c.name}</p><p className="text-xs text-secondary flex items-center gap-1 mt-1"><Phone className="w-3 h-3" /> {c.phone}</p></button>))}
                     </div>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <p className="text-secondary">Total</p>
-                        <p className="font-bold">{formatCurrency(advance.total)}</p>
-                      </div>
-                      <div>
-                        <p className="text-secondary">Paid</p>
-                        <p className="font-bold text-green-600">{formatCurrency(advance.paidAmount)}</p>
-                      </div>
-                      <div>
-                        <p className="text-secondary">Due</p>
-                        <p className="font-bold text-red-600">{formatCurrency(advance.total - advance.paidAmount)}</p>
-                      </div>
+                  )}
+                </div>
+                {selectedCustomer ? (
+                  <div className="mt-4 p-4 bg-primary/5 rounded-2xl border border-primary/20 flex justify-between items-center">
+                    <div>
+                      <p className="text-xs font-bold text-primary uppercase tracking-widest">Selected Customer</p>
+                      <p className="font-black text-foreground mt-0.5">{selectedCustomer.name}</p>
                     </div>
-                    {advance.deliveryDate && (
-                      <div className="mt-3 pt-3 border-t border-border">
-                        <p className="text-xs text-secondary">Delivery: <span className="font-semibold text-foreground">{new Date(advance.deliveryDate).toLocaleDateString()}</span></p>
+                    <button onClick={() => setSelectedCustomer(null)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"><X className="w-4 h-4" /></button>
+                  </div>
+                ) : (
+                  <button onClick={() => setIsAddingCustomer(true)} className="w-full mt-4 py-3 border-2 border-dashed border-border rounded-xl text-sm font-bold text-secondary hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2">
+                    <UserPlus className="w-4 h-4" />
+                    New Customer
+                  </button>
+                )}
+              </div>
+              <div className="flex-1 overflow-y-auto p-6 space-y-3">
+                <p className="text-[10px] font-black text-secondary uppercase tracking-[0.2em] mb-2">Cart Items</p>
+                {cart.map((item) => (
+                  <div key={item.productId} className="p-4 bg-background rounded-2xl border border-border group">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-black text-sm">{item.name}</p>
+                        <p className="text-xs text-secondary">Qty: {item.quantity}</p>
                       </div>
-                    )}
-                    {advance.status === "PENDING" && (
-                      <button className="mt-3 w-full py-2 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors">
-                        Complete Order
-                      </button>
-                    )}
+                      <button onClick={() => removeFromCart(item.productId)} className="text-secondary hover:text-red-500 p-1 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-border/30">
+                      <div className="flex gap-1 flex-wrap">
+                        {item.imeis.map((imei: string) => <span key={imei} className="text-[9px] bg-surface px-1.5 py-0.5 rounded border border-border text-secondary font-medium">{imei}</span>)}
+                      </div>
+                      <span className="font-black text-foreground">{formatCurrency(item.price * item.quantity)}</span>
+                    </div>
                   </div>
                 ))}
+                {cart.length === 0 && (
+                  <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
+                    <Smartphone className="w-16 h-16 mb-4" />
+                    <p className="font-bold">Your cart is empty</p>
+                  </div>
+                )}
               </div>
-            )}
+              <div className="p-6 border-t border-border bg-background/50 space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-secondary font-medium"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
+                  <div className="flex justify-between items-center text-sm text-secondary font-medium">
+                    <span>Discount</span>
+                    <div className="flex items-center gap-2">
+                      <Percent className="w-3 h-3" />
+                      <input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="w-20 text-right bg-transparent border-b border-border outline-none focus:border-primary font-bold text-foreground" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-between items-end py-2">
+                  <span className="font-black text-secondary">Total</span>
+                  <span className="font-black text-2xl text-foreground">{formatCurrency(total)}</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-secondary font-medium">Advance ({advancePercent}%)</span>
+                    <span className="font-bold text-green-600">{formatCurrency(advanceAmount)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-secondary font-medium">Remaining Due</span>
+                    <span className="font-bold text-primary">{formatCurrency(remainingDue)}</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-black text-secondary uppercase tracking-widest block mb-2">Advance Percentage</label>
+                    <input type="range" min="10" max="100" value={advancePercent} onChange={(e) => setAdvancePercent(Number(e.target.value))} className="w-full accent-primary" />
+                    <div className="flex justify-between text-[10px] text-secondary mt-1">
+                      <span>10%</span>
+                      <span className="font-bold text-primary">{advancePercent}%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-secondary uppercase tracking-widest block mb-2">Delivery Date</label>
+                    <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none focus:border-primary font-medium" />
+                  </div>
+                </div>
+                <button onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0} className="w-full py-4 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3">
+                  <Clock className="w-5 h-5" />
+                  Create Advance Order
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary w-5 h-5" />
+                <input 
+                  type="text" 
+                  placeholder="Search by customer or invoice..." 
+                  value={duesSearch} 
+                  onChange={(e) => setDuesSearch(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 rounded-xl bg-surface border border-border outline-none font-medium"
+                />
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-background text-secondary text-[10px] font-black uppercase tracking-widest border-b border-border">
+                    <th className="px-6 py-4">Customer</th>
+                    <th className="px-6 py-4">Invoice</th>
+                    <th className="px-6 py-4">Date</th>
+                    <th className="px-6 py-4">Financials</th>
+                    <th className="px-6 py-4">Delivery</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {advancesLoading ? (
+                    <tr><td colSpan={7} className="px-6 py-10 text-center text-secondary font-bold animate-pulse">Loading Ledger...</td></tr>
+                  ) : advances.length === 0 ? (
+                    <tr><td colSpan={7} className="px-6 py-20 text-center flex flex-col items-center opacity-30"><ClipboardList className="w-12 h-12 mb-4" /><p className="font-bold">No advance orders found</p></td></tr>
+                  ) : advances.map((advance) => (
+                    <tr key={advance.id} className="hover:bg-background/50 transition-colors group">
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center text-primary font-black text-xs">
+                            {advance.customer?.name?.[0] || 'W'}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-foreground">{advance.customer?.name || 'Walking Customer'}</p>
+                            <p className="text-xs text-secondary flex items-center gap-1 mt-1">
+                              <Phone className="w-3 h-3" /> {advance.customer?.phone || 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <p className="text-sm font-bold">#{advance.invoiceNumber}</p>
+                      </td>
+                      <td className="px-6 py-5">
+                        <p className="text-sm text-secondary font-medium">{new Date(advance.createdAt).toLocaleDateString()}</p>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] w-32">
+                            <span className="text-secondary">Total:</span>
+                            <span className="font-bold">{formatCurrency(advance.total)}</span>
+                          </div>
+                          <div className="flex justify-between text-[10px] w-32">
+                            <span className="text-secondary">Paid:</span>
+                            <span className="font-bold text-green-600">{formatCurrency(advance.paidAmount)}</span>
+                          </div>
+                          <div className="flex justify-between text-[10px] w-32 pt-1 border-t border-border/50">
+                            <span className="text-secondary font-black">Due:</span>
+                            <span className="font-black text-primary">{formatCurrency(advance.total - advance.paidAmount)}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <p className="text-sm font-medium">{advance.deliveryDate ? new Date(advance.deliveryDate).toLocaleDateString() : '-'}</p>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className={`text-[10px] font-black px-3 py-1 rounded-full border ${advance.status === "PENDING" ? 'bg-yellow-50 text-yellow-700 border-yellow-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
+                          {advance.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        {advance.status === "PENDING" && (
+                          <button className="bg-primary text-white text-[10px] font-black px-4 py-2 rounded-xl hover:bg-primary/90 transition-all flex items-center gap-2 ml-auto shadow-lg shadow-primary/10">
+                            <Check className="w-3 h-3" />
+                            COMPLETE
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
