@@ -445,6 +445,21 @@ export default function AdvanceOrderPage() {
         settings={invoiceSettings}
       />
 
+      <div className="bg-surface border-b border-border px-8 pt-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-black text-foreground">Advance Orders</h1>
+            <p className="text-xs text-secondary font-bold uppercase tracking-widest mt-1">Create New Advance Order</p>
+          </div>
+          <a 
+            href="/sales/advance/ledger"
+            className="px-6 py-2 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors"
+          >
+            View Ledger
+          </a>
+        </div>
+      </div>
+
       <div className="flex-1 flex flex-col p-6 space-y-6 overflow-hidden">
         <div className="flex gap-4">
           <div className="relative flex-1">
