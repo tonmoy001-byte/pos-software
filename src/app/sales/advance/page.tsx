@@ -340,9 +340,10 @@ export default function AdvanceOrderPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-10">
-              <div className="space-y-3">
-                <label className="text-xs font-black text-secondary uppercase tracking-widest px-1">Advance Percentage</label>
-                  <div className="grid grid-cols-4 gap-2">
+<div className="space-y-4">
+                <div>
+                  <label className="text-xs font-black text-secondary uppercase tracking-widest px-1">Advance Percentage</label>
+                  <div className="grid grid-cols-4 gap-2 mt-2">
                     {[10, 20, 30, 50].map(p => (
                       <button
                         key={p}
@@ -357,30 +358,29 @@ export default function AdvanceOrderPage() {
                     type="number" 
                     value={advancePercent} 
                     onChange={(e) => setAdvancePercent(Number(e.target.value))}
-                    className="w-full py-3 bg-background rounded-xl border-2 border-border px-4 font-bold"
+                    className="w-full py-3 bg-background rounded-xl border-2 border-border px-4 font-bold mt-2"
                   />
                 </div>
 
-                <div className="space-y-3">
+                <div>
                   <label className="text-xs font-black text-secondary uppercase tracking-widest px-1">Expected Delivery Date</label>
                   <input 
                     type="date" 
                     value={deliveryDate} 
                     onChange={(e) => setDeliveryDate(e.target.value)}
-                    className="w-full py-3 bg-background rounded-xl border-2 border-border px-4 font-bold"
+                    className="w-full py-3 bg-background rounded-xl border-2 border-border px-4 font-bold mt-2"
                   />
                 </div>
               </div>
 
               <div className="space-y-6 bg-background/50 p-8 rounded-[2rem] border-2 border-border">
                 <div className="space-y-4">
-                <div className="space-y-4">
                   <div className="flex justify-between text-secondary font-bold">
                     <span>Total Order Value</span>
                     <span>{formatCurrency(total)}</span>
                   </div>
                   
-                  <div className="space-y-2">
+                  <div>
                     <label className="text-xs font-black text-secondary uppercase tracking-widest">Advance Amount</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-primary text-xl">৳</div>
@@ -524,9 +524,9 @@ export default function AdvanceOrderPage() {
                 )}
               </div>
               <div className="p-6 border-t border-border bg-background/50 space-y-4">
-                <div className="space-y-2">
+                <div>
                   <div className="flex justify-between text-sm text-secondary font-medium"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-                  <div className="flex justify-between items-center text-sm text-secondary font-medium">
+                  <div className="flex justify-between items-center text-sm text-secondary font-medium mt-2">
                     <span>Discount</span>
                     <div className="flex items-center gap-2">
                       <Percent className="w-3 h-3" />
@@ -538,7 +538,7 @@ export default function AdvanceOrderPage() {
                   <span className="font-black text-secondary">Total</span>
                   <span className="font-black text-2xl text-foreground">{formatCurrency(total)}</span>
                 </div>
-                <div className="space-y-2">
+                <div>
                   <div className="flex justify-between text-xs">
                     <span className="text-secondary font-medium">Advance ({advancePercent}%)</span>
                     <span className="font-bold text-green-600">{formatCurrency(advanceAmount)}</span>
