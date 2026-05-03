@@ -42,10 +42,14 @@ export default function BarcodePrintPage() {
   }, []);
 
   const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.barcode?.includes(searchQuery) ||
-    p.model?.toLowerCase().includes(searchQuery.toLowerCase())
+    (p.items?.length || 0) > 0 && (
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.barcode?.includes(searchQuery) ||
+      p.model?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
   );
+
+  const outOfStockCount = products.filter(p => (p.items?.length || 0) === 0).length;
 
   const addToPrint = (product: Product) => {
     const existing = printItems.find(p => p.productId === product.id);
@@ -121,6 +125,9 @@ export default function BarcodePrintPage() {
             <div>
               <h1 className="text-2xl font-black">Bulk Barcode Print</h1>
               <p className="text-secondary">Select products to print barcode labels</p>
+              {outOfStockCount > 0 && (
+                <p className="text-xs text-secondary mt-1">{outOfStockCount} products excluded (no stock)</p>
+              )}
             </div>
             {printItems.length > 0 && (
               <button
