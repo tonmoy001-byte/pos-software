@@ -52,11 +52,25 @@ export default function ReportsPage() {
       bg: "bg-green-100"
     },
     {
+      label: "Net Profit",
+      value: data?.summary?.netProfit || 0,
+      icon: TrendingUp,
+      color: "text-primary",
+      bg: "bg-primary/10"
+    },
+    {
       label: "Cash Collected",
       value: data?.summary?.cashCollected || 0,
       icon: DollarSign,
       color: "text-blue-600",
       bg: "bg-blue-100"
+    },
+    {
+      label: "Net Cash (In Hand)",
+      value: data?.summary?.netCash || 0,
+      icon: DollarSign,
+      color: "text-emerald-600",
+      bg: "bg-emerald-100"
     },
     {
       label: "Total Dues",
@@ -66,7 +80,7 @@ export default function ReportsPage() {
       bg: "bg-orange-100"
     },
     {
-      label: "Expenses",
+      label: "Total Outflows",
       value: data?.summary?.totalExpenses || 0,
       icon: TrendingDown,
       color: "text-red-600",
@@ -105,7 +119,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {summaryCards.map((card) => (
           <div key={card.label} className="bg-surface p-6 rounded-2xl border border-border card-shadow">
             <div className="flex justify-between items-start mb-4">
@@ -129,7 +143,7 @@ export default function ReportsPage() {
           <div className="space-y-4">
             <div className="flex justify-between items-center p-3 bg-background rounded-xl">
               <span className="text-sm font-medium">Total Stock Value</span>
-              <span className="font-black text-primary">{formatCurrency(data?.stock?.totalValue || 0)}</span>
+              <span className="font-black text-primary">{formatCurrency(data?.stock?.stockValue || 0)}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-background rounded-xl">
               <span className="text-sm font-medium">Products</span>

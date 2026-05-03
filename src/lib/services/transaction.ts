@@ -125,55 +125,51 @@ export class TransactionService {
     });
   }
 
-  async getDailySummary(storeId: string, isAdmin?: boolean): Promise<DailySummary> {
+  async getFinancialSummary(storeId: string, startDate?: Date, endDate?: Date, isAdmin?: boolean): Promise<DailySummary> {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(today);
-    dayEnd.setHours(23, 59, 59, 999);
+    const start = startDate ? startOfDay(startDate) : startOfDay(today);
+    const end = endDate ? endOfDay(endDate) : endOfDay(today);
+    
     const storeFilter = getTenantFilter(storeId, !isAdmin);
+    const dateRange = { gte: start, lte: end };
 
-    const [sales, collections, expenses, transactions, profitAgg] = await Promise.all([
+    const [sales, collections, transactionCount] = await Promise.all([
       prisma.sale.aggregate({
-        where: { ...storeFilter, createdAt: { gte: today, lte: dayEnd } },
-        _sum: { totalAmount: true, paidAmount: true, dueAmount: true },
+        where: { ...storeFilter, createdAt: dateRange },
+        _sum: { totalAmount: true, paidAmount: true, dueAmount: true, profit: true },
       }),
       prisma.payment.aggregate({
-        where: { ...storeFilter, date: { gte: today, lte: dayEnd } },
-        _sum: { amount: true },
-      }),
-      prisma.expense.aggregate({
-        where: { ...storeFilter, createdAt: { gte: today, lte: dayEnd } },
+        where: { ...storeFilter, date: dateRange },
         _sum: { amount: true },
       }),
       prisma.transaction.count({
-        where: { ...storeFilter, createdAt: { gte: today, lte: dayEnd } },
-      }),
-      prisma.transaction.aggregate({
-        where: { ...storeFilter, createdAt: { gte: today, lte: dayEnd }, type: "SALE" },
-        _sum: { profit: true },
+        where: { ...storeFilter, createdAt: dateRange },
       }),
     ]);
 
-    const cashSales = Number(sales._sum.paidAmount || 0);
-    const dueSales = Number(sales._sum.dueAmount || 0);
-    const collectionsAmount = Number(collections._sum.amount || 0);
-    const expensesAmount = Number(expenses._sum.amount || 0);
-
-    const expenseFromTransactions = await prisma.transaction.aggregate({
-      where: { ...storeFilter, createdAt: { gte: today, lte: dayEnd }, type: "EXPENSE" },
+    // Calculate all cash outflows
+    const outflowsAgg = await prisma.transaction.aggregate({
+      where: { 
+        ...storeFilter, 
+        createdAt: dateRange, 
+        type: { in: ["PURCHASE", "SECONDHAND_BUY", "HAWLAT_GIVEN", "EXPENSE"] },
+        mode: { not: "DUE" }
+      },
       _sum: { amount: true },
     });
-    
-    const totalExpenses = expensesAmount + Number(expenseFromTransactions._sum.amount || 0);
+
+    const totalCashOut = Number(outflowsAgg._sum.amount || 0);
+    const totalProfit = Number(sales._sum.profit || 0);
 
     return {
-      totalSales: cashSales + dueSales,
-      cashSales,
-      dueSales,
-      collections: collectionsAmount,
-      expenses: totalExpenses,
-      netCash: cashSales + collectionsAmount - totalExpenses,
-      transactionCount: transactions,
+      totalSales: Number(sales._sum.totalAmount || 0),
+      cashSales: Number(sales._sum.paidAmount || 0),
+      dueSales: Number(sales._sum.dueAmount || 0),
+      collections: Number(collections._sum.amount || 0),
+      expenses: totalCashOut,
+      netCash: Number(collections._sum.amount || 0) - totalCashOut,
+      transactionCount,
+      profit: totalProfit,
     };
   }
 }

@@ -2,51 +2,20 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { SaleService } from "@/lib/services";
 import { generateInvoiceNumber } from "@/lib/server/invoice";
+
+const saleService = new SaleService();
 
 export async function GET(req: Request) {
   const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const { searchParams } = new URL(req.url);
     const storeId = searchParams.get("storeId") || session.user.storeId;
-
-    const sales = await prisma.sale.findMany({
-      where: {
-        storeId: storeId,
-      },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-          },
-        },
-        items: {
-          include: {
-            product: {
-              select: {
-                name: true,
-                model: true,
-              },
-            },
-          },
-        },
-        payments: {
-          select: {
-            method: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
+    const sales = await saleService.findAll(storeId);
+    
     const formattedSales = sales.map((sale: any) => ({
       id: sale.id,
       invoiceId: sale.invoiceId,
@@ -70,108 +39,46 @@ export async function GET(req: Request) {
 
     return NextResponse.json(formattedSales);
   } catch (error) {
-    console.error("Fetch sales error:", error);
     return NextResponse.json({ error: "Failed to fetch sales" }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
   const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const data = await req.json();
-    const { items, customerId, totalAmount, paidAmount, dueAmount, paymentMethod } = data;
+    const { items, customerId, totalAmount, paidAmount, dueAmount, paymentMethod, discount } = data;
 
-    const invoiceId = await generateInvoiceNumber(session.user.storeId);
-
-    const sale = await prisma.$transaction(async (tx) => {
-      const saleItemsData = items.map((item: any) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.price,
-      }));
-
-      const saleRecord = await tx.sale.create({
-        data: {
-          invoiceId,
-          totalAmount: parseFloat(totalAmount),
-          paidAmount: parseFloat(paidAmount),
-          dueAmount: parseFloat(dueAmount),
-          status: dueAmount > 0 ? (paidAmount > 0 ? "PARTIAL" : "DUE") : "PAID",
-          customerId: customerId || null,
-          storeId: session.user.storeId,
-          items: {
-            create: saleItemsData,
-          },
-          payments: paidAmount > 0
-            ? {
-                create: {
-                  amount: parseFloat(paidAmount),
-                  method: paymentMethod || "CASH",
-                  storeId: session.user.storeId,
-                },
-              }
-            : undefined,
-        },
-        include: { 
-          items: true
-        },
-      });
-
-      // Update customer due amount if customerId exists and there's due
-      if (customerId && dueAmount > 0) {
-        const customer = await tx.customer.findUnique({
-          where: { id: customerId }
-        });
-        if (customer) {
-          await tx.customer.update({
-            where: { id: customerId },
-            data: {
-              dueAmount: (Number(customer.dueAmount) || 0) + parseFloat(dueAmount)
-            }
-          });
-        }
-      }
-
-      for (const item of items) {
-        if (item.imeis && item.imeis.length > 0) {
-          const saleItem = saleRecord.items.find((si: any) => si.productId === item.productId);
-          if (saleItem) {
-            await tx.serializedItem.updateMany({
-              where: { imei: { in: item.imeis } },
-              data: { 
-                status: "SOLD",
-                saleItemId: saleItem.id,
-              },
-            });
-          }
-        }
-      }
-
-      return saleRecord;
+    // Fetch product costs for profit calculation
+    const productIds = items.map((i: any) => i.productId);
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, cost: true }
     });
 
-    const updatedSale = await prisma.sale.findUnique({
-      where: { id: sale.id },
-      include: { 
-        items: {
-          include: {
-            product: true,
-            imeis: true
-          }
-        },
-        customer: true,
-        payments: true,
-        store: true
-      },
+    const itemsWithCosts = items.map((item: any) => {
+      const product = products.find(p => p.id === item.productId);
+      return {
+        ...item,
+        cost: product ? Number(product.cost) : 0
+      };
     });
 
-    return NextResponse.json(updatedSale);
-  } catch (error) {
+    const sale = await saleService.create({
+      items: itemsWithCosts,
+      customerId,
+      totalAmount: Number(totalAmount),
+      paidAmount: Number(paidAmount),
+      dueAmount: Number(dueAmount),
+      paymentMethod: paymentMethod || "CASH",
+      discount: Number(discount || 0)
+    }, session.user.storeId, session.user.id);
+
+    return NextResponse.json(sale);
+  } catch (error: any) {
     console.error("Sale error:", error);
-    return NextResponse.json({ error: "Failed to process sale" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to process sale" }, { status: 500 });
   }
 }

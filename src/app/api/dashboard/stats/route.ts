@@ -3,6 +3,11 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+import { TransactionService, CapitalService } from "@/lib/services";
+
+const transactionService = new TransactionService();
+const capitalService = new CapitalService();
+
 export async function GET() {
   const session = await getSession();
   if (!session) {
@@ -10,63 +15,58 @@ export async function GET() {
   }
 
   const storeId = session.user.storeId;
-  const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const isAdmin = session.user.role === "ADMIN";
 
-  const sales = await prisma.sale.findMany({
-    where: { storeId, createdAt: { gte: startOfDay, lte: endOfDay } },
-    include: { customer: { select: { name: true } } },
-    orderBy: { createdAt: "desc" }
-  });
+  try {
+    const summary = await transactionService.getFinancialSummary(storeId, undefined, undefined, isAdmin);
+    const capital = await capitalService.getCapitalSummary(storeId, isAdmin);
 
-  const transactions = await prisma.transaction.findMany({
-    where: { storeId, createdAt: { gte: startOfDay, lte: endOfDay } },
-    include: { supplier: { select: { name: true } } },
-    orderBy: { createdAt: "desc" }
-  });
+    // Get recent activities (sales + transactions)
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
-  const payments = await prisma.payment.findMany({
-    where: { storeId, date: { gte: startOfDay, lte: endOfDay } }
-  });
+    const [sales, transactions, customerDues] = await Promise.all([
+      prisma.sale.findMany({
+        where: { storeId, createdAt: { gte: startOfDay, lte: endOfDay } },
+        include: { customer: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 10
+      }),
+      prisma.transaction.findMany({
+        where: { storeId, createdAt: { gte: startOfDay, lte: endOfDay } },
+        include: { supplier: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 10
+      }),
+      prisma.customer.aggregate({
+        where: { storeId },
+        _sum: { dueAmount: true }
+      })
+    ]);
 
-  const expenses = await prisma.expense.findMany({
-    where: { storeId, createdAt: { gte: startOfDay, lte: endOfDay } }
-  });
+    const activities = [
+      ...sales.map(s => ({
+        id: s.id, type: "SALE", amount: Number(s.totalAmount),
+        description: s.invoiceId, customer: s.customer?.name || "Walking",
+        createdAt: s.createdAt
+      })),
+      ...transactions.map(t => ({
+        id: t.id, type: t.type, amount: Number(t.amount),
+        description: t.description || t.type, supplier: t.supplier?.name,
+        createdAt: t.createdAt
+      }))
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const totalSales = sales.reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
-  const paidSales = sales.reduce((sum, s) => sum + Number(s.paidAmount || 0), 0);
-  const collections = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  const expenseAmount = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const txExpenses = transactions.filter(t => t.type === "EXPENSE").reduce((sum, t) => sum + Number(t.amount || 0), 0);
-  const totalExpenses = expenseAmount + txExpenses;
-  const netCash = paidSales + collections - totalExpenses;
-
-  const customerDues = await prisma.customer.aggregate({
-    where: { storeId },
-    _sum: { dueAmount: true }
-  });
-
-  const supplierDues = await prisma.supplier.aggregate({
-    where: { storeId },
-    _sum: { dueAmount: true }
-  });
-
-  const activities = [...sales.map(sale => ({
-    id: sale.id, type: "SALE", amount: sale.totalAmount,
-    description: sale.invoiceId, customer: sale.customer?.name || "Walking",
-    createdAt: sale.createdAt
-  })), ...transactions.map(tx => ({
-    id: tx.id, type: tx.type, amount: tx.amount,
-    description: tx.description || tx.type, supplier: tx.supplier?.name,
-    createdAt: tx.createdAt
-  }))].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-  return NextResponse.json({
-    summary: { totalSales, cashSales: paidSales, dueSales: totalSales - paidSales, collections, expenses: totalExpenses, netCash },
-    capital: { supplierDue: Number(supplierDues._sum.dueAmount || 0) },
-    customerDue: Number(customerDues._sum.dueAmount || 0),
-    transactions: activities.slice(0, 20),
-    salesCount: sales.length
-  });
+    return NextResponse.json({
+      summary,
+      capital: { supplierDue: capital.supplierDue },
+      customerDue: Number(customerDues._sum.dueAmount || 0),
+      transactions: activities.slice(0, 20),
+      salesCount: sales.length
+    });
+  } catch (error) {
+    console.error("Dashboard stats error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }

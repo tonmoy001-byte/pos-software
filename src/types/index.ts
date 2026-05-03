@@ -46,7 +46,9 @@ export interface DailySummary {
   expenses: number;
   netCash: number;
   transactionCount: number;
+  profit: number;
 }
+
 
 export interface CapitalSummary {
   ownedStockValue: number;

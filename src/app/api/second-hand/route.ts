@@ -43,16 +43,32 @@ export async function POST(req: Request) {
         brand: "Used",
         model: data.model,
         category: "Second Hand",
-        price: Number(data.purchasePrice) * 1.2, // 20% default markup
+        price: Number(data.purchasePrice) * 1.2,
         cost: Number(data.purchasePrice),
         minStock: 1,
         storeId: session.user.storeId,
         items: {
           create: {
             imei: data.imei,
-            status: "AVAILABLE"
+            status: "AVAILABLE",
+            cost: Number(data.purchasePrice)
           }
         }
+      }
+    });
+
+    // Create a transaction record for the purchase
+    await prisma.transaction.create({
+      data: {
+        type: "SECONDHAND_BUY",
+        amount: Number(data.purchasePrice),
+        description: `Second-hand purchase: ${data.model} (${data.imei})`,
+        mode: "CASH",
+        imei: data.imei,
+        productId: product.id,
+        storeId: session.user.storeId,
+        userId: session.user.id,
+        status: "COMPLETED"
       }
     });
 
@@ -65,5 +81,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Failed to record purchase" }, { status: 500 });
   }
 }
-
-

@@ -189,52 +189,51 @@ export default function ActivityDashboard() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 space-y-6">
       {/* Quick Stats Bar - Using CSS Grid for full width */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <Card className="p-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Card className="p-4 border-l-4 border-l-green-600">
           <div className="flex items-center gap-2 mb-2">
             <Wallet className="w-5 h-5 text-green-600" />
             <span className="text-sm font-bold text-secondary uppercase">Cash</span>
           </div>
           <p className="text-3xl font-black">{formatCurrency(dailySummary?.netCash || 0)}</p>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4 border-l-4 border-l-blue-600">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="w-5 h-5 text-blue-600" />
             <span className="text-sm font-bold text-secondary uppercase">Sales</span>
           </div>
           <p className="text-3xl font-black">{formatCurrency(dailySummary?.totalSales || 0)}</p>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4 border-l-4 border-l-emerald-600">
+          <div className="flex items-center gap-2 mb-2">
+            <Calculator className="w-5 h-5 text-emerald-600" />
+            <span className="text-sm font-bold text-secondary uppercase">Profit</span>
+          </div>
+          <p className="text-3xl font-black text-emerald-600">{formatCurrency(dailySummary?.profit || 0)}</p>
+        </Card>
+        <Card className="p-4 border-l-4 border-l-purple-600">
           <div className="flex items-center gap-2 mb-2">
             <CreditCard className="w-5 h-5 text-purple-600" />
             <span className="text-sm font-bold text-secondary uppercase">Collections</span>
           </div>
           <p className="text-3xl font-black">{formatCurrency(dailySummary?.collections || 0)}</p>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4 border-l-4 border-l-red-600">
           <div className="flex items-center gap-2 mb-2">
             <ArrowDownRight className="w-5 h-5 text-red-600" />
             <span className="text-sm font-bold text-secondary uppercase">Expenses</span>
           </div>
           <p className="text-3xl font-black">{formatCurrency(dailySummary?.expenses || 0)}</p>
         </Card>
-        <div className="col-span-2 md:col-span-4 lg:col-span-1 flex flex-col sm:flex-row gap-2">
-          <Card className="p-4 flex-1 cursor-pointer hover:border-primary/50" onClick={() => router.push("/customers")}>
-            <div className="flex items-center gap-2 mb-2">
-              <AlertCircle className="w-5 h-5 text-orange-600" />
-              <span className="text-sm font-bold text-secondary uppercase">C. Due</span>
-            </div>
-            <p className="text-2xl font-black text-orange-600">{formatCurrency(customerDue)}</p>
-          </Card>
-          <Card className="p-4 flex-1 cursor-pointer hover:border-primary/50" onClick={() => router.push("/suppliers")}>
-            <div className="flex items-center gap-2 mb-2">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <span className="text-sm font-bold text-secondary uppercase">S. Due</span>
-            </div>
-            <p className="text-2xl font-black text-red-600">{formatCurrency(capital?.supplierDue || 0)}</p>
-          </Card>
-        </div>
+        <Card className="p-4 border-l-4 border-l-orange-600 cursor-pointer hover:border-orange-300" onClick={() => router.push("/customers")}>
+          <div className="flex items-center gap-2 mb-2">
+            <AlertCircle className="w-5 h-5 text-orange-600" />
+            <span className="text-sm font-bold text-secondary uppercase">Dues</span>
+          </div>
+          <p className="text-3xl font-black text-orange-600">{formatCurrency(customerDue)}</p>
+        </Card>
       </div>
+
 
       {/* Main Action Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

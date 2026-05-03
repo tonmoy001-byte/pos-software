@@ -16,43 +16,77 @@ interface SaleCreateInput {
   paidAmount: number;
   dueAmount: number;
   paymentMethod?: string;
+  discount?: number;
 }
 
 export class SaleService {
   async create(input: SaleCreateInput, storeId: string, userId: string) {
-    const { items, customerId, totalAmount, paidAmount, dueAmount, paymentMethod } = input;
+    const { items, customerId, totalAmount, paidAmount, dueAmount, paymentMethod, discount } = input;
 
     return prisma.$transaction(async (tx) => {
       let totalCost = 0;
       let totalProfit = 0;
-      const saleItemsData = [];
       const eventPayloads = [];
 
+      // Fetch products to ensure we have costs if not provided
+      const productIds = items.map(i => i.productId);
+      const products = await tx.product.findMany({
+        where: { id: { in: productIds } }
+      });
+
+      const invoiceId = `INV-${Date.now()}`;
+
+      // 1. Create the Sale record first to get the ID
+      const sale = await tx.sale.create({
+        data: {
+          invoiceId,
+          totalAmount,
+          paidAmount,
+          dueAmount,
+          discount: discount || 0,
+          costAmount: 0, // Will update after calculating from items
+          profit: 0,     // Will update after calculating from items
+          status: dueAmount > 0 ? (paidAmount > 0 ? "PARTIAL" : "DUE") : "PAID",
+          customerId: customerId || null,
+          storeId,
+          payments: paidAmount > 0
+            ? {
+                create: {
+                  amount: paidAmount,
+                  method: paymentMethod || "CASH",
+                  storeId,
+                },
+              }
+            : undefined,
+        },
+      });
+
+      // 2. Create Sale Items and update cost/profit
       for (const item of items) {
-        if (item.cost) {
-          totalCost += item.cost * item.quantity;
-          totalProfit += calculateProfit(item.price, item.cost) * item.quantity;
-        }
+        const product = products.find(p => p.id === item.productId);
+        const itemCost = item.cost ?? Number(product?.cost || 0);
+        const itemProfit = (item.price - itemCost) * item.quantity;
+
+        totalCost += itemCost * item.quantity;
+        totalProfit += itemProfit;
 
         const saleItem = await tx.saleItem.create({
           data: {
-            saleId: "", 
+            saleId: sale.id,
             productId: item.productId,
             quantity: item.quantity,
             price: item.price,
-            cost: item.cost ?? 0,
-            profit: item.cost ? calculateProfit(item.price, item.cost) * item.quantity : 0,
+            cost: itemCost,
+            profit: itemProfit,
           },
         });
-
-        saleItemsData.push(saleItem);
 
         eventPayloads.push({
           productId: item.productId,
           quantity: item.quantity,
           price: item.price,
-          cost: item.cost,
-          profit: saleItem.profit,
+          cost: itemCost,
+          profit: itemProfit,
         });
 
         if (item.imeis && item.imeis.length > 0) {
@@ -66,39 +100,55 @@ export class SaleService {
         }
       }
 
-      const invoiceId = `INV-${Date.now()}`;
-      const sale = await tx.sale.create({
+      // 3. Update the Sale record with calculated cost and profit
+      await tx.sale.update({
+        where: { id: sale.id },
         data: {
-          invoiceId,
-          totalAmount,
-          paidAmount,
-          dueAmount,
           costAmount: totalCost,
           profit: totalProfit,
-          status: dueAmount > 0 ? (paidAmount > 0 ? "PARTIAL" : "DUE") : "PAID",
-          customerId: customerId || null,
-          storeId,
-          items: {
-            create: items.map((item, idx) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price,
-              cost: item.cost ?? 0,
-              profit: item.cost ? calculateProfit(item.price, item.cost) * item.quantity : 0,
-            })),
-          },
-          payments: paidAmount > 0
-            ? {
-                create: {
-                  amount: paidAmount,
-                  method: paymentMethod || "CASH",
-                  storeId,
-                },
-              }
-            : undefined,
-        },
-        include: { items: true, payments: true },
+        }
       });
+
+      // 4. Create a transaction record for the sale
+      if (paidAmount > 0) {
+        await tx.transaction.create({
+          data: {
+            type: "SALE",
+            amount: paidAmount,
+            costAmount: totalCost,
+            profit: totalProfit,
+            mode: (paymentMethod as any) || "CASH",
+            description: `Sale: ${invoiceId}`,
+            customerId: customerId || null,
+            referenceId: sale.id,
+            referenceType: "SALE",
+            userId,
+            storeId,
+            status: "COMPLETED"
+          }
+        });
+      }
+
+      // 5. Update customer due
+      if (customerId && dueAmount > 0) {
+        const customer = await tx.customer.findUnique({ where: { id: customerId } });
+        if (customer) {
+          const newDueAmount = Number(customer.dueAmount || 0) + dueAmount;
+          await tx.customer.update({
+            where: { id: customerId },
+            data: { dueAmount: newDueAmount },
+          });
+
+          await eventStore.append({
+            aggregateType: "Customer",
+            aggregateId: customerId,
+            type: "UPDATED",
+            payload: { dueAmount: newDueAmount },
+            userId,
+            storeId,
+          } as EventStoreData);
+        }
+      }
 
       await eventStore.append({
         aggregateType: "Sale",
@@ -118,26 +168,6 @@ export class SaleService {
         storeId,
       } as EventStoreData);
 
-      if (customerId) {
-        const customer = await tx.customer.findUnique({ where: { id: customerId } });
-        if (customer && dueAmount > 0) {
-          const newDueAmount = Number(customer.dueAmount || 0) + dueAmount;
-          await tx.customer.update({
-            where: { id: customerId },
-            data: { dueAmount: newDueAmount },
-          });
-
-          await eventStore.append({
-            aggregateType: "Customer",
-            aggregateId: customerId,
-            type: "UPDATED",
-            payload: { dueAmount: newDueAmount },
-            userId,
-            storeId,
-          } as EventStoreData);
-        }
-      }
-
       return sale;
     });
   }
@@ -149,6 +179,7 @@ export class SaleService {
       include: {
         customer: { select: { name: true, phone: true } },
         items: { include: { product: true } },
+        payments: true
       },
     });
   }
@@ -195,16 +226,14 @@ export class SaleService {
         },
       });
 
-      const [updatedSale] = await Promise.all([
-        tx.sale.update({
-          where: { id: saleId },
-          data: {
-            dueAmount: newDue,
-            paidAmount: newPaid,
-            status: newStatus as any,
-          },
-        }),
-      ]);
+      await tx.sale.update({
+        where: { id: saleId },
+        data: {
+          dueAmount: newDue,
+          paidAmount: newPaid,
+          status: newStatus as any,
+        },
+      });
 
       await eventStore.append({
         aggregateType: "Sale",
@@ -261,15 +290,13 @@ export class SaleService {
     if (sale.status === "CANCELLED") throw new Error("Sale already cancelled");
 
     return prisma.$transaction(async (tx) => {
-      const [updatedSale] = await Promise.all([
-        tx.sale.update({
-          where: { id: saleId },
-          data: {
-            status: "CANCELLED",
-            profit: 0,
-          },
-        }),
-      ]);
+      await tx.sale.update({
+        where: { id: saleId },
+        data: {
+          status: "CANCELLED",
+          profit: 0,
+        },
+      });
 
       await eventStore.append({
         aggregateType: "Sale",
@@ -299,23 +326,5 @@ export class SaleService {
 
       return { success: true };
     });
-  }
-
-  async getDailyTotals(storeId?: string) {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-
-    const result = await prisma.sale.aggregate({
-      where: { storeId, createdAt: { gte: start, lte: end } },
-      _sum: { totalAmount: true, paidAmount: true, dueAmount: true, profit: true },
-    });
-
-    return {
-      total: Number(result._sum.totalAmount || 0),
-      paid: Number(result._sum.paidAmount || 0),
-      due: Number(result._sum.dueAmount || 0),
-      profit: Number(result._sum.profit || 0),
-    };
   }
 }
