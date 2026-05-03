@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui";
+import { BarcodeGenerator, BarcodeLabelPreview } from "@/components/barcode/barcode-label";
 
 // Barcode Component using JSBarcode
 const Barcode = forwardRef<SVGSVGElement, { value: string }>(({ value }, ref) => {
@@ -63,6 +64,7 @@ export default function InventoryPage() {
     quantity: "",
     cost: ""
   });
+  const [barcodeSettings, setBarcodeSettings] = useState<any>(null);
 
   const fetchProducts = async () => {
     try {
@@ -76,6 +78,10 @@ export default function InventoryPage() {
 
   useEffect(() => {
     fetchProducts();
+    fetch("/api/barcode-settings")
+      .then(res => res.json())
+      .then(data => setBarcodeSettings(data))
+      .catch(() => {});
   }, []);
 
   const handleAddProduct = async () => {
@@ -376,24 +382,28 @@ export default function InventoryPage() {
               <p className="text-sm text-secondary">{selectedProduct.barcode}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid ${barcodeSettings?.labelWidth > 60 ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
               {printItems.map((item: any) => (
-                <div key={item.id} className="border-2 border-dashed border-black p-4 text-center">
-                  <svg ref={(el) => {
-                    if (el && item.barcode) {
-                      import("jsbarcode").then((JsBarcode) => {
-                        JsBarcode.default(el, item.barcode, {
-                          format: "CODE128",
-                          width: 2,
-                          height: 50,
-                          displayValue: true,
-                          fontSize: 14,
-                          margin: 10
-                        });
-                      });
-                    }
-                  }} />
-                  <p className="text-xs mt-2 font-mono">{item.imei}</p>
+                <div key={item.id} className="border-2 border-dashed border-gray-300 p-2 text-center bg-white">
+                  <BarcodeLabelPreview
+                    productName={barcodeSettings?.showProductName ? selectedProduct.name : undefined}
+                    price={barcodeSettings?.showPrice ? selectedProduct.price : undefined}
+                    sku={barcodeSettings?.showSku ? selectedProduct.barcode : undefined}
+                    imei={barcodeSettings?.showImei ? item.imei : undefined}
+                    barcodeValue={item.barcode || item.imei || selectedProduct.barcode}
+                    settings={barcodeSettings || {
+                      barcodeType: "CODE128",
+                      showProductName: true,
+                      showPrice: true,
+                      showSku: true,
+                      showImei: true,
+                      showBarcode: true,
+                      includeCurrency: true,
+                      fontSize: 10,
+                      labelWidth: 50,
+                      labelHeight: 25
+                    }}
+                  />
                 </div>
               ))}
             </div>
