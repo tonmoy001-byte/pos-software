@@ -22,7 +22,8 @@ import {
   Clock,
   ClipboardList,
   Phone,
-  Filter
+  Filter,
+  ChevronRight
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
@@ -570,13 +571,23 @@ export default function AdvanceOrderPage() {
                   </div>
                 )}
               </div>
-              <button onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0 || !selectedCustomer} className="w-full p-6 border-t border-border bg-gradient-to-r from-primary to-primary/80 text-white font-black text-lg shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <div>Create Advance Order</div>
-                  {!selectedCustomer && <div className="text-xs font-medium text-white/70">Select customer first</div>}
+              <button onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0 || !selectedCustomer} className="relative overflow-hidden group w-full p-5 border-t border-border bg-gradient-to-r from-primary via-primary to-purple-600 text-white font-black text-lg shadow-2xl shadow-primary/30 hover:shadow-purple-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100">
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 group-hover:translate-x-full transition-transform duration-700 -skew-x-12"></div>
+                <div className="relative flex items-center justify-center gap-4">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-inner">
+                    <Clock className="w-6 h-6" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xl tracking-wide">Create Advance Order</div>
+                    {!selectedCustomer ? (
+                      <div className="text-xs font-medium text-white/70 mt-1">Select customer first</div>
+                    ) : cart.length > 0 && (
+                      <div className="text-xs font-medium text-white/80 mt-1">{cart.length} item{cart.length > 1 ? 's' : ''} • {formatCurrency(total)}</div>
+                    )}
+                  </div>
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                    <ChevronRight className="w-5 h-5" />
+                  </div>
                 </div>
               </button>
             </div>
