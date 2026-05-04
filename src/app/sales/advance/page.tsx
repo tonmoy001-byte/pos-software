@@ -43,7 +43,7 @@ export default function AdvanceOrderPage() {
   const [discount, setDiscount] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const [advancePercent, setAdvancePercent] = useState(30);
+  
   const [deliveryDate, setDeliveryDate] = useState("");
   const [isIMEIOpen, setIsIMEIOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -219,10 +219,6 @@ export default function AdvanceOrderPage() {
 
   const openCheckout = () => {
     if (cart.length === 0) return setError("Cart is empty");
-    if (!paidAmount) {
-      const advanceAmount = (total * advancePercent) / 100;
-      setPaidAmount(String(advanceAmount));
-    }
     setIsCheckoutOpen(true);
   };
 
@@ -247,7 +243,6 @@ export default function AdvanceOrderPage() {
       discount: discount,
       paymentMethod: paymentMethod,
       saleType: "ADVANCE_ORDER",
-      advancePercent,
       deliveryDate: deliveryDate || null
     };
 
@@ -284,8 +279,8 @@ export default function AdvanceOrderPage() {
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const total = subtotal - discount;
-  const advanceAmount = (total * advancePercent) / 100;
-  const remainingDue = total - advanceAmount;
+  const paid = paidAmount ? parseFloat(paidAmount) : 0;
+  const remainingDue = total - paid;
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
