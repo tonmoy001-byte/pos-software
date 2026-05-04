@@ -21,7 +21,8 @@ export async function GET(req: Request) {
           include: {
             product: true
           }
-        }
+        },
+        payments: true
       },
       orderBy: {
         createdAt: "desc"
