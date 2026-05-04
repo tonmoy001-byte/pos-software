@@ -41,13 +41,13 @@ export default function AdvanceLedgerPage() {
   }, []);
 
   const filteredAdvances = advances.filter(a => 
-    a.customerName?.toLowerCase().includes(search.toLowerCase()) ||
-    a.customerPhone?.includes(search)
+    (a.customerName?.toLowerCase() || "").includes(search.toLowerCase()) ||
+    (a.customerPhone || "").includes(search)
   );
 
   const totalOrders = advances.length;
-  const totalAdvance = advances.reduce((sum, a) => sum + a.paidAmount, 0);
-  const totalDue = advances.reduce((sum, a) => sum + a.dueAmount, 0);
+  const totalAdvance = advances.reduce((sum, a) => sum + (Number(a.paidAmount) || 0), 0);
+  const totalDue = advances.reduce((sum, a) => sum + (Number(a.dueAmount) || 0), 0);
 
   const handleComplete = async () => {
     if (!selectedAdvance || !payAmount) return;

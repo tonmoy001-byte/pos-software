@@ -66,6 +66,44 @@ export default function AdvanceOrderPage() {
   const [advancesLoading, setAdvancesLoading] = useState(false);
   const [duesSearch, setDuesSearch] = useState("");
 
+  const [selectedAdvance, setSelectedAdvance] = useState<any>(null);
+  const [completePayAmount, setCompletePayAmount] = useState("");
+  const [completePaymentMethod, setCompletePaymentMethod] = useState("CASH");
+  const [completeMessage, setCompleteMessage] = useState<{type: "success"|"error", text: string} | null>(null);
+  const [isCompleting, setIsCompleting] = useState(false);
+
+  const handleCompleteAdvance = async () => {
+    if (!selectedAdvance || !completePayAmount) return;
+    setIsCompleting(true);
+    setCompleteMessage(null);
+    try {
+      const res = await fetch(`/api/advances/${selectedAdvance.id}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          paidAmount: parseFloat(completePayAmount),
+          method: completePaymentMethod
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCompleteMessage({ type: "success", text: "Order completed successfully!" });
+        setTimeout(() => {
+          setSelectedAdvance(null);
+          setCompletePayAmount("");
+          setCompleteMessage(null);
+          fetchAdvances();
+        }, 1500);
+      } else {
+        setCompleteMessage({ type: "error", text: data.error || "Failed to complete" });
+      }
+    } catch (err) {
+      setCompleteMessage({ type: "error", text: "Connection error" });
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
   const fetchAdvances = async () => {
     setAdvancesLoading(true);
     try {
@@ -432,6 +470,72 @@ export default function AdvanceOrderPage() {
         settings={invoiceSettings}
       />
 
+      {selectedAdvance && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface w-full max-w-md rounded-[2rem] p-8 card-shadow space-y-6 relative animate-in zoom-in-95 duration-200">
+            <button onClick={() => { setSelectedAdvance(null); setCompletePayAmount(""); setCompleteMessage(null); }} className="absolute top-6 right-6 text-secondary hover:text-foreground">
+              <X className="w-6 h-6" />
+            </button>
+            <h2 className="text-2xl font-black mb-4">Complete Advance Order</h2>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-background p-4 rounded-xl">
+                <p className="text-xs font-bold text-secondary">Total Amount</p>
+                <p className="font-black text-lg">{formatCurrency(selectedAdvance.totalAmount)}</p>
+              </div>
+              <div className="bg-background p-4 rounded-xl">
+                <p className="text-xs font-bold text-secondary">Remaining Due</p>
+                <p className="font-black text-lg text-primary">{formatCurrency(selectedAdvance.dueAmount)}</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-black text-secondary uppercase tracking-widest mb-2 block">Payment Amount</label>
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-primary text-xl">৳</div>
+                <input 
+                  type="number" 
+                  value={completePayAmount}
+                  onChange={(e) => setCompletePayAmount(e.target.value)}
+                  placeholder="0"
+                  className="w-full pl-10 pr-4 py-4 bg-background rounded-2xl border-2 border-border focus:border-primary outline-none font-bold text-xl"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 flex-wrap">
+              {["CASH", "BKASH", "BANK", "NAGAD", "CARD"].map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setCompletePaymentMethod(m)}
+                  className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                    completePaymentMethod === m ? "bg-primary text-white" : "bg-background border border-border text-secondary"
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+
+            {completeMessage && (
+              <div className={`p-3 rounded-xl text-sm font-bold ${
+                completeMessage.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+              }`}>
+                {completeMessage.text}
+              </div>
+            )}
+
+            <button 
+              onClick={handleCompleteAdvance}
+              disabled={isCompleting || !completePayAmount}
+              className="w-full py-4 bg-primary text-white rounded-xl font-black shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50"
+            >
+              {isCompleting ? "Processing..." : "Complete Order"}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-surface border-b border-border px-8 pt-6">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -631,18 +735,18 @@ export default function AdvanceOrderPage() {
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center text-primary font-black text-xs">
-                            {advance.customer?.name?.[0] || 'W'}
+                            {advance.customerName?.[0] || 'W'}
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-foreground">{advance.customer?.name || 'Walking Customer'}</p>
+                            <p className="text-sm font-bold text-foreground">{advance.customerName || 'Walking Customer'}</p>
                             <p className="text-xs text-secondary flex items-center gap-1 mt-1">
-                              <Phone className="w-3 h-3" /> {advance.customer?.phone || 'N/A'}
+                              <Phone className="w-3 h-3" /> {advance.customerPhone || 'N/A'}
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                        <p className="text-sm font-bold">#{advance.invoiceNumber}</p>
+                        <p className="text-sm font-bold">#{advance.invoiceId}</p>
                       </td>
                       <td className="px-6 py-5">
                         <p className="text-sm text-secondary font-medium">{advance.createdAt ? new Date(advance.createdAt).toLocaleDateString("en-GB") : "-"}</p>
@@ -651,7 +755,7 @@ export default function AdvanceOrderPage() {
                         <div className="space-y-1">
                           <div className="flex justify-between text-[10px] w-32">
                             <span className="text-secondary">Total:</span>
-                            <span className="font-bold">{formatCurrency(advance.total)}</span>
+                            <span className="font-bold">{formatCurrency(advance.totalAmount)}</span>
                           </div>
                           <div className="flex justify-between text-[10px] w-32">
                             <span className="text-secondary">Paid:</span>
@@ -659,7 +763,7 @@ export default function AdvanceOrderPage() {
                           </div>
                           <div className="flex justify-between text-[10px] w-32 pt-1 border-t border-border/50">
                             <span className="text-secondary font-black">Due:</span>
-                            <span className="font-black text-primary">{formatCurrency(advance.total - advance.paidAmount)}</span>
+                            <span className="font-black text-primary">{formatCurrency(advance.dueAmount)}</span>
                           </div>
                         </div>
                       </td>
@@ -667,13 +771,13 @@ export default function AdvanceOrderPage() {
                         <p className="text-sm font-medium">{advance.deliveryDate ? new Date(advance.deliveryDate).toLocaleDateString("en-GB") : '-'}</p>
                       </td>
                       <td className="px-6 py-5">
-                        <span className={`text-[10px] font-black px-3 py-1 rounded-full border ${advance.status === "PENDING" ? 'bg-yellow-50 text-yellow-700 border-yellow-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
+                        <span className={`text-[10px] font-black px-3 py-1 rounded-full border ${advance.status === "PAID" ? 'bg-green-50 text-green-700 border-green-100' : 'bg-yellow-50 text-yellow-700 border-yellow-100'}`}>
                           {advance.status}
                         </span>
                       </td>
                       <td className="px-6 py-5 text-right">
-                        {advance.status === "PENDING" && (
-                          <button className="bg-primary text-white text-[10px] font-black px-4 py-2 rounded-xl hover:bg-primary/90 transition-all flex items-center gap-2 ml-auto shadow-lg shadow-primary/10">
+                        {(advance.status === "DUE" || advance.status === "PARTIAL") && (
+                          <button onClick={() => { setSelectedAdvance(advance); setCompletePayAmount(advance.dueAmount.toString()); }} className="bg-primary text-white text-[10px] font-black px-4 py-2 rounded-xl hover:bg-primary/90 transition-all flex items-center gap-2 ml-auto shadow-lg shadow-primary/10">
                             <Check className="w-3 h-3" />
                             COMPLETE
                           </button>
