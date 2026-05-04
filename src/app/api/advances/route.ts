@@ -32,7 +32,7 @@ export async function GET(req: Request) {
     const formatted = advances.map((sale: any) => ({
       id: sale.id,
       invoiceId: sale.invoiceId,
-      customerName: sale.customer?.name || "Walking Customer",
+      customerName: sale.customerName || sale.customer?.name || "Walking Customer",
       customerPhone: sale.customer?.phone || null,
       customerAddress: sale.customer?.address || null,
       items: sale.items.map((item: any) => ({
@@ -40,7 +40,7 @@ export async function GET(req: Request) {
         model: item.product?.model || "",
         brand: item.product?.brand || "",
         quantity: item.quantity,
-        price: item.price
+        price: Number(item.price)
       })),
       totalAmount: Number(sale.totalAmount),
       paidAmount: Number(sale.paidAmount),

@@ -12,6 +12,7 @@ interface SaleItem {
 interface SaleCreateInput {
   items: SaleItem[];
   customerId?: string;
+  customerName?: string;
   totalAmount: number;
   paidAmount: number;
   dueAmount: number;
@@ -23,7 +24,7 @@ interface SaleCreateInput {
 
 export class SaleService {
   async create(input: SaleCreateInput, storeId: string, userId: string) {
-    const { items, customerId, totalAmount, paidAmount, dueAmount, paymentMethod, discount, saleType, deliveryDate } = input;
+    const { items, customerId, customerName, totalAmount, paidAmount, dueAmount, paymentMethod, discount, saleType, deliveryDate } = input;
 
     return prisma.$transaction(async (tx) => {
       let totalCost = 0;
@@ -51,6 +52,7 @@ export class SaleService {
           profit: 0,
           status: dueAmount > 0 ? (paidAmount > 0 ? "PARTIAL" : "DUE") : "PAID",
           customerId: customerId || null,
+          customerName: customerName || "Walking Customer",
           storeId,
           deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
           payments: paidAmount > 0

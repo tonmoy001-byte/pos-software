@@ -121,6 +121,7 @@ model Sale {
   profit       Decimal    @default(0)
   status       SaleStatus
   customerId   String?
+  customerName String?    @default("Walking Customer")
   storeId      String
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt

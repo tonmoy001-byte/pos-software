@@ -51,6 +51,20 @@ export async function POST(req: Request) {
     const data = await req.json();
     const { items, customerId, totalAmount, paidAmount, dueAmount, paymentMethod, discount, saleType, deliveryDate } = data;
 
+    // Calculate dueAmount properly for advance orders
+    const total = Number(totalAmount) || 0;
+    const paid = Number(paidAmount) || 0;
+    const calculatedDue = total - paid;
+
+    // Fetch customer info to store snapshot for advance orders
+    let customerName = "Walking Customer";
+    if (customerId) {
+      const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+      if (customer) {
+        customerName = customer.name;
+      }
+    }
+
     // Fetch product costs for profit calculation
     const productIds = items.map((i: any) => i.productId);
     const products = await prisma.product.findMany({
@@ -69,9 +83,10 @@ export async function POST(req: Request) {
     const sale = await saleService.create({
       items: itemsWithCosts,
       customerId,
-      totalAmount: Number(totalAmount),
-      paidAmount: Number(paidAmount),
-      dueAmount: Number(dueAmount),
+      customerName,
+      totalAmount: total,
+      paidAmount: paid,
+      dueAmount: calculatedDue,
       paymentMethod: paymentMethod || "CASH",
       discount: Number(discount || 0),
       saleType: saleType || "REGULAR",
