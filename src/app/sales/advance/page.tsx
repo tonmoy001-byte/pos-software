@@ -645,7 +645,7 @@ export default function AdvanceOrderPage() {
                         <p className="text-sm font-bold">#{advance.invoiceNumber}</p>
                       </td>
                       <td className="px-6 py-5">
-                        <p className="text-sm text-secondary font-medium">{new Date(advance.createdAt).toLocaleDateString()}</p>
+                        <p className="text-sm text-secondary font-medium">{advance.createdAt ? new Date(advance.createdAt).toLocaleDateString("en-GB") : "-"}</p>
                       </td>
                       <td className="px-6 py-5">
                         <div className="space-y-1">
@@ -664,7 +664,7 @@ export default function AdvanceOrderPage() {
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                        <p className="text-sm font-medium">{advance.deliveryDate ? new Date(advance.deliveryDate).toLocaleDateString() : '-'}</p>
+                        <p className="text-sm font-medium">{advance.deliveryDate ? new Date(advance.deliveryDate).toLocaleDateString("en-GB") : '-'}</p>
                       </td>
                       <td className="px-6 py-5">
                         <span className={`text-[10px] font-black px-3 py-1 rounded-full border ${advance.status === "PENDING" ? 'bg-yellow-50 text-yellow-700 border-yellow-100' : 'bg-green-50 text-green-700 border-green-100'}`}>

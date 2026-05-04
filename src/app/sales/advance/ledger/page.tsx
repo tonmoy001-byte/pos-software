@@ -144,7 +144,7 @@ export default function AdvanceLedgerPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-secondary">
-                      {new Date(advance.createdAt).toLocaleDateString()}
+                      {advance.createdAt ? new Date(advance.createdAt).toLocaleDateString("en-GB") : "-"}
                     </p>
                     <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold mt-1 ${
                       advance.status === "PARTIAL" ? "bg-orange-100 text-orange-700" : "bg-green-100 text-green-700"
@@ -176,7 +176,7 @@ export default function AdvanceLedgerPage() {
                 {advance.deliveryDate && (
                   <div className="mb-3 px-3 py-2 bg-blue-50 rounded-lg inline-block">
                     <p className="text-xs text-blue-600 font-bold">
-                      📅 Expected Delivery: {new Date(advance.deliveryDate).toLocaleDateString()}
+                      📅 Expected Delivery: {new Date(advance.deliveryDate).toLocaleDateString("en-GB")}
                     </p>
                   </div>
                 )}
