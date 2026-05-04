@@ -33,14 +33,20 @@ export async function GET(req: Request) {
       invoiceId: sale.invoiceId,
       customerName: sale.customer?.name || "Walking Customer",
       customerPhone: sale.customer?.phone || null,
+      customerAddress: sale.customer?.address || null,
       items: sale.items.map((item: any) => ({
         name: item.product?.name || "Unknown",
+        model: item.product?.model || "",
+        brand: item.product?.brand || "",
         quantity: item.quantity,
         price: item.price
       })),
       totalAmount: Number(sale.totalAmount),
       paidAmount: Number(sale.paidAmount),
       dueAmount: Number(sale.dueAmount),
+      discount: Number(sale.discount) || 0,
+      paymentMethod: sale.payments?.[0]?.method || "CASH",
+      deliveryDate: sale.deliveryDate ? sale.deliveryDate.toISOString() : null,
       status: sale.status,
       createdAt: sale.createdAt?.toISOString()
     }));

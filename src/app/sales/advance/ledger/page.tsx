@@ -133,6 +133,9 @@ export default function AdvanceLedgerPage() {
                   <div>
                     <p className="font-black text-lg">{advance.customerName}</p>
                     <p className="text-sm text-secondary">{advance.customerPhone || "No phone"}</p>
+                    {advance.customerAddress && (
+                      <p className="text-xs text-secondary mt-1">{advance.customerAddress}</p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-secondary">
@@ -146,7 +149,7 @@ export default function AdvanceLedgerPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="grid grid-cols-4 gap-3 mb-4">
                   <div className="bg-background p-3 rounded-xl">
                     <p className="text-xs text-secondary font-bold">Total</p>
                     <p className="font-black">{formatCurrency(advance.totalAmount)}</p>
@@ -159,11 +162,36 @@ export default function AdvanceLedgerPage() {
                     <p className="text-xs text-secondary font-bold">Due</p>
                     <p className="font-black text-orange-600">{formatCurrency(advance.dueAmount)}</p>
                   </div>
+                  <div className="bg-background p-3 rounded-xl">
+                    <p className="text-xs text-secondary font-bold">Discount</p>
+                    <p className="font-black">{formatCurrency(advance.discount || 0)}</p>
+                  </div>
+                </div>
+
+                {advance.deliveryDate && (
+                  <div className="mb-3 px-3 py-2 bg-blue-50 rounded-lg inline-block">
+                    <p className="text-xs text-blue-600 font-bold">
+                      📅 Expected Delivery: {new Date(advance.deliveryDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2 mb-4">
+                  {advance.items?.map((item: any, idx: number) => (
+                    <div key={idx} className="flex justify-between text-sm bg-background/50 p-2 rounded-lg">
+                      <span className="font-medium">{item.name}</span>
+                      <span className="text-secondary">
+                        {item.brand} {item.model} × {item.quantity} = {formatCurrency(item.price * item.quantity)}
+                      </span>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-secondary">
-                    {advance.items?.map((i: any) => i.name).join(", ")}
+                  <p className="text-sm text-secondary flex items-center gap-2">
+                    <span className="px-2 py-1 bg-surface rounded text-xs font-bold">
+                      {advance.paymentMethod || "CASH"}
+                    </span>
                   </p>
                   {advance.dueAmount > 0 && (
                     <Button 
