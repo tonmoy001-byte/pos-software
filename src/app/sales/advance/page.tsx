@@ -370,38 +370,9 @@ export default function AdvanceOrderPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-10">
-<div className="space-y-4">
-                <div>
-                  <label className="text-xs font-black text-secondary uppercase tracking-widest px-1">Advance Percentage</label>
-                  <div className="grid grid-cols-4 gap-2 mt-2">
-                    {[10, 20, 30, 50].map(p => (
-                      <button
-                        key={p}
-                        onClick={() => setAdvancePercent(p)}
-                        className={`py-3 rounded-xl font-bold text-sm transition-all ${advancePercent === p ? 'bg-primary text-white' : 'bg-background border border-border'}`}
-                      >
-                        {p}%
-                      </button>
-                    ))}
-                  </div>
-                  <input 
-                    type="number" 
-                    value={advancePercent} 
-                    onChange={(e) => setAdvancePercent(Number(e.target.value))}
-                    className="w-full py-3 bg-background rounded-xl border-2 border-border px-4 font-bold mt-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-black text-secondary uppercase tracking-widest px-1">Expected Delivery Date</label>
-                  <input 
-                    type="date" 
-                    value={deliveryDate} 
-                    onChange={(e) => setDeliveryDate(e.target.value)}
-                    className="w-full py-3 bg-background rounded-xl border-2 border-border px-4 font-bold mt-2"
-                  />
-                </div>
+<div className="grid grid-cols-2 gap-10">
+              <div className="flex items-center justify-center">
+                <p className="text-secondary">Order Details</p>
               </div>
 
               <div className="space-y-6 bg-background/50 p-8 rounded-[2rem] border-2 border-border">
