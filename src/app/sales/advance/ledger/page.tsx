@@ -131,7 +131,12 @@ export default function AdvanceLedgerPage() {
               <div key={advance.id} className="p-6 hover:bg-background/50">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <p className="font-black text-lg">{advance.customerName}</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-black text-lg">{advance.customerName || "Walking Customer"}</p>
+                      <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded font-bold">
+                        #{advance.invoiceId}
+                      </span>
+                    </div>
                     <p className="text-sm text-secondary">{advance.customerPhone || "No phone"}</p>
                     {advance.customerAddress && (
                       <p className="text-xs text-secondary mt-1">{advance.customerAddress}</p>
