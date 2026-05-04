@@ -2,7 +2,6 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { SaleService } from "@/lib/services/sale";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -12,22 +11,61 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const { id: saleId } = await params;
     const { paidAmount, method } = await req.json();
 
-    const saleService = new SaleService();
-
-    // collect payment handles the transaction, payment record, and customer due logic
-    await saleService.collectPayment(saleId, Number(paidAmount), method || "CASH", session.user.id, session.user.storeId);
-
-    // update delivery date for advance order
-    const updatedSale = await prisma.sale.update({
+    // Fetch the advance order
+    const sale = await prisma.sale.findUnique({
       where: { id: saleId },
-      data: { deliveryDate: new Date() },
-      include: {
-        customer: true,
-        items: { include: { product: true } }
-      }
+      include: { items: true }
     });
 
-    return NextResponse.json(updatedSale);
+    if (!sale) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    if (sale.saleType !== "ADVANCE_ORDER") {
+      return NextResponse.json({ error: "Not an advance order" }, { status: 400 });
+    }
+
+    if (sale.status === "COMPLETED" || sale.status === "CANCELLED") {
+      return NextResponse.json({ error: `Cannot complete - order is ${sale.status.toLowerCase()}` }, { status: 400 });
+    }
+
+    // Calculate remaining amount to complete
+    const remainingAmount = Number(sale.totalAmount) - Number(sale.paidAmount);
+    const paymentAmount = paidAmount ? Number(paidAmount) : remainingAmount;
+
+    // Process in transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create payment record
+      await tx.payment.create({
+        data: {
+          amount: paymentAmount,
+          method: method || "CASH",
+          saleId: sale.id,
+          storeId: session.user.storeId,
+        }
+      });
+
+      // 2. Note: Stock is not automatically deducted for advance orders
+      // Stock should be managed via SerializedItem (IMEI) tracking separately
+
+      // 3. Update sale to completed
+      const updatedSale = await tx.sale.update({
+        where: { id: saleId },
+        data: {
+          paidAmount: { increment: paymentAmount },
+          dueAmount: 0,
+          status: "COMPLETED"
+        },
+        include: {
+          customer: true,
+          items: { include: { product: true } }
+        }
+      });
+
+      return updatedSale;
+    });
+
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error("Failed to complete advance order:", error);
     return NextResponse.json({ error: error.message || "Failed to complete advance order" }, { status: 500 });

@@ -110,26 +110,27 @@ model Customer {
 }
 
 model Sale {
-  id           String     @id @default(uuid())
-  invoiceId    String     @unique
-  saleType     String     @default("REGULAR")
-  totalAmount  Decimal
-  paidAmount   Decimal
-  dueAmount    Decimal
-  discount     Decimal    @default(0)
-  costAmount   Decimal    @default(0)
-  profit       Decimal    @default(0)
-  status       SaleStatus
-  customerId   String?
-  customerName String?    @default("Walking Customer")
-  storeId      String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  deliveryDate DateTime?
-  payments     Payment[]
-  store        Store      @relation(fields: [storeId], references: [id])
-  customer     Customer?  @relation(fields: [customerId], references: [id])
-  items        SaleItem[]
+  id               String     @id @default(uuid())
+  invoiceId        String     @unique
+  saleType         String     @default("REGULAR")
+  totalAmount      Decimal
+  paidAmount       Decimal
+  dueAmount        Decimal
+  discount         Decimal    @default(0)
+  costAmount       Decimal    @default(0)
+  profit           Decimal    @default(0)
+  status           SaleStatus
+  customerId       String?
+  customerName     String?    @default("Walking Customer")
+  storeId          String
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  deliveryDate     DateTime?
+  advanceAmount    Decimal?   // Advance paid amount for advance orders
+  payments         Payment[]
+  store            Store      @relation(fields: [storeId], references: [id])
+  customer         Customer?  @relation(fields: [customerId], references: [id])
+  items            SaleItem[]
 }
 
 model SaleItem {
@@ -315,7 +316,14 @@ enum SaleStatus {
   PAID
   PARTIAL
   DUE
+  PENDING   // For advance orders
+  COMPLETED // For advance orders
   CANCELLED
+}
+
+enum SaleType {
+  REGULAR
+  ADVANCE_ORDER
 }
 
 enum TransactionType {
