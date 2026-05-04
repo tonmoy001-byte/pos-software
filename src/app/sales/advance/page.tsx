@@ -405,7 +405,12 @@ export default function AdvanceOrderPage() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-bold text-secondary">Delivery Date</span>
-                      <span className="text-sm font-bold text-primary">{deliveryDate || "Not set"}</span>
+                      <input 
+                        type="date" 
+                        value={deliveryDate} 
+                        onChange={(e) => setDeliveryDate(e.target.value)}
+                        className="py-1 px-2 bg-surface rounded border border-border text-sm font-bold"
+                      />
                     </div>
                   </div>
                 </div>
