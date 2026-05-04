@@ -50,6 +50,7 @@ export default function InventoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [message, setMessage] = useState<{type: "success"|"error", text: string} | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [printQuantity, setPrintQuantity] = useState(1);
 
   const [form, setForm] = useState({
     name: "",
@@ -138,8 +139,21 @@ export default function InventoryPage() {
 
   const openBarcodePrint = (product: any) => {
     setSelectedProduct(product);
-    setPrintItems(product.items || []);
+    setPrintItems(product.items && product.items.length > 0 ? product.items : []);
+    setPrintQuantity(product.items && product.items.length > 0 ? product.items.length : 1);
     setIsBarcodeOpen(true);
+  };
+
+  const handlePrint = async () => {
+    const printArea = document.getElementById("barcode-print-area");
+    if (!printArea) {
+      console.error("Print area not found");
+      return;
+    }
+    printArea.style.display = "block";
+    await new Promise(resolve => setTimeout(resolve, 300));
+    window.print();
+    printArea.style.display = "none";
   };
 
   const filteredProducts = products.filter(p => 
@@ -154,6 +168,89 @@ export default function InventoryPage() {
 
   return (
     <div className="p-8 space-y-6">
+      {/* Print Styles - Optimized for roll stickers */}
+      <style>{`
+        @media print {
+          @page {
+            size: auto;
+            margin: 0;
+            padding: 0;
+          }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: auto !important;
+            height: auto !important;
+          }
+          body * {
+            visibility: hidden;
+          }
+          #barcode-print-area,
+          #barcode-print-area * {
+            visibility: visible;
+          }
+          #barcode-print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: var(--label-width, 38mm);
+            display: flex !important;
+            flex-direction: column;
+            gap: 0;
+            padding: 0;
+            margin: 0;
+          }
+          #barcode-print-area > div {
+            width: 100%;
+            height: var(--label-height, 25mm);
+            page-break-inside: avoid;
+            break-inside: avoid;
+            margin: 0;
+            padding: 2mm;
+            box-sizing: border-box;
+          }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+
+      {/* Dedicated Print Area */}
+      <div 
+        id="barcode-print-area" 
+        style={{ 
+          display: 'none',
+          '--label-width': `${barcodeSettings?.labelWidth || 38}mm`,
+          '--label-height': `${barcodeSettings?.labelHeight || 25}mm`,
+        } as React.CSSProperties}
+      >
+        {Array.from({ length: printQuantity }).map((_, idx) => {
+          const item = selectedProduct?.items?.[idx % (selectedProduct?.items?.length || 1)];
+          return (
+            <div key={idx} className="p-1">
+              <BarcodeLabelPreview
+                productName={barcodeSettings?.showProductName ? selectedProduct?.name : undefined}
+                price={barcodeSettings?.showPrice ? selectedProduct?.price : undefined}
+                sku={barcodeSettings?.showSku ? selectedProduct?.barcode : undefined}
+                imei={barcodeSettings?.showImei && item?.imei ? item.imei : undefined}
+                barcodeValue={item?.barcode || item?.imei || selectedProduct?.barcode || selectedProduct?.id}
+settings={barcodeSettings || {
+                      barcodeType: "CODE128",
+                      showProductName: true,
+                      showPrice: true,
+                      showSku: true,
+                      showImei: true,
+                      showBarcode: true,
+                      includeCurrency: true,
+                      fontSize: 8,
+                      labelWidth: 38,
+                      labelHeight: 25,
+                      compactMode: true
+                    }}
+              />
+            </div>
+          );
+        })}
+      </div>
+
       {message && (
         <div className={`p-4 rounded-xl flex items-center gap-3 ${
           message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
@@ -220,6 +317,7 @@ export default function InventoryPage() {
                 size="sm" 
                 className="flex-1"
                 onClick={() => openBarcodePrint(product)}
+                disabled={(product._count?.items || 0) === 0}
               >
                 <Printer className="w-4 h-4" /> Print Label
               </Button>
@@ -370,7 +468,7 @@ export default function InventoryPage() {
 
       {/* Barcode Print Modal */}
       {isBarcodeOpen && selectedProduct && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
           <div className="bg-surface w-full max-w-2xl rounded-3xl p-8 space-y-6 max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold">Print Barcode Labels</h2>
@@ -382,38 +480,77 @@ export default function InventoryPage() {
               <p className="text-sm text-secondary">{selectedProduct.barcode}</p>
             </div>
 
-            <div className={`grid ${barcodeSettings?.labelWidth > 60 ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
-              {printItems.map((item: any) => (
-                <div key={item.id} className="border-2 border-dashed border-gray-300 p-2 text-center bg-white">
-                  <BarcodeLabelPreview
-                    productName={barcodeSettings?.showProductName ? selectedProduct.name : undefined}
-                    price={barcodeSettings?.showPrice ? selectedProduct.price : undefined}
-                    sku={barcodeSettings?.showSku ? selectedProduct.barcode : undefined}
-                    imei={barcodeSettings?.showImei ? item.imei : undefined}
-                    barcodeValue={item.barcode || item.imei || selectedProduct.barcode}
-                    settings={barcodeSettings || {
-                      barcodeType: "CODE128",
-                      showProductName: true,
-                      showPrice: true,
-                      showSku: true,
-                      showImei: true,
-                      showBarcode: true,
-                      includeCurrency: true,
-                      fontSize: 10,
-                      labelWidth: 50,
-                      labelHeight: 25
-                    }}
-                  />
-                </div>
-              ))}
+            {/* Print Quantity Selector - Always visible */}
+            <div className="flex items-center justify-center gap-4 mb-6 p-4 bg-background rounded-xl">
+              <label className="text-sm font-bold text-secondary">Number of Labels to Print:</label>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setPrintQuantity(Math.max(1, printQuantity - 1))} 
+                  className="w-10 h-10 flex items-center justify-center bg-surface border-2 border-border rounded-xl hover:border-primary hover:bg-primary/5 transition-all font-bold text-lg"
+                >
+                  -
+                </button>
+                <span className="w-16 text-center font-bold text-xl bg-surface py-2 rounded-xl border-2 border-border">
+                  {printQuantity}
+                </span>
+                <button 
+                  onClick={() => setPrintQuantity(printQuantity + 1)} 
+                  className="w-10 h-10 flex items-center justify-center bg-surface border-2 border-border rounded-xl hover:border-primary hover:bg-primary/5 transition-all font-bold text-lg"
+                >
+                  +
+                </button>
+              </div>
+              <button 
+                onClick={() => setPrintQuantity(1)} 
+                className="text-xs text-secondary hover:text-primary underline ml-2"
+              >
+                Reset
+              </button>
+            </div>
+
+            {/* Print and Screen preview area */}
+            <div 
+              className="print-area grid gap-4"
+              style={{
+                '--label-width': `${barcodeSettings?.labelWidth || 38}mm`,
+                '--label-height': `${barcodeSettings?.labelHeight || 25}mm`,
+              } as React.CSSProperties}
+            >
+              {Array.from({ length: printQuantity }).map((_, idx) => {
+                const item = selectedProduct?.items?.[idx % (selectedProduct?.items?.length || 1)];
+                return (
+                  <div key={idx} className="border-2 border-dashed border-gray-300 p-2 text-center bg-white flex justify-center">
+                    <BarcodeLabelPreview
+                      productName={barcodeSettings?.showProductName ? selectedProduct?.name : undefined}
+                      price={barcodeSettings?.showPrice ? selectedProduct?.price : undefined}
+                      sku={barcodeSettings?.showSku ? selectedProduct?.barcode : undefined}
+                      imei={barcodeSettings?.showImei && item?.imei ? item.imei : undefined}
+                      barcodeValue={item?.barcode || item?.imei || selectedProduct?.barcode || selectedProduct?.id}
+                      settings={barcodeSettings || {
+                        barcodeType: "CODE128",
+                        showProductName: true,
+                        showPrice: true,
+                        showSku: true,
+                        showImei: true,
+                        showBarcode: true,
+                        includeCurrency: true,
+                        fontSize: 8,
+                        labelWidth: 38,
+                        labelHeight: 25,
+                        compactMode: true
+                      }}
+                    />
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex gap-4">
               <Button 
                 className="flex-1" 
-                onClick={() => window.print()}
+                onClick={handlePrint}
               >
-                <Printer className="w-5 h-5" /> Print All
+                <Printer className="w-5 h-5" /> Print
               </Button>
               <Button variant="secondary" onClick={() => setIsBarcodeOpen(false)}>
                 Close

@@ -53,6 +53,17 @@ export default function POSPage() {
   const [invoiceConfig, setInvoiceConfig] = useState<any>(null);
 
   useEffect(() => {
+    if (isIMEIOpen && selectedProduct) {
+      const existingItem = cart.find(item => item.productId === selectedProduct.id);
+      if (existingItem) {
+        setTempSelectedImeis(existingItem.imeis || []);
+      } else {
+        setTempSelectedImeis([]);
+      }
+    }
+  }, [isIMEIOpen, selectedProduct?.id]);
+
+  useEffect(() => {
     async function fetchProducts() {
       try {
         const res = await fetch("/api/products");
@@ -97,6 +108,12 @@ export default function POSPage() {
   }, [customerSearch]);
 
   const addToCart = (product: any) => {
+    const existingItem = cart.find(item => item.productId === product.id);
+    if (existingItem) {
+      setTempSelectedImeis(existingItem.imeis || []);
+    } else {
+      setTempSelectedImeis([]);
+    }
     setSelectedProduct(product);
     setIsIMEIOpen(true);
   };

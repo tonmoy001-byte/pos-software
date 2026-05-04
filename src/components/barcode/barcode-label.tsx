@@ -58,6 +58,7 @@ interface LabelPreviewProps {
     fontSize: number;
     labelWidth: number;
     labelHeight: number;
+    compactMode?: boolean;
   };
 }
 
@@ -69,42 +70,61 @@ export function BarcodeLabelPreview({
   barcodeValue,
   settings
 }: LabelPreviewProps) {
-  const labelWidth = settings.labelWidth || 50;
+  const labelWidth = settings.labelWidth || 38;
   const labelHeight = settings.labelHeight || 25;
-  const fontSize = settings.fontSize || 10;
+  const baseFontSize = settings.fontSize || 8;
+  const compactMode = settings.compactMode ?? true;
+  
+  const isCompact = compactMode || labelWidth <= 40;
+  const padding = isCompact ? "1mm" : "2mm";
+  const barcodeHeight = isCompact ? 18 : 30;
+  const lineHeight = isCompact ? 1.0 : 1.2;
+  const gap = isCompact ? "0.3mm" : "1mm";
 
   return (
     <div
-      className="bg-white border border-gray-200 rounded p-2"
+      className="bg-white"
       style={{
         width: `${labelWidth}mm`,
         minHeight: `${labelHeight}mm`,
-        fontSize: `${fontSize}px`,
+        maxHeight: `${labelHeight}mm`,
+        fontSize: `${baseFontSize}px`,
+        lineHeight: lineHeight,
+        padding: padding,
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        gap: gap,
+        overflow: "hidden",
       }}
     >
       {settings.showProductName && productName && (
-        <div className="font-bold text-center truncate">{productName}</div>
+        <div className="font-bold text-center truncate" style={{ fontSize: `${baseFontSize}px` }}>
+          {productName}
+        </div>
       )}
       {settings.showPrice && price && (
-        <div className="text-center font-bold text-primary">
+        <div className="text-center font-bold text-primary" style={{ fontSize: `${baseFontSize + 1}px` }}>
           {settings.includeCurrency ? "৳" : ""}{price}
         </div>
       )}
       {(settings.showSku || settings.showImei) && (
-        <div className="text-center text-xs text-gray-600">
+        <div className="text-center" style={{ fontSize: `${baseFontSize - 1}px` }}>
           {settings.showSku && sku && <span>{sku}</span>}
           {settings.showSku && settings.showImei && sku && imei && <span> | </span>}
           {settings.showImei && imei && <span>{imei}</span>}
         </div>
       )}
       {settings.showBarcode && (
-        <div className="flex justify-center">
+        <div className="flex justify-center items-center" style={{ marginTop: isCompact ? "0.2mm" : "0" }}>
           <BarcodeGenerator
             value={barcodeValue}
             type={settings.barcodeType as any}
             showText={false}
-            height={30}
-            fontSize={fontSize}
+            width={isCompact ? 1 : 1.5}
+            height={barcodeHeight}
+            fontSize={baseFontSize}
           />
         </div>
       )}

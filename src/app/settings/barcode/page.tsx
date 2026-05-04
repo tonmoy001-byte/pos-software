@@ -17,6 +17,7 @@ interface BarcodeSettings {
   showWarranty: boolean;
   includeCurrency: boolean;
   fontSize: number;
+  compactMode: boolean;
 }
 
 const BARCODE_TYPES = [
@@ -27,6 +28,7 @@ const BARCODE_TYPES = [
 ];
 
 const LABEL_SIZES = [
+  { width: 38, height: 25, name: "38x25mm" },
   { width: 40, height: 20, name: "40x20mm" },
   { width: 50, height: 25, name: "50x25mm" },
   { width: 70, height: 35, name: "70x35mm" },
@@ -39,9 +41,9 @@ export default function BarcodeSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [settings, setSettings] = useState<BarcodeSettings>({
     barcodeType: "CODE128",
-    labelWidth: 50,
+    labelWidth: 38,
     labelHeight: 25,
-    labelSizeName: "50x25mm",
+    labelSizeName: "38x25mm",
     showProductName: true,
     showPrice: true,
     showSku: true,
@@ -50,7 +52,8 @@ export default function BarcodeSettingsPage() {
     showQrCode: false,
     showWarranty: false,
     includeCurrency: true,
-    fontSize: 10,
+    fontSize: 8,
+    compactMode: true,
   });
 
   useEffect(() => {
@@ -172,6 +175,58 @@ export default function BarcodeSettingsPage() {
                 </button>
               ))}
             </div>
+            
+            {/* Custom Size Option */}
+            <div className="mt-4 p-4 bg-background rounded-xl">
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="checkbox"
+                  id="customSize"
+                  checked={!LABEL_SIZES.some(s => s.name === settings.labelSizeName)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSettings({ ...settings, labelSizeName: "Custom" });
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                />
+                <label htmlFor="customSize" className="text-sm font-medium">Custom Size</label>
+              </div>
+              {!LABEL_SIZES.some(s => s.name === settings.labelSizeName) && (
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="text-xs text-secondary">Width (mm)</label>
+                    <input
+                      type="number"
+                      value={settings.labelWidth}
+                      onChange={(e) => setSettings({ 
+                        ...settings, 
+                        labelWidth: Number(e.target.value),
+                        labelSizeName: `${e.target.value}x${settings.labelHeight}mm`
+                      })}
+                      className="w-full px-3 py-2 rounded-lg border border-border text-sm"
+                      min="10"
+                      max="200"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs text-secondary">Height (mm)</label>
+                    <input
+                      type="number"
+                      value={settings.labelHeight}
+                      onChange={(e) => setSettings({ 
+                        ...settings, 
+                        labelHeight: Number(e.target.value),
+                        labelSizeName: `${settings.labelWidth}x${e.target.value}mm`
+                      })}
+                      className="w-full px-3 py-2 rounded-lg border border-border text-sm"
+                      min="5"
+                      max="200"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Label Fields */}
@@ -269,6 +324,28 @@ export default function BarcodeSettingsPage() {
             </div>
           </div>
 
+          {/* Compact Mode for Small Stickers */}
+          <div className="bg-surface rounded-2xl border border-border p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                <Ruler className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Compact Mode</h2>
+                <p className="text-sm text-secondary">Optimize for small roll stickers</p>
+              </div>
+            </div>
+            <label className="flex items-center gap-3 p-3 rounded-xl border border-border cursor-pointer hover:bg-background/50">
+              <input
+                type="checkbox"
+                checked={settings.compactMode}
+                onChange={(e) => setSettings({ ...settings, compactMode: e.target.checked })}
+                className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
+              />
+              <span className="font-medium">Enable compact mode (reduces padding & spacing for small labels)</span>
+            </label>
+          </div>
+
           {/* Font Size */}
           <div className="bg-surface rounded-2xl border border-border p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -283,8 +360,8 @@ export default function BarcodeSettingsPage() {
             <div className="flex items-center gap-4">
               <input
                 type="range"
-                min="8"
-                max="16"
+                min="6"
+                max="14"
                 value={settings.fontSize}
                 onChange={(e) => setSettings({ ...settings, fontSize: Number(e.target.value) })}
                 className="flex-1 h-2 bg-background rounded-lg appearance-none cursor-pointer accent-primary"

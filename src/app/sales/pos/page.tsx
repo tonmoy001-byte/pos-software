@@ -108,6 +108,12 @@ const [barcodeInput, setBarcodeInput] = useState("");
   }, [customerSearch]);
 
   const addToCart = (product: any) => {
+    const existing = cart.find(item => item.productId === product.id);
+    if (existing) {
+      setTempSelectedImeis(existing.imeis || []);
+    } else {
+      setTempSelectedImeis([]);
+    }
     setSelectedProduct(product);
     setIsIMEIOpen(true);
   };
@@ -170,6 +176,7 @@ const [barcodeInput, setBarcodeInput] = useState("");
       setCart([...cart, { productId: product.id, name: product.name, price: product.price, quantity: selectedImeis.length, imeis: selectedImeis }]);
     }
     setIsIMEIOpen(false);
+    setTempSelectedImeis([]);
   };
 
   const removeFromCart = (productId: string) => {

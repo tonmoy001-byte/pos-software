@@ -7,6 +7,296 @@ datasource db {
   provider = "sqlite"
 }
 
+model Store {
+  id                String             @id @default(uuid())
+  name              String
+  address           String?
+  phone             String?
+  email             String?
+  description       String?
+  logo              String?
+  invoicePrefix     String             @default("INV")
+  invoiceNumbering  Int                @default(1)
+  invoiceFooter     String?
+  taxId             String?
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  barcodeSettings   BarcodeSettings?
+  customers         Customer[]
+  dailyBalances     DailyBalance[]
+  events            Event[]
+  expenses          Expense[]
+  invoiceSettings   InvoiceSettings?
+  loans             Loan[]
+  products          Product[]
+  sales             Sale[]
+  secondHandRecords SecondHandRecord[]
+  suppliers         Supplier[]
+  transactions      Transaction[]
+  users             User[]
+}
+
+model InvoiceSettings {
+  id        String   @id @default(uuid())
+  storeId   String   @unique
+  general   String   @default("{}")
+  layout    String   @default("{}")
+  products  String   @default("{}")
+  payment   String   @default("{}")
+  footer    String   @default("{}")
+  print     String   @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  store     Store    @relation(fields: [storeId], references: [id])
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  name      String
+  role      Role     @default(CASHIER)
+  storeId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  store     Store    @relation(fields: [storeId], references: [id])
+}
+
+model Product {
+  id        String           @id @default(uuid())
+  name      String
+  barcode   String?          @unique
+  model     String
+  brand     String
+  category  String
+  price     Decimal
+  cost      Decimal
+  profit    Decimal          @default(0)
+  minStock  Int              @default(5)
+  storeId   String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  store     Store            @relation(fields: [storeId], references: [id])
+  saleItems SaleItem[]
+  items     SerializedItem[]
+}
+
+model SerializedItem {
+  id         String     @id @default(uuid())
+  barcode    String?    @unique
+  imei       String     @unique
+  status     ItemStatus @default(AVAILABLE)
+  cost       Decimal?
+  productId  String
+  saleItemId String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  saleItem   SaleItem?  @relation(fields: [saleItemId], references: [id])
+  product    Product    @relation(fields: [productId], references: [id])
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String   @unique
+  address   String?
+  dueAmount Decimal  @default(0)
+  storeId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  store     Store    @relation(fields: [storeId], references: [id])
+  sales     Sale[]
+}
+
+model Sale {
+  id           String     @id @default(uuid())
+  invoiceId    String     @unique
+  saleType     String     @default("REGULAR")
+  totalAmount  Decimal
+  paidAmount   Decimal
+  dueAmount    Decimal
+  discount     Decimal    @default(0)
+  costAmount   Decimal    @default(0)
+  profit       Decimal    @default(0)
+  status       SaleStatus
+  customerId   String?
+  storeId      String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deliveryDate DateTime?
+  payments     Payment[]
+  store        Store      @relation(fields: [storeId], references: [id])
+  customer     Customer?  @relation(fields: [customerId], references: [id])
+  items        SaleItem[]
+}
+
+model SaleItem {
+  id        String           @id @default(uuid())
+  saleId    String
+  productId String
+  quantity  Int
+  price     Decimal
+  cost      Decimal?
+  profit    Decimal          @default(0)
+  product   Product          @relation(fields: [productId], references: [id])
+  sale      Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  imeis     SerializedItem[]
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  amount    Decimal
+  method    String
+  date      DateTime @default(now())
+  saleId    String
+  storeId   String
+  createdAt DateTime @default(now())
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  description String
+  amount      Decimal
+  category    String
+  date        DateTime @default(now())
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id])
+}
+
+model Loan {
+  id           String        @id @default(uuid())
+  borrower     String
+  type         String
+  amount       Decimal
+  paid         Decimal       @default(0)
+  remaining    Decimal
+  date         DateTime      @default(now())
+  storeId      String
+  store        Store         @relation(fields: [storeId], references: [id])
+  transactions Transaction[]
+}
+
+model Supplier {
+  id           String        @id @default(uuid())
+  name         String
+  phone        String?
+  address      String?
+  dueAmount    Decimal       @default(0)
+  storeId      String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  store        Store         @relation(fields: [storeId], references: [id])
+  transactions Transaction[]
+}
+
+model DailyBalance {
+  id            String   @id @default(uuid())
+  date          DateTime @unique
+  openingCash   Decimal  @default(0)
+  closingCash   Decimal  @default(0)
+  expectedCash  Decimal  @default(0)
+  cashSales     Decimal  @default(0)
+  bankDeposits  Decimal  @default(0)
+  totalExpenses Decimal  @default(0)
+  totalDuePaid  Decimal  @default(0)
+  storeId       String
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  store         Store    @relation(fields: [storeId], references: [id])
+
+  @@index([storeId, date])
+}
+
+model Event {
+  id            String   @id @default(uuid())
+  aggregateType String
+  aggregateId   String
+  type          String
+  payload       String
+  metadata      String?
+  userId        String?
+  storeId       String
+  createdAt     DateTime @default(now())
+  store         Store    @relation(fields: [storeId], references: [id])
+
+  @@unique([aggregateType, aggregateId, createdAt])
+  @@index([storeId, createdAt])
+  @@index([aggregateType, aggregateId, createdAt])
+}
+
+model Transaction {
+  id            String            @id @default(uuid())
+  type          TransactionType
+  amount        Decimal
+  costAmount    Decimal?
+  profit        Decimal           @default(0)
+  mode          TransactionMode   @default(CASH)
+  referenceId   String?
+  referenceType String?
+  description   String?
+  imei          String?
+  barcode       String?
+  productId     String?
+  customerId    String?
+  supplierId    String?
+  userId        String?
+  storeId       String
+  loanId        String?
+  createdAt     DateTime          @default(now())
+  status        TransactionStatus @default(COMPLETED)
+  supplier      Supplier?         @relation(fields: [supplierId], references: [id])
+  loan          Loan?             @relation(fields: [loanId], references: [id])
+  store         Store             @relation(fields: [storeId], references: [id])
+
+  @@index([storeId, type, createdAt])
+  @@index([storeId, createdAt])
+  @@index([barcode])
+}
+
+model SecondHandRecord {
+  id            String   @id @default(uuid())
+  sellerName    String
+  fatherName    String?
+  nidNumber     String
+  nidPhotoData  Bytes?
+  nidPhotoHash  String?
+  model         String
+  imei          String   @unique
+  purchasePrice Decimal
+  date          DateTime @default(now())
+  storeId       String
+  isImmutable   Boolean  @default(true)
+  encryptionIv  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  store         Store    @relation(fields: [storeId], references: [id])
+}
+
+model BarcodeSettings {
+  id              String   @id @default(uuid())
+  storeId         String   @unique
+  barcodeType     String   @default("CODE128")
+  labelWidth      Int      @default(38)
+  labelHeight     Int      @default(25)
+  labelSizeName   String   @default("38x25mm")
+  showProductName Boolean  @default(true)
+  showPrice       Boolean  @default(true)
+  showSku         Boolean  @default(true)
+  showImei        Boolean  @default(true)
+  showBarcode     Boolean  @default(true)
+  showQrCode      Boolean  @default(false)
+  showWarranty    Boolean  @default(false)
+  includeCurrency Boolean  @default(true)
+  fontSize        Int      @default(8)
+  compactMode     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  store           Store    @relation(fields: [storeId], references: [id])
+}
+
 enum Role {
   ADMIN
   MANAGER
@@ -55,305 +345,4 @@ enum TransactionStatus {
   PENDING
   COMPLETED
   CANCELLED
-}
-
-model Store {
-  id                String              @id @default(uuid())
-  name              String
-  address           String?
-  phone             String?
-  email             String?
-  description       String?
-  logo              String?
-  invoicePrefix     String              @default("INV")
-  invoiceNumbering Int                @default(1)
-  invoiceFooter    String?
-  taxId             String?
-  isActive          Boolean             @default(true)
-  users             User[]
-  products          Product[]
-  sales             Sale[]
-  expenses          Expense[]
-  customers         Customer[]
-  loans             Loan[]
-  secondHandRecords SecondHandRecord[]
-  suppliers         Supplier[]
-  transactions      Transaction[]
-  dailyBalances     DailyBalance[]
-  events            Event[]
-  invoiceSettings   InvoiceSettings?
-  barcodeSettings   BarcodeSettings?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-}
-
-model InvoiceSettings {
-  id        String   @id @default(uuid())
-  storeId   String   @unique
-  store    Store    @relation(fields: [storeId], references: [id])
-  
-  general  String    @default("{}")
-  layout   String    @default("{}")
-  products String    @default("{}")
-  payment  String    @default("{}")
-  footer   String    @default("{}")
-  print    String    @default("{}")
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  password  String
-  name      String
-  role      Role     @default(CASHIER)
-  storeId   String
-  store     Store    @relation(fields: [storeId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Product {
-  id            String           @id @default(uuid())
-  name          String
-  barcode      String?          @unique
-  model         String
-  brand         String
-  category      String
-  price         Decimal
-  cost          Decimal
-  profit        Decimal          @default(0)
-  minStock      Int              @default(5)
-  storeId       String
-  store         Store            @relation(fields: [storeId], references: [id])
-  items         SerializedItem[]
-  saleItems     SaleItem[]
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-}
-
-model SerializedItem {
-  id         String     @id @default(uuid())
-  barcode   String?    @unique
-  imei       String     @unique
-  status    ItemStatus @default(AVAILABLE)
-  cost       Decimal?
-  productId  String
-  product   Product    @relation(fields: [productId], references: [id])
-  saleItemId String?
-  saleItem  SaleItem?  @relation(fields: [saleItemId], references: [id])
-  createdAt  DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-}
-
-model Customer {
-  id        String   @id @default(uuid())
-  name      String
-  phone     String   @unique
-  address   String?
-  dueAmount Decimal  @default(0)
-  storeId   String
-  store     Store    @relation(fields: [storeId], references: [id])
-  sales     Sale[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Sale {
-  id             String     @id @default(uuid())
-  invoiceId      String     @unique
-  saleType       String     @default("REGULAR")
-  totalAmount    Decimal
-  paidAmount     Decimal
-  dueAmount      Decimal
-  discount       Decimal    @default(0)
-  costAmount     Decimal    @default(0)
-  profit         Decimal    @default(0)
-  status         SaleStatus
-  customerId     String?
-  customer       Customer?  @relation(fields: [customerId], references: [id])
-  storeId        String
-  store          Store      @relation(fields: [storeId], references: [id])
-  items          SaleItem[]
-  payments       Payment[]
-  deliveryDate   DateTime?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-}
-
-model SaleItem {
-  id             String           @id @default(uuid())
-  saleId         String
-  sale           Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  productId      String
-  product        Product          @relation(fields: [productId], references: [id])
-  quantity      Int
-  price         Decimal
-  cost          Decimal?
-  profit        Decimal          @default(0)
-  imeis         SerializedItem[]
-}
-
-model Payment {
-  id        String   @id @default(uuid())
-  amount    Decimal
-  method    String
-  date      DateTime @default(now())
-  saleId    String
-  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  storeId   String
-  createdAt DateTime @default(now())
-}
-
-model Expense {
-  id          String   @id @default(uuid())
-  description String
-  amount      Decimal
-  category    String
-  date        DateTime @default(now())
-  storeId     String
-  store       Store    @relation(fields: [storeId], references: [id])
-}
-
-model Loan {
-  id          String   @id @default(uuid())
-  borrower    String
-  type        String
-  amount      Decimal
-  paid        Decimal  @default(0)
-  remaining  Decimal
-  date        DateTime @default(now())
-  storeId     String
-  store       Store    @relation(fields: [storeId], references: [id])
-  transactions Transaction[]
-}
-
-model Supplier {
-  id              String   @id @default(uuid())
-  name            String
-  phone           String?
-  address         String?
-  dueAmount       Decimal  @default(0)
-  storeId         String
-  store           Store    @relation(fields: [storeId], references: [id])
-  transactions   Transaction[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-}
-
-model DailyBalance {
-  id              String              @id @default(uuid())
-  date            DateTime             @unique
-  openingCash     Decimal             @default(0)
-  closingCash     Decimal             @default(0)
-  expectedCash   Decimal              @default(0)
-  cashSales      Decimal             @default(0)
-  bankDeposits   Decimal             @default(0)
-  totalExpenses Decimal             @default(0)
-  totalDuePaid  Decimal             @default(0)
-  storeId       String
-  store          Store               @relation(fields: [storeId], references: [id])
-  notes          String?
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-
-  @@index([storeId, date])
-}
-
-model Event {
-  id            String           @id @default(uuid())
-  aggregateType String
-  aggregateId   String
-  type          String
-  payload       String
-  metadata     String?
-  userId        String?
-  storeId       String
-  store         Store            @relation(fields: [storeId], references: [id])
-  createdAt     DateTime         @default(now())
-
-  @@unique([aggregateType, aggregateId, createdAt])
-
-  @@index([storeId, createdAt])
-  @@index([aggregateType, aggregateId, createdAt])
-}
-
-model Transaction {
-  id              String             @id @default(uuid())
-  type            TransactionType
-  amount          Decimal
-  costAmount      Decimal?
-  profit          Decimal           @default(0)
-  mode            TransactionMode    @default(CASH)
-  referenceId     String?
-  referenceType  String?
-  description    String?
-  imei            String?
-  barcode         String?
-  productId       String?
-  customerId      String?
-  supplierId      String?
-  userId          String?
-  storeId         String
-  store           Store              @relation(fields: [storeId], references: [id])
-  loan            Loan?              @relation(fields: [loanId], references: [id])
-  loanId          String?
-  supplier        Supplier?        @relation(fields: [supplierId], references: [id])
-  createdAt       DateTime          @default(now())
-  status          TransactionStatus @default(COMPLETED)
-
-  @@index([storeId, type, createdAt])
-  @@index([storeId, createdAt])
-  @@index([barcode])
-}
-
-model SecondHandRecord {
-  id              String    @id @default(uuid())
-  sellerName      String
-  fatherName      String?
-  nidNumber       String
-  nidPhotoData    Bytes?
-  nidPhotoHash    String?
-  model           String
-  imei            String    @unique
-  purchasePrice  Decimal
-  date            DateTime  @default(now())
-  storeId         String
-  store           Store     @relation(fields: [storeId], references: [id])
-  isImmutable    Boolean   @default(true)
-  encryptionIv   String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-}
-
-model BarcodeSettings {
-  id              String   @id @default(uuid())
-  storeId         String   @unique
-  store           Store    @relation(fields: [storeId], references: [id])
-  
-  // Barcode Type
-  barcodeType     String   @default("CODE128")
-  
-  // Label Size
-  labelWidth      Int      @default(50)
-  labelHeight     Int      @default(25)
-  labelSizeName   String   @default("50x25mm")
-  
-  // Field Visibility
-  showProductName Boolean  @default(true)
-  showPrice        Boolean  @default(true)
-  showSku          Boolean  @default(true)
-  showImei         Boolean  @default(true)
-  showBarcode      Boolean  @default(true)
-  showQrCode       Boolean  @default(false)
-  showWarranty     Boolean  @default(false)
-  
-  // Additional Options
-  includeCurrency Boolean  @default(true)
-  fontSize         Int      @default(10)
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
 }
