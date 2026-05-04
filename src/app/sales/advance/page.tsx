@@ -225,12 +225,6 @@ export default function AdvanceOrderPage() {
   const handleCheckout = async () => {
     setError(null);
     if (cart.length === 0) return setError("Cart is empty");
-    
-    for (const item of cart) {
-      if (item.imeis.length !== item.quantity) {
-        return setError(`Please select ${item.quantity} IMEIs for ${item.name}`);
-      }
-    }
 
     setSubmitting(true);
     
