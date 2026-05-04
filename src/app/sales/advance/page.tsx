@@ -371,9 +371,7 @@ export default function AdvanceOrderPage() {
             </div>
 
 <div className="grid grid-cols-2 gap-10">
-              <div className="flex items-center justify-center">
-                <p className="text-secondary">Order Details</p>
-              </div>
+              <div className="flex items-center justify-center"></div>
 
               <div className="space-y-6 bg-background/50 p-8 rounded-[2rem] border-2 border-border">
                 <div className="space-y-4">
