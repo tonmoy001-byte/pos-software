@@ -41,7 +41,7 @@ export default function POSPage() {
   
   // Checkout Modal State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [paidAmount, setPaidAmount] = useState(0);
+  const [paidAmount, setPaidAmount] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customerSearch, setCustomerSearch] = useState("");
@@ -218,7 +218,7 @@ if (found) {
 
   const openCheckout = () => {
     if (cart.length === 0) return setError("Cart is empty");
-    setPaidAmount(total);
+    setPaidAmount(String(total));
     setIsCheckoutOpen(true);
   };
 
@@ -239,8 +239,8 @@ if (found) {
       customerId: selectedCustomer?.id || null,
       items: cart,
       totalAmount: total,
-      paidAmount: paidAmount, 
-      dueAmount: Math.max(0, total - paidAmount),
+      paidAmount: Number(paidAmount) || 0, 
+      dueAmount: Math.max(0, total - (Number(paidAmount) || 0)),
       discount: discount,
       paymentMethod: paymentMethod
     };
@@ -261,7 +261,7 @@ if (found) {
           setLastSale(null);
           setIsCheckoutOpen(false);
           setSelectedCustomer(null);
-          setPaidAmount(0);
+          setPaidAmount("");
           // Refresh products to update stock
           fetch("/api/products").then(res => res.json()).then(setProducts);
         }, 500);
@@ -471,9 +471,9 @@ if (found) {
                         onClick={() => {
                           setPaymentMethod(m);
                           if (m === "DUE") {
-                            setPaidAmount(0);
+                            setPaidAmount("");
                           } else {
-                            setPaidAmount(total);
+setPaidAmount(String(total));
                           }
                         }}
                         className={`py-4 rounded-2xl border-2 font-bold text-xs transition-all flex items-center justify-center gap-2 ${paymentMethod === m ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20' : 'border-border text-secondary hover:border-primary/30'}`}
@@ -503,7 +503,8 @@ if (found) {
                       <input 
                         type="number" 
                         value={paidAmount}
-                        onChange={(e) => setPaidAmount(Number(e.target.value))}
+                        onChange={(e) => setPaidAmount(e.target.value)}
+                        placeholder="0"
                         className="w-full pl-10 pr-4 py-6 bg-surface rounded-2xl border-2 border-primary/20 text-3xl font-black text-primary outline-none focus:border-primary transition-all"
                       />
                     </div>
@@ -512,8 +513,8 @@ if (found) {
                   <div className="pt-4 border-t-2 border-border space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-bold text-secondary">Remaining Due</span>
-                      <span className={`text-xl font-black ${total - paidAmount > 0 ? 'text-red-500' : 'text-green-500'}`}>
-                        {formatCurrency(Math.max(0, total - paidAmount))}
+                      <span className={`text-xl font-black ${total - (Number(paidAmount) || 0) > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                        {formatCurrency(Math.max(0, total - (Number(paidAmount) || 0)))}
                       </span>
                     </div>
                     {paymentMethod === "DUE" && !selectedCustomer && (
@@ -865,7 +866,7 @@ if (found) {
           <div className="grid grid-cols-3 gap-3 pt-2">
             <button 
               disabled={submitting}
-              onClick={() => { setPaymentMethod("CASH"); setPaidAmount(total); openCheckout(); }}
+              onClick={() => { setPaymentMethod("CASH"); setPaidAmount(String(total)); openCheckout(); }}
               className="flex items-center justify-center gap-2 py-4 bg-white border border-border rounded-2xl font-bold text-sm text-secondary hover:bg-surface transition-all disabled:opacity-50"
             >
               <Banknote className="w-5 h-5" />
@@ -873,7 +874,7 @@ if (found) {
             </button>
             <button 
               disabled={submitting}
-              onClick={() => { if (!selectedCustomer) { setError("Select customer first"); return; } setPaymentMethod("DUE"); setPaidAmount(0); openCheckout(); }}
+              onClick={() => { if (!selectedCustomer) { setError("Select customer first"); return; } setPaymentMethod("DUE"); setPaidAmount(""); openCheckout(); }}
               className="flex items-center justify-center gap-2 py-4 bg-white border border-border rounded-2xl font-bold text-sm text-secondary hover:bg-surface transition-all disabled:opacity-50"
             >
               <Receipt className="w-5 h-5" />
@@ -881,7 +882,7 @@ if (found) {
             </button>
             <button 
               disabled={submitting}
-              onClick={() => { setPaidAmount(total); openCheckout(); }}
+              onClick={() => { setPaidAmount(String(total)); openCheckout(); }}
               className="flex items-center justify-center gap-2 py-4 bg-white border border-border rounded-2xl font-bold text-sm text-secondary hover:bg-surface transition-all disabled:opacity-50"
             >
               <Receipt className="w-5 h-5" />

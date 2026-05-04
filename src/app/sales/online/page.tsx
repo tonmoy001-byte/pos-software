@@ -20,7 +20,7 @@ export default function OnlineSalePage() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [invoiceSettings, setInvoiceSettings] = useState<any>(null);
-  const [paidAmount, setPaidAmount] = useState(0);
+  const [paidAmount, setPaidAmount] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customerSearch, setCustomerSearch] = useState("");
@@ -50,12 +50,12 @@ export default function OnlineSalePage() {
     setIsIMEIOpen(false);
   };
   const removeFromCart = (productId: string) => setCart(cart.filter(item => item.productId !== productId));
-  const openCheckout = () => { if (cart.length === 0) return setError("Cart is empty"); setPaidAmount(total); setIsCheckoutOpen(true); };
+  const openCheckout = () => { if (cart.length === 0) return setError("Cart is empty"); setPaidAmount(String(total)); setIsCheckoutOpen(true); };
   const handleCheckout = async () => {
     setError(null);
     if (cart.length === 0) return setError("Cart is empty");
     setSubmitting(true);
-    const payload = { customerId: selectedCustomer?.id || null, items: cart, totalAmount: total, paidAmount: paidAmount, dueAmount: Math.max(0, total - paidAmount), discount, paymentMethod, saleType: "ONLINE", platform, courier };
+    const payload = { customerId: selectedCustomer?.id || null, items: cart, totalAmount: total, paidAmount: Number(paidAmount) || 0, dueAmount: Math.max(0, total - (Number(paidAmount) || 0)), discount, paymentMethod, saleType: "ONLINE", platform, courier };
     try {
       const res = await fetch("/api/sales", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
@@ -75,7 +75,7 @@ export default function OnlineSalePage() {
     setCart([]);
     setDiscount(0);
     setSelectedCustomer(null);
-    setPaidAmount(0);
+    setPaidAmount("");
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -116,8 +116,8 @@ export default function OnlineSalePage() {
             </div>
             <div className="bg-background p-4 rounded-xl space-y-2">
               <div className="flex justify-between"><span>Total</span><span className="font-bold">{formatCurrency(total)}</span></div>
-              <div className="flex justify-between text-primary"><span>Paid</span><span className="font-bold">{formatCurrency(paidAmount)}</span></div>
-              {total - paidAmount > 0 && <div className="flex justify-between text-red-500"><span>Due</span><span>{formatCurrency(total - paidAmount)}</span></div>}
+              <div className="flex justify-between text-primary"><span>Paid</span><span className="font-bold">{formatCurrency(Number(paidAmount) || 0)}</span></div>
+              {total - (Number(paidAmount) || 0) > 0 && <div className="flex justify-between text-red-500"><span>Due</span><span>{formatCurrency(total - (Number(paidAmount) || 0))}</span></div>}
             </div>
             <button disabled={submitting} onClick={handleCheckout} className="w-full py-4 bg-primary text-white rounded-xl font-bold disabled:opacity-50">{submitting ? "Processing..." : "Confirm Order"}</button>
           </div>

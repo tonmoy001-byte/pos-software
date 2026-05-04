@@ -17,7 +17,7 @@ export default function WholesaleSalePage() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [invoiceSettings, setInvoiceSettings] = useState<any>(null);
-  const [paidAmount, setPaidAmount] = useState(0);
+  const [paidAmount, setPaidAmount] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customerSearch, setCustomerSearch] = useState("");
@@ -58,12 +58,12 @@ export default function WholesaleSalePage() {
 
   const removeFromCart = (productId: string) => setCart(cart.filter(item => item.productId !== productId));
 
-  const openCheckout = () => { if (cart.length === 0) return setError("Cart is empty"); setPaidAmount(total); setIsCheckoutOpen(true); };
+  const openCheckout = () => { if (cart.length === 0) return setError("Cart is empty"); setPaidAmount(String(total)); setIsCheckoutOpen(true); };
   const handleCheckout = async () => {
     setError(null);
     if (cart.length === 0) return setError("Cart is empty");
     setSubmitting(true);
-    const payload = { customerId: selectedCustomer?.id || null, items: cart, totalAmount: total, paidAmount: paidAmount, dueAmount: Math.max(0, total - paidAmount), discount: discountTotal, paymentMethod, saleType: "WHOLESALE" };
+    const payload = { customerId: selectedCustomer?.id || null, items: cart, totalAmount: total, paidAmount: Number(paidAmount) || 0, dueAmount: Math.max(0, total - (Number(paidAmount) || 0)), discount: discountTotal, paymentMethod, saleType: "WHOLESALE" };
     try {
       const res = await fetch("/api/sales", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
@@ -83,7 +83,7 @@ export default function WholesaleSalePage() {
     setCart([]);
     setDiscountPercent(0);
     setSelectedCustomer(null);
-    setPaidAmount(0);
+    setPaidAmount("");
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -100,7 +100,7 @@ export default function WholesaleSalePage() {
             <div className="flex items-center gap-4"><div className="w-12 h-12 bg-primary text-white rounded-xl flex items-center justify-center"><Truck className="w-6 h-6" /></div><div><h2 className="text-xl font-black">Wholesale Sale</h2><p className="text-sm text-secondary">Bulk order</p></div></div>
             <div className="space-y-3">
               <label className="text-sm font-bold">Payment Method</label>
-              <div className="grid grid-cols-2 gap-2">{["CASH", "BKASH", "NAGAD", "DUE"].map(m => (<button key={m} onClick={() => { setPaymentMethod(m); if (m !== "DUE") setPaidAmount(total); else setPaidAmount(0); }} className={`py-3 rounded-lg font-bold ${paymentMethod === m ? 'bg-primary text-white' : 'bg-background border border-border'}`}>{m}</button>))}</div>
+              <div className="grid grid-cols-2 gap-2">{["CASH", "BKASH", "NAGAD", "DUE"].map(m => (<button key={m} onClick={() => { setPaymentMethod(m); if (m !== "DUE") setPaidAmount(String(total)); else setPaidAmount(""); }} className={`py-3 rounded-lg font-bold ${paymentMethod === m ? 'bg-primary text-white' : 'bg-background border border-border'}`}>{m}</button>))}</div>
             </div>
             <div className="bg-background p-4 rounded-xl space-y-2">
               <div className="flex justify-between"><span>Total</span><span className="font-bold">{formatCurrency(subtotal)}</span></div>

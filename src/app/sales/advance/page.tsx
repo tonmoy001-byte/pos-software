@@ -52,7 +52,7 @@ export default function AdvanceOrderPage() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [invoiceSettings, setInvoiceSettings] = useState<any>(null);
-  const [paidAmount, setPaidAmount] = useState(0);
+  const [paidAmount, setPaidAmount] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customerSearch, setCustomerSearch] = useState("");
@@ -220,7 +220,7 @@ export default function AdvanceOrderPage() {
   const openCheckout = () => {
     if (cart.length === 0) return setError("Cart is empty");
     const advanceAmount = (total * advancePercent) / 100;
-    setPaidAmount(advanceAmount);
+    setPaidAmount(String(advanceAmount));
     setIsCheckoutOpen(true);
   };
 
@@ -240,8 +240,8 @@ export default function AdvanceOrderPage() {
       customerId: selectedCustomer?.id || null,
       items: cart,
       totalAmount: total,
-      paidAmount: paidAmount,
-      dueAmount: Math.max(0, total - paidAmount),
+      paidAmount: Number(paidAmount) || 0,
+      dueAmount: Math.max(0, total - (Number(paidAmount) || 0)),
       discount: discount,
       paymentMethod: paymentMethod,
       saleType: "ADVANCE_ORDER",
@@ -276,7 +276,7 @@ export default function AdvanceOrderPage() {
     setCart([]);
     setDiscount(0);
     setSelectedCustomer(null);
-    setPaidAmount(0);
+    setPaidAmount("");
     fetch("/api/products").then(res => res.json()).then(setProducts);
   };
 
@@ -418,7 +418,8 @@ export default function AdvanceOrderPage() {
                       <input 
                         type="number" 
                         value={paidAmount}
-                        onChange={(e) => setPaidAmount(Number(e.target.value))}
+                        onChange={(e) => setPaidAmount(e.target.value)}
+                        placeholder="0"
                         className="w-full pl-10 pr-4 py-6 bg-surface rounded-2xl border-2 border-primary/20 text-3xl font-black text-primary outline-none focus:border-primary transition-all"
                       />
                     </div>
