@@ -219,8 +219,10 @@ export default function AdvanceOrderPage() {
 
   const openCheckout = () => {
     if (cart.length === 0) return setError("Cart is empty");
-    const advanceAmount = (total * advancePercent) / 100;
-    setPaidAmount(String(advanceAmount));
+    if (!paidAmount) {
+      const advanceAmount = (total * advancePercent) / 100;
+      setPaidAmount(String(advanceAmount));
+    }
     setIsCheckoutOpen(true);
   };
 
