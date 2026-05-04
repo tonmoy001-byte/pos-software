@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Trash2, Plus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, Check, SmartphoneNfc, X, Package, Truck } from "lucide-react";
+import { Search, Trash2, Plus, Minus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, Check, SmartphoneNfc, X, Package, Truck } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
 
@@ -137,7 +137,33 @@ export default function OnlineSalePage() {
         </div>
         <div className="flex-1 overflow-y-auto">
           <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
-            {products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (<div key={p.id} onClick={() => addToCart(p)} className="bg-surface p-4 rounded-2xl border border-border hover:border-primary cursor-pointer"><Smartphone className="w-10 h-10 text-primary/20 mb-2" /><h4 className="font-bold text-sm">{p.name}</h4><p className="text-xs text-secondary">{p.model}</p><span className="font-bold text-primary">{formatCurrency(p.price)}</span></div>))}
+            {products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map((product) => (
+              <div 
+                key={product.id} 
+                onClick={() => addToCart(product)}
+                className={`bg-surface p-4 rounded-2xl border ${(product._count?.items ?? 0) > 0 ? 'border-green-300' : 'border-border hover:border-primary/30'} cursor-pointer group transition-all`}
+              >
+                <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
+                  <Smartphone className={`w-12 h-12 ${(product._count?.items ?? 0) > 0 ? 'text-green-400' : 'text-primary/20 group-hover:scale-110'} transition-transform`} />
+                  <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-md ${(product._count?.items ?? 0) > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                    {(product._count?.items ?? 0) > 0 ? 'IN STOCK' : 'OUT OF STOCK'}
+                  </span>
+                  {(product._count?.items ?? 0) > 0 && (
+                    <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-1 rounded-md bg-white/90 text-green-600">
+                      {product._count?.items || 0} units
+                    </span>
+                  )}
+                </div>
+                <h4 className="font-bold text-sm">{product.name}</h4>
+                <p className="text-xs text-secondary mt-1">{product.model} | {product.brand}</p>
+                <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/50">
+                  <span className="font-black text-primary">{formatCurrency(product.price)}</span>
+                  <div className="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                    <Plus className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -145,7 +171,51 @@ export default function OnlineSalePage() {
       <div className="w-[350px] bg-surface border-l border-border p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-4"><h3 className="font-black text-lg">Online Order</h3><button onClick={() => setCart([])} className="text-red-500">Clear</button></div>
         {error && <div className="p-2 bg-red-50 text-red-600 rounded text-sm mb-4">{error}</div>}
-        <div className="space-y-3 mb-4">{cart.map(item => (<div key={item.productId} className="p-3 bg-background rounded-xl flex justify-between"><div><p className="font-bold text-sm">{item.name}</p><p className="text-xs text-secondary">Qty: {item.quantity}</p></div><div className="flex items-center gap-2"><span>{formatCurrency(item.price * item.quantity)}</span><button onClick={() => removeFromCart(item.productId)}><Trash2 className="w-4 text-red-500" /></button></div></div>))}</div>
+        <div className="space-y-3 mb-4">
+          {cart.map((item) => (
+            <div key={item.productId} className="p-4 bg-background rounded-2xl border border-border group">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <p className="font-black text-sm">{item.name}</p>
+                  <p className="text-xs text-secondary">Unit: {formatCurrency(item.price)}</p>
+                </div>
+                <button onClick={() => removeFromCart(item.productId)} className="text-secondary hover:text-red-500 p-1 transition-colors">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-border/30">
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      if (item.quantity <= 1) {
+                        removeFromCart(item.productId);
+                      } else {
+                        setCart(cart.map(c => c.productId === item.productId ? { ...c, quantity: c.quantity - 1 } : c));
+                      }
+                    }} 
+                    className="w-7 h-7 bg-surface border border-border rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:border-primary transition-colors"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="font-bold text-sm w-8 text-center">{item.quantity}</span>
+                  <button 
+                    onClick={() => setCart(cart.map(c => c.productId === item.productId ? { ...c, quantity: c.quantity + 1 } : c))} 
+                    className="w-7 h-7 bg-surface border border-border rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:border-primary transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+                <span className="font-black text-foreground">{formatCurrency(item.price * item.quantity)}</span>
+              </div>
+            </div>
+          ))}
+          {cart.length === 0 && (
+            <div className="h-40 flex flex-col items-center justify-center text-center opacity-30">
+              <Smartphone className="w-12 h-12 mb-2" />
+              <p className="font-bold text-sm">Cart is empty</p>
+            </div>
+          )}
+        </div>
         <div className="border-t border-border pt-4 space-y-2">
           <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
           <div className="flex justify-between items-center"><span>Discount</span><input type="number" value={discount} onChange={e => setDiscount(Number(e.target.value))} className="w-20 border-b" /></div>

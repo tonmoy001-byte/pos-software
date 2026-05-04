@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import {
-  Search, Trash2, Plus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, Check, SmartphoneNfc, X, UserPlus, Wallet, Clock, Filter, Calendar, ChevronRight, AlertTriangle, Phone
+  Search, Trash2, Plus, Minus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, Check, SmartphoneNfc, X, UserPlus, Wallet, Clock, Filter, Calendar, ChevronRight, AlertTriangle, Phone
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { playBeep } from "@/lib/audio";
@@ -358,13 +358,29 @@ export default function DueSalePage() {
               <div className="flex-1 overflow-y-auto pb-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {filteredProducts.map((product) => (
-                    <div key={product.id} onClick={() => addToCart(product)} className="bg-surface p-4 rounded-2xl border border-border hover:border-primary/30 cursor-pointer group transition-all">
-                      <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center"><Smartphone className="w-12 h-12 text-primary/10 group-hover:text-primary/20 transition-colors" /></div>
-                      <h4 className="font-bold text-sm line-clamp-1">{product.name}</h4>
-                      <p className="text-xs text-secondary">{product.model}</p>
+                    <div 
+                      key={product.id} 
+                      onClick={() => addToCart(product)}
+                      className={`bg-surface p-4 rounded-2xl border ${(product._count?.items ?? 0) > 0 ? 'border-green-300' : 'border-border hover:border-primary/30'} cursor-pointer group transition-all`}
+                    >
+                      <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
+                        <Smartphone className={`w-12 h-12 ${(product._count?.items ?? 0) > 0 ? 'text-green-400' : 'text-primary/20 group-hover:scale-110'} transition-transform`} />
+                        <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-md ${(product._count?.items ?? 0) > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                          {(product._count?.items ?? 0) > 0 ? 'IN STOCK' : 'OUT OF STOCK'}
+                        </span>
+                        {(product._count?.items ?? 0) > 0 && (
+                          <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-1 rounded-md bg-white/90 text-green-600">
+                            {product._count?.items || 0} units
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="font-bold text-sm">{product.name}</h4>
+                      <p className="text-xs text-secondary mt-1">{product.model} | {product.brand}</p>
                       <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/50">
                         <span className="font-black text-primary">{formatCurrency(product.price)}</span>
-                        <div className="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all"><Plus className="w-4 h-4" /></div>
+                        <div className="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                          <Plus className="w-4 h-4" />
+                        </div>
                       </div>
                     </div>
                   ))}

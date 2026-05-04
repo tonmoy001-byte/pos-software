@@ -6,6 +6,7 @@ import {
   User, 
   Trash2, 
   Plus, 
+  Minus,
   Scan, 
   Receipt, 
   CreditCard, 
@@ -609,21 +610,26 @@ if (found) {
               <div 
                 key={product.id} 
                 onClick={() => addToCart(product)}
-                className="bg-surface p-4 rounded-2xl border border-border hover:border-primary/30 transition-all cursor-pointer group card-shadow flex flex-col justify-between"
+                className={`bg-surface p-4 rounded-2xl border ${(product._count?.items ?? 0) > 0 ? 'border-green-300' : 'border-border hover:border-primary/30'} cursor-pointer group transition-all`}
               >
-                <div>
-                  <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
-                    <Smartphone className="w-12 h-12 text-primary/20 group-hover:scale-110 transition-transform" />
-                    <span className={`absolute top-2 right-2 text-white text-[10px] font-bold px-2 py-1 rounded-md ${product._count?.items > 0 ? 'bg-primary' : 'bg-red-500'}`}>
-                      Stock: {product._count?.items || 0}
+                <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
+                  <Smartphone className={`w-12 h-12 ${(product._count?.items ?? 0) > 0 ? 'text-green-400' : 'text-primary/20 group-hover:scale-110'} transition-transform`} />
+                  <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-md ${(product._count?.items ?? 0) > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                    {(product._count?.items ?? 0) > 0 ? 'IN STOCK' : 'OUT OF STOCK'}
+                  </span>
+                  {(product._count?.items ?? 0) > 0 && (
+                    <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-1 rounded-md bg-white/90 text-green-600">
+                      {product._count?.items || 0} units
                     </span>
-                  </div>
-                  <h4 className="font-bold text-sm">{product.name}</h4>
-                  <p className="text-xs text-secondary mt-1">{product.model} | {product.brand}</p>
+                  )}
                 </div>
-                <div className="flex justify-between items-center mt-4">
-                  <span className="font-bold text-primary">{formatCurrency(product.price)}</span>
-                  <Plus className="w-5 h-5 text-primary" />
+                <h4 className="font-bold text-sm">{product.name}</h4>
+                <p className="text-xs text-secondary mt-1">{product.model} | {product.brand}</p>
+                <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/50">
+                  <span className="font-black text-primary">{formatCurrency(product.price)}</span>
+                  <div className="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                    <Plus className="w-4 h-4" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -771,10 +777,10 @@ if (found) {
 
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {cart.map((item) => (
-            <div key={item.productId} className="p-4 bg-background rounded-xl border border-border space-y-3">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h5 className="text-sm font-bold">{item.name}</h5>
+            <div key={item.productId} className="p-4 bg-background rounded-2xl border border-border group">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <p className="font-black text-sm">{item.name}</p>
                   <button 
                     onClick={() => {
                       const newPrice = prompt("Enter new price:", item.price.toString());
@@ -788,27 +794,48 @@ if (found) {
                     }}
                     className="text-[10px] text-primary hover:underline"
                   >
-                    Price: {formatCurrency(item.price)} (click to change)
+                    Unit: {formatCurrency(item.price)}
                   </button>
                 </div>
                 <button 
                   onClick={() => removeFromCart(item.productId)}
-                  className="text-secondary hover:text-red-500"
+                  className="text-secondary hover:text-red-500 p-1 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-
-              <div className="flex justify-between items-center pt-2">
-                <div className="flex items-center gap-3 px-2 py-1">
-                  <span className="text-xs font-bold text-secondary uppercase tracking-widest">Qty</span>
-                  <span className="text-sm font-black w-4 text-center">{item.quantity}</span>
+              <div className="flex justify-between items-center pt-2 border-t border-border/30">
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      if (item.quantity <= 1) {
+                        removeFromCart(item.productId);
+                      } else {
+                        setCart(cart.map(c => c.productId === item.productId ? { ...c, quantity: c.quantity - 1 } : c));
+                      }
+                    }} 
+                    className="w-7 h-7 bg-surface border border-border rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:border-primary transition-colors"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="font-bold text-sm w-8 text-center">{item.quantity}</span>
+                  <button 
+                    onClick={() => setCart(cart.map(c => c.productId === item.productId ? { ...c, quantity: c.quantity + 1 } : c))} 
+                    className="w-7 h-7 bg-surface border border-border rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:border-primary transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
                 </div>
-                <span className="text-sm font-bold text-foreground">{formatCurrency(item.price * item.quantity)}</span>
+                <span className="font-black text-foreground">{formatCurrency(item.price * item.quantity)}</span>
               </div>
             </div>
           ))}
-          {cart.length === 0 && <p className="text-center text-secondary text-sm italic mt-10">Cart is empty.</p>}
+          {cart.length === 0 && (
+            <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
+              <Smartphone className="w-16 h-16 mb-4" />
+              <p className="font-bold">Your cart is empty</p>
+            </div>
+          )}
         </div>
 
         <div className="p-6 bg-background border-t border-border space-y-4">

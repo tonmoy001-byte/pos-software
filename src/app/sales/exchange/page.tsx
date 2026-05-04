@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, Trash2, RefreshCw, Smartphone, X, ArrowRightLeft } from "lucide-react";
+import { Search, Plus, Minus, Trash2, RefreshCw, Smartphone, X, ArrowRightLeft } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
 
@@ -90,7 +90,33 @@ export default function ExchangeSalePage() {
         <h2 className="text-2xl font-black mb-6 flex items-center gap-3"><RefreshCw className="w-8 h-8" /> Exchange Sale</h2>
         <div className="relative mb-4"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary w-5" /><input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search products..." className="w-full pl-12 pr-4 py-4 rounded-2xl bg-surface border border-border" /></div>
         <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(p => (<div key={p.id} onClick={() => addToCart(p)} className="bg-surface p-4 rounded-2xl border border-border hover:border-primary cursor-pointer"><Smartphone className="w-10 h-10 text-primary/20 mb-2" /><h4 className="font-bold text-sm">{p.name}</h4><p className="text-xs text-secondary">{p.model}</p><span className="font-bold text-primary">{formatCurrency(p.price)}</span></div>))}
+          {filtered.map((product) => (
+            <div 
+              key={product.id} 
+              onClick={() => addToCart(product)}
+              className={`bg-surface p-4 rounded-2xl border ${(product._count?.items ?? 0) > 0 ? 'border-green-300' : 'border-border hover:border-primary/30'} cursor-pointer group transition-all`}
+            >
+              <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
+                <Smartphone className={`w-12 h-12 ${(product._count?.items ?? 0) > 0 ? 'text-green-400' : 'text-primary/20 group-hover:scale-110'} transition-transform`} />
+                <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-md ${(product._count?.items ?? 0) > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                  {(product._count?.items ?? 0) > 0 ? 'IN STOCK' : 'OUT OF STOCK'}
+                </span>
+                {(product._count?.items ?? 0) > 0 && (
+                  <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-1 rounded-md bg-white/90 text-green-600">
+                    {product._count?.items || 0} units
+                  </span>
+                )}
+              </div>
+              <h4 className="font-bold text-sm">{product.name}</h4>
+              <p className="text-xs text-secondary mt-1">{product.model} | {product.brand}</p>
+              <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/50">
+                <span className="font-black text-primary">{formatCurrency(product.price)}</span>
+                <div className="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                  <Plus className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
       <div className="w-[400px] bg-surface border-l border-border p-6 overflow-y-auto">
@@ -104,7 +130,51 @@ export default function ExchangeSalePage() {
         <button onClick={addExchangeItem} className="w-full py-3 border-2 border-dashed border-border rounded-xl text-secondary mb-6">+ Add Exchange Item</button>
         
         <h3 className="font-black text-lg mb-4">New Products</h3>
-        {cart.map(item => (<div key={item.productId} className="p-3 bg-background rounded-xl flex justify-between mb-2"><div><p className="font-bold text-sm">{item.name}</p><p className="text-xs">{formatCurrency(item.price)}</p></div><button onClick={() => removeFromCart(item.productId)} className="text-red-500"><Trash2 className="w-4" /></button></div>))}
+        <div className="space-y-3">
+          {cart.map((item) => (
+            <div key={item.productId} className="p-4 bg-background rounded-2xl border border-border group">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <p className="font-black text-sm">{item.name}</p>
+                  <p className="text-xs text-secondary">Unit: {formatCurrency(item.price)}</p>
+                </div>
+                <button onClick={() => removeFromCart(item.productId)} className="text-secondary hover:text-red-500 p-1 transition-colors">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-border/30">
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      if (item.quantity <= 1) {
+                        removeFromCart(item.productId);
+                      } else {
+                        setCart(cart.map(c => c.productId === item.productId ? { ...c, quantity: c.quantity - 1 } : c));
+                      }
+                    }} 
+                    className="w-7 h-7 bg-surface border border-border rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:border-primary transition-colors"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="font-bold text-sm w-8 text-center">{item.quantity}</span>
+                  <button 
+                    onClick={() => setCart(cart.map(c => c.productId === item.productId ? { ...c, quantity: c.quantity + 1 } : c))} 
+                    className="w-7 h-7 bg-surface border border-border rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:border-primary transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+                <span className="font-black text-foreground">{formatCurrency(item.price * item.quantity)}</span>
+              </div>
+            </div>
+          ))}
+          {cart.length === 0 && (
+            <div className="h-40 flex flex-col items-center justify-center text-center opacity-30">
+              <Smartphone className="w-12 h-12 mb-2" />
+              <p className="font-bold text-sm">No new products added</p>
+            </div>
+          )}
+        </div>
         
         <div className="border-t border-border mt-6 pt-4 space-y-2">
           <div className="flex justify-between"><span>Total</span><span>{formatCurrency(cartTotal)}</span></div>
