@@ -6,7 +6,6 @@ export interface SecondHandSaleInput {
   fatherName?: string;
   nidNumber: string;
   model: string;
-  imei: string;
   purchasePrice: number;
   storeId: string;
 }
@@ -62,7 +61,6 @@ export class SecondHandService {
           fatherName: input.fatherName,
           nidNumber: input.nidNumber,
           model: input.model,
-          imei: input.imei,
           purchasePrice: input.purchasePrice,
           storeId,
           isImmutable: true,
@@ -77,7 +75,6 @@ export class SecondHandService {
           sellerName: input.sellerName,
           nidNumber: input.nidNumber,
           model: input.model,
-          imei: input.imei,
           purchasePrice: input.purchasePrice,
         },
         userId,
@@ -98,12 +95,6 @@ export class SecondHandService {
   async findById(id: string) {
     return prisma.secondHandRecord.findUnique({
       where: { id },
-    });
-  }
-
-  async findByImei(imei: string, storeId?: string) {
-    return prisma.secondHandRecord.findFirst({
-      where: { imei, storeId },
     });
   }
 

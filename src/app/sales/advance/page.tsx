@@ -45,9 +45,6 @@ export default function AdvanceOrderPage() {
 
   
   const [deliveryDate, setDeliveryDate] = useState("");
-  const [isIMEIOpen, setIsIMEIOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [tempSelectedImeis, setTempSelectedImeis] = useState<string[]>([]);
   
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -93,6 +90,7 @@ export default function AdvanceOrderPage() {
           setCompletePayAmount("");
           setCompleteMessage(null);
           fetchAdvances();
+          fetch("/api/products").then(res => res.json()).then(setProducts);
         }, 1500);
       } else {
         setCompleteMessage({ type: "error", text: data.error || "Failed to complete" });
@@ -137,6 +135,13 @@ export default function AdvanceOrderPage() {
   }, []);
 
   useEffect(() => {
+    const interval = setInterval(() => {
+      fetch("/api/products").then(res => res.json()).then(setProducts);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (customerSearch.length > 1) {
         const res = await fetch(`/api/customers?query=${customerSearch}`);
@@ -150,7 +155,7 @@ export default function AdvanceOrderPage() {
   }, [customerSearch]);
 
   const addToCart = (product: any) => {
-    const availableStock = product._count?.items ?? 0;
+    const availableStock = product.stock ?? 0;
     if (availableStock > 0) {
       setError(`Product available in stock (${availableStock} units). Please complete sale from POS sales page.`);
       setTimeout(() => setError(null), 4000);
@@ -161,7 +166,6 @@ export default function AdvanceOrderPage() {
       name: product.name,
       price: product.price,
       quantity: 1,
-      imeis: [],
       cost: product.cost || 0
     };
     const existing = cart.find(item => item.productId === product.id);
@@ -183,7 +187,7 @@ export default function AdvanceOrderPage() {
         playBeep(true);
         setBarcodeInput("");
       } else if (barcodeInput.length >= 8) {
-        setError("Product not found for this IMEI/Barcode");
+        setError("Product not found");
         playBeep(false);
         setTimeout(() => setError(null), 4000);
         setBarcodeInput("");
@@ -194,16 +198,12 @@ export default function AdvanceOrderPage() {
 
   const handleBarcodeScan = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && barcodeInput.trim()) {
-      const foundProduct = products.find(p => 
-        p.items?.some((item: any) => item.imei === barcodeInput.trim() || item.barcode === barcodeInput.trim())
-      );
-      const foundByProductBarcode = products.find(p => p.barcode === barcodeInput.trim());
-      const found = foundProduct || foundByProductBarcode;
+      const found = products.find(p => p.barcode === barcodeInput.trim());
       if (found) {
         addToCart(found);
         setBarcodeInput("");
       } else {
-        setError("Product not found for this IMEI/Barcode");
+        setError("Product not found");
         setTimeout(() => setError(null), 3000);
       }
     }
@@ -211,16 +211,6 @@ export default function AdvanceOrderPage() {
 
   const focusBarcodeInput = () => {
     barcodeInputRef.current?.focus();
-  };
-
-  const confirmIMEIs = (product: any, selectedImeis: string[]) => {
-    const existing = cart.find(item => item.productId === product.id);
-    if (existing) {
-      setCart(cart.map(item => item.productId === product.id ? { ...item, quantity: selectedImeis.length, imeis: selectedImeis } : item));
-    } else {
-      setCart([...cart, { productId: product.id, name: product.name, price: product.price, quantity: selectedImeis.length, imeis: selectedImeis }]);
-    }
-    setIsIMEIOpen(false);
   };
 
   const removeFromCart = (productId: string) => {
@@ -324,64 +314,6 @@ export default function AdvanceOrderPage() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
-      {isIMEIOpen && selectedProduct && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface w-full max-w-lg rounded-3xl p-8 card-shadow space-y-6 relative animate-in zoom-in-95 duration-200">
-            <button onClick={() => { setIsIMEIOpen(false); setTempSelectedImeis([]); }} className="absolute top-6 right-6 text-secondary hover:text-foreground">
-              <X className="w-6 h-6" />
-            </button>
-            
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto">
-                <SmartphoneNfc className="w-8 h-8" />
-              </div>
-              <h2 className="text-2xl font-bold">Select IMEIs</h2>
-              <p className="text-sm text-secondary">Select the specific units for {selectedProduct.name}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-2">
-              {selectedProduct.items?.map((item: any) => {
-                const isSelected = tempSelectedImeis.includes(item.imei);
-                return (
-                  <button
-                    key={item.imei}
-                    onClick={() => {
-                      if (isSelected) setTempSelectedImeis(prev => prev.filter(i => i !== item.imei));
-                      else setTempSelectedImeis(prev => [...prev, item.imei]);
-                    }}
-                    className={`p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between ${isSelected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}
-                  >
-                    <div>
-                      <p className="text-[10px] font-black text-secondary uppercase tracking-widest">IMEI / Serial</p>
-                      <p className="text-sm font-bold">{item.imei}</p>
-                    </div>
-                    {isSelected && <Check className="w-5 h-5 text-primary" />}
-                  </button>
-                );
-              })}
-              {(!selectedProduct.items || selectedProduct.items.length === 0) && (
-                <div className="col-span-2 py-10 text-center text-secondary italic border-2 border-dashed border-border rounded-2xl">
-                  No available units found for this model.
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-4 pt-4">
-              <button onClick={() => { setIsIMEIOpen(false); setTempSelectedImeis([]); }} className="flex-1 py-4 bg-background border border-border rounded-2xl font-bold text-secondary hover:bg-surface transition-all">
-                Cancel
-              </button>
-              <button 
-                disabled={tempSelectedImeis.length === 0}
-                onClick={() => confirmIMEIs(selectedProduct, tempSelectedImeis)}
-                className="flex-1 py-4 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-              >
-                Add {tempSelectedImeis.length} Units
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {isCheckoutOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4">
           <div className="bg-surface w-full max-w-2xl rounded-[2.5rem] p-10 card-shadow space-y-8 relative animate-in zoom-in-95 duration-200">
@@ -561,7 +493,7 @@ export default function AdvanceOrderPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
         {activeTab === "sale" ? (
           <div className="flex h-full overflow-hidden">
             <div className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden">
@@ -576,15 +508,20 @@ export default function AdvanceOrderPage() {
               <div className="flex-1 overflow-y-auto pb-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {filteredProducts.map((product) => (
-                    <div key={product.id} onClick={() => addToCart(product)} className={`bg-surface p-4 rounded-2xl border ${(product._count?.items ?? 0) > 0 ? 'border-green-300 opacity-60' : 'border-border hover:border-primary/30'} cursor-pointer group transition-all`}>
+                    <div key={product.id} onClick={() => addToCart(product)} className={`bg-surface p-4 rounded-2xl border ${(product.stock ?? 0) > 0 ? 'border-green-300 opacity-60' : 'border-border hover:border-primary/30'} cursor-pointer group transition-all`}>
                       <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
-                        <Smartphone className={`w-12 h-12 ${(product._count?.items ?? 0) > 0 ? 'text-green-300' : 'text-primary/20 group-hover:scale-110'} transition-transform`} />
-                        <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-md ${(product._count?.items ?? 0) > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
-                          {(product._count?.items ?? 0) > 0 ? 'IN STOCK' : 'OUT OF STOCK'}
+                        <Smartphone className={`w-12 h-12 ${(product.stock ?? 0) > 0 ? 'text-green-300' : 'text-primary/20 group-hover:scale-110'} transition-transform`} />
+                        <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-md ${(product.stock ?? 0) > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                          {(product.stock ?? 0) > 0 ? 'IN STOCK' : 'OUT OF STOCK'}
                         </span>
-                        {(product._count?.items ?? 0) > 0 && (
+                        {(product.stock ?? 0) > 0 && (
                           <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-1 rounded-md bg-white/90 text-green-600">
-                            {product._count?.items || 0} units
+                            {product.stock || 0} units
+                          </span>
+                        )}
+                        {(product.advanceOrderQuantity ?? 0) > 0 && (
+                          <span className="absolute bottom-2 left-2 text-[10px] font-bold px-2 py-1 rounded-md bg-orange-500 text-white">
+                            {product.advanceOrderQuantity} in Advance Order
                           </span>
                         )}
                       </div>
@@ -592,10 +529,10 @@ export default function AdvanceOrderPage() {
                       <p className="text-xs text-secondary mt-1">{product.model} | {product.brand}</p>
                       <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/50">
                         <span className="font-black text-primary">{formatCurrency(product.price)}</span>
-                        {(!product._count?.items || product._count.items <= 0) && (
+                        {(!product.stock || product.stock <= 0) && (
                           <div className="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all"><Plus className="w-4 h-4" /></div>
                         )}
-                        {product._count?.items > 0 && (
+                        {product.stock > 0 && (
                           <span className="text-xs font-bold text-green-600">Use POS Sale</span>
                         )}
                       </div>
@@ -771,12 +708,17 @@ export default function AdvanceOrderPage() {
                         <p className="text-sm font-medium">{advance.deliveryDate ? new Date(advance.deliveryDate).toLocaleDateString("en-GB") : '-'}</p>
                       </td>
                       <td className="px-6 py-5">
-                        <span className={`text-[10px] font-black px-3 py-1 rounded-full border ${advance.status === "PAID" ? 'bg-green-50 text-green-700 border-green-100' : 'bg-yellow-50 text-yellow-700 border-yellow-100'}`}>
-                          {advance.status}
+                        <span className={`text-[10px] font-black px-3 py-1 rounded-full border ${
+                          advance.status === "COMPLETED" ? 'bg-green-50 text-green-700 border-green-100' :
+                          advance.status === "PARTIAL" ? 'bg-orange-50 text-orange-700 border-orange-100' :
+                          advance.status === "PAID" && advance.dueAmount === 0 ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                          'bg-yellow-50 text-yellow-700 border-yellow-100'
+                        }`}>
+                          {advance.status === "PAID" && advance.dueAmount === 0 ? "PAID (Pending)" : advance.status}
                         </span>
                       </td>
                       <td className="px-6 py-5 text-right">
-                        {(advance.status === "DUE" || advance.status === "PARTIAL") && (
+                        {advance.status !== "COMPLETED" && (
                           <button onClick={() => { setSelectedAdvance(advance); setCompletePayAmount(advance.dueAmount.toString()); }} className="bg-primary text-white text-[10px] font-black px-4 py-2 rounded-xl hover:bg-primary/90 transition-all flex items-center gap-2 ml-auto shadow-lg shadow-primary/10">
                             <Check className="w-3 h-3" />
                             COMPLETE

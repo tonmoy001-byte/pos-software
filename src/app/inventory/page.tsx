@@ -292,8 +292,13 @@ settings={barcodeSettings || {
                 <p className="text-sm text-secondary">{product.brand} - {product.category}</p>
               </div>
               <span className="text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">
-                {product._count?.items || 0} in stock
+                {product.stock || 0} in stock
               </span>
+              {(product.advanceOrderQuantity ?? 0) > 0 && (
+                <span className="text-xs font-bold bg-orange-500 text-white px-2 py-1 rounded ml-2">
+                  {product.advanceOrderQuantity} in Advance
+                </span>
+              )}
             </div>
 
             <div className="space-y-2 mb-4">
@@ -317,7 +322,7 @@ settings={barcodeSettings || {
                 size="sm" 
                 className="flex-1"
                 onClick={() => openBarcodePrint(product)}
-                disabled={(product._count?.items || 0) === 0}
+                disabled={(product.stock || 0) === 0}
               >
                 <Printer className="w-4 h-4" /> Print Label
               </Button>

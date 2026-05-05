@@ -25,19 +25,32 @@ export async function GET(req: Request) {
 
   const products = await prisma.product.findMany({
     where,
-    include: {
-      _count: {
-        select: { items: { where: { status: "AVAILABLE" } } }
-      },
-      items: {
-        where: { status: "AVAILABLE" },
-        select: { imei: true, barcode: true, id: true, cost: true }
-      }
-    },
     orderBy: { name: "asc" }
   });
 
-  return NextResponse.json(products);
+  const advanceOrderItems = await prisma.saleItem.findMany({
+    where: {
+      sale: {
+        storeId: session.user.storeId,
+        saleType: "ADVANCE_ORDER",
+        status: { notIn: ["COMPLETED", "CANCELLED"] }
+      }
+    },
+    select: { productId: true, quantity: true }
+  });
+
+  const advanceOrderMap = new Map<string, number>();
+  for (const item of advanceOrderItems) {
+    const current = advanceOrderMap.get(item.productId) || 0;
+    advanceOrderMap.set(item.productId, current + item.quantity);
+  }
+
+  const productsWithAdvanceInfo = products.map(p => ({
+    ...p,
+    advanceOrderQuantity: advanceOrderMap.get(p.id) || 0
+  }));
+
+  return NextResponse.json(productsWithAdvanceInfo);
 }
 
 export async function POST(req: Request) {
@@ -64,29 +77,12 @@ export async function POST(req: Request) {
         category: data.category || "Mobile",
         price: parseFloat(data.price) || 0,
         cost: data.cost ? parseFloat(data.cost) : 0,
+        stock: data.stock ? parseInt(data.stock) : 0,
         minStock: parseInt(data.minStock) || 5,
         barcode: productBarcode,
         storeId: session.user.storeId,
-      },
-      include: {
-        items: true
       }
     });
-
-    if (data.items && Array.isArray(data.items)) {
-      for (const item of data.items) {
-        const itemBarcode = generateBarcode();
-        await prisma.serializedItem.create({
-          data: {
-            barcode: itemBarcode,
-            imei: item.imei,
-            cost: item.cost,
-            productId: product.id,
-            status: "AVAILABLE",
-          }
-        });
-      }
-    }
 
     return NextResponse.json(product);
   } catch (error) {

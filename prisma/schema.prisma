@@ -73,27 +73,13 @@ model Product {
   price     Decimal
   cost      Decimal
   profit    Decimal          @default(0)
+  stock    Int              @default(0)
   minStock  Int              @default(5)
   storeId   String
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
   store     Store            @relation(fields: [storeId], references: [id])
   saleItems SaleItem[]
-  items     SerializedItem[]
-}
-
-model SerializedItem {
-  id         String     @id @default(uuid())
-  barcode    String?    @unique
-  imei       String     @unique
-  status     ItemStatus @default(AVAILABLE)
-  cost       Decimal?
-  productId  String
-  saleItemId String?
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  saleItem   SaleItem?  @relation(fields: [saleItemId], references: [id])
-  product    Product    @relation(fields: [productId], references: [id])
 }
 
 model Customer {
@@ -143,7 +129,6 @@ model SaleItem {
   profit    Decimal          @default(0)
   product   Product          @relation(fields: [productId], references: [id])
   sale      Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  imeis     SerializedItem[]
 }
 
 model Payment {
@@ -239,7 +224,6 @@ model Transaction {
   referenceId   String?
   referenceType String?
   description   String?
-  imei          String?
   barcode       String?
   productId     String?
   customerId    String?
@@ -266,7 +250,6 @@ model SecondHandRecord {
   nidPhotoData  Bytes?
   nidPhotoHash  String?
   model         String
-  imei          String   @unique
   purchasePrice Decimal
   date          DateTime @default(now())
   storeId       String
@@ -287,7 +270,6 @@ model BarcodeSettings {
   showProductName Boolean  @default(true)
   showPrice       Boolean  @default(true)
   showSku         Boolean  @default(true)
-  showImei        Boolean  @default(true)
   showBarcode     Boolean  @default(true)
   showQrCode      Boolean  @default(false)
   showWarranty    Boolean  @default(false)
@@ -303,13 +285,6 @@ enum Role {
   ADMIN
   MANAGER
   CASHIER
-}
-
-enum ItemStatus {
-  AVAILABLE
-  SOLD
-  RETURNED
-  DAMAGED
 }
 
 enum SaleStatus {

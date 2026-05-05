@@ -95,13 +95,10 @@ export class SaleService {
           profit: itemProfit,
         });
 
-        if (item.imeis && item.imeis.length > 0) {
-          await tx.serializedItem.updateMany({
-            where: { imei: { in: item.imeis }, productId: item.productId },
-            data: {
-              status: "SOLD",
-              saleItemId: saleItem.id,
-            },
+        if (saleType !== "ADVANCE_ORDER") {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: item.quantity } }
           });
         }
       }

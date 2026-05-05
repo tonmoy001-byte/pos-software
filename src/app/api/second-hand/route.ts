@@ -22,21 +22,18 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
     
-    // Create the immutable record
     const record = await prisma.secondHandRecord.create({
       data: {
         sellerName: data.sellerName,
         fatherName: data.fatherName,
         nidNumber: data.nidNumber,
         model: data.model,
-        imei: data.imei,
         purchasePrice: Number(data.purchasePrice),
         storeId: session.user.storeId,
         isImmutable: true,
       }
     });
 
-    // Also add this product to inventory as a second-hand item
     const product = await prisma.product.create({
       data: {
         name: data.model + " (Second Hand)",
@@ -45,26 +42,18 @@ export async function POST(req: Request) {
         category: "Second Hand",
         price: Number(data.purchasePrice) * 1.2,
         cost: Number(data.purchasePrice),
+        stock: 1,
         minStock: 1,
         storeId: session.user.storeId,
-        items: {
-          create: {
-            imei: data.imei,
-            status: "AVAILABLE",
-            cost: Number(data.purchasePrice)
-          }
-        }
       }
     });
 
-    // Create a transaction record for the purchase
     await prisma.transaction.create({
       data: {
         type: "SECONDHAND_BUY",
         amount: Number(data.purchasePrice),
-        description: `Second-hand purchase: ${data.model} (${data.imei})`,
+        description: `Second-hand purchase: ${data.model}`,
         mode: "CASH",
-        imei: data.imei,
         productId: product.id,
         storeId: session.user.storeId,
         userId: session.user.id,
@@ -75,9 +64,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ record, product });
   } catch (error: any) {
     console.error("Second hand purchase failed", error);
-    if (error.code === 'P2002' && error.meta?.target?.includes('imei')) {
-        return NextResponse.json({ error: "A device with this IMEI is already registered." }, { status: 400 });
-    }
     return NextResponse.json({ error: "Failed to record purchase" }, { status: 500 });
   }
 }

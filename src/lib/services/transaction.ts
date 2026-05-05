@@ -15,7 +15,7 @@ export class TransactionService {
           profit: data.costAmount ? calculateProfit(data.amount, data.costAmount) : 0,
           mode: data.mode,
           description: data.description,
-          imei: data.imei,
+          barcode: data.barcode,
           productId: data.productId,
           customerId: data.customerId,
           supplierId: data.supplierId,
@@ -189,12 +189,6 @@ export class CapitalService {
       }),
       prisma.product.findMany({
         where: storeFilter,
-        include: {
-          items: {
-            where: { status: "AVAILABLE" },
-            select: { cost: true }
-          }
-        }
       }),
     ]);
 
@@ -202,10 +196,7 @@ export class CapitalService {
     const loansOutstanding = Number(loans._sum.remaining || 0);
 
     const ownedStockValue = products.reduce((sum, product) => {
-      const stockCost = product.items.reduce((itemSum, item) => {
-        return itemSum + (item.cost ? Number(item.cost) : 0);
-      }, 0);
-      return sum + stockCost;
+      return sum + (Number(product.cost) * product.stock);
     }, 0);
 
     return {

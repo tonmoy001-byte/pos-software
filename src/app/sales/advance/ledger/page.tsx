@@ -83,15 +83,13 @@ export default function AdvanceLedgerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-foreground">Advance Orders Ledger</h1>
-          <p className="text-sm text-secondary">Track and complete advance orders</p>
-        </div>
+    <div className="flex flex-col h-screen overflow-hidden bg-background p-6">
+      <div className="flex-shrink-0">
+        <h1 className="text-2xl font-black text-foreground">Advance Orders Ledger</h1>
+        <p className="text-sm text-secondary">Track and complete advance orders</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
         <Card className="p-6 border-l-4 border-l-blue-500">
           <p className="text-sm font-medium text-secondary">Total Orders</p>
           <p className="text-3xl font-black mt-1">{totalOrders}</p>
@@ -109,8 +107,8 @@ export default function AdvanceLedgerPage() {
         </Card>
       </div>
 
-      <Card>
-        <div className="p-4 border-b border-border">
+      <Card className="flex-1 overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-border flex-shrink-0">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary w-4 h-4" />
             <input 
@@ -123,7 +121,7 @@ export default function AdvanceLedgerPage() {
           </div>
         </div>
 
-        <div className="divide-y divide-border/50">
+        <div className="flex-1 overflow-y-auto divide-y divide-border/50">
           {filteredAdvances.length === 0 ? (
             <p className="p-8 text-center text-secondary italic">No advance orders found.</p>
           ) : (
@@ -147,9 +145,12 @@ export default function AdvanceLedgerPage() {
                       {advance.createdAt ? new Date(advance.createdAt).toLocaleDateString("en-GB") : "-"}
                     </p>
                     <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold mt-1 ${
-                      advance.status === "PARTIAL" ? "bg-orange-100 text-orange-700" : "bg-green-100 text-green-700"
+                      advance.status === "COMPLETED" ? "bg-green-100 text-green-700" : 
+                      advance.status === "PARTIAL" ? "bg-orange-100 text-orange-700" :
+                      advance.status === "PAID" ? "bg-blue-100 text-blue-700" :
+                      "bg-yellow-100 text-yellow-700"
                     }`}>
-                      {advance.status}
+                      {advance.status === "PAID" && advance.dueAmount === 0 ? "PAID (Pending Delivery)" : advance.status}
                     </span>
                   </div>
                 </div>
@@ -198,7 +199,7 @@ export default function AdvanceLedgerPage() {
                       {advance.paymentMethod || "CASH"}
                     </span>
                   </p>
-                  {advance.dueAmount > 0 && (
+                  {advance.status !== "COMPLETED" && (
                     <Button 
                       onClick={() => {
                         setSelectedAdvance(advance);
@@ -206,7 +207,7 @@ export default function AdvanceLedgerPage() {
                       }}
                       size="sm"
                     >
-                      Complete Order
+                      {advance.status === "COMPLETED" ? "Completed" : "Complete Order"}
                     </Button>
                   )}
                 </div>

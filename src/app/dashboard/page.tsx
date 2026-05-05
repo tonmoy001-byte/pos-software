@@ -319,7 +319,7 @@ export default function ActivityDashboard() {
                 <div className="flex items-center justify-between bg-green-50 p-3 rounded-xl">
                   <div>
                     <p className="font-bold text-green-800">{selectedProduct.name}</p>
-                    <p className="text-xs text-green-600">Stock: {selectedProduct._count?.items || 0}</p>
+                    <p className="text-xs text-green-600">Stock: {selectedProduct.stock || 0}</p>
                   </div>
                   <button onClick={() => setSelectedProduct(null)} className="p-1"><X className="w-4 h-4" /></button>
                 </div>

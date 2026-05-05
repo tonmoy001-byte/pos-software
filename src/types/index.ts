@@ -20,7 +20,6 @@ export interface TransactionCreateInput {
   costAmount?: number;
   mode: TransactionMode;
   description?: string;
-  imei?: string;
   barcode?: string;
   productId?: string;
   customerId?: string;

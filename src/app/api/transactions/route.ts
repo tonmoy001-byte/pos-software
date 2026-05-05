@@ -54,7 +54,7 @@ export async function POST(req: Request) {
         costAmount: data.costAmount ? parseFloat(data.costAmount) : undefined,
         mode: data.mode,
         description: data.description,
-        imei: data.imei,
+        barcode: data.barcode,
         productId: data.productId,
         customerId: data.customerId,
         supplierId: data.supplierId,
