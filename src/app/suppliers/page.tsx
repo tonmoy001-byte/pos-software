@@ -10,12 +10,14 @@ import {
   X,
   ChevronRight,
   Package,
-  CreditCard
+  CreditCard,
+  Trash2
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -26,6 +28,8 @@ export default function SuppliersPage() {
   const [message, setMessage] = useState<{type: "success"|"error", text: string} | null>(null);
 
   const [form, setForm] = useState({ name: "", phone: "", address: "" });
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [newProductInput, setNewProductInput] = useState("");
 
   useEffect(() => {
     async function fetchSuppliers() {
@@ -39,27 +43,50 @@ export default function SuppliersPage() {
         setLoading(false);
       }
     }
+    async function fetchProducts() {
+      try {
+        const res = await fetch("/api/products");
+        const json = await res.json();
+        setProducts(json);
+      } catch (err) {
+        console.error("Failed to fetch products", err);
+      }
+    }
     fetchSuppliers();
+    fetchProducts();
   }, []);
 
   const handleAddSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setMessage(null);
+    
+    const newProducts = newProductInput
+      .split(",")
+      .map(p => p.trim())
+      .filter(p => p.length > 0);
+    
     try {
       const res = await fetch("/api/suppliers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          ...form,
+          productIds: selectedProducts,
+          newProducts: newProducts,
+        })
       });
+      const json = await res.json();
       if (res.ok) {
         setMessage({ type: "success", text: "Supplier added!" });
         setIsAddOpen(false);
         setForm({ name: "", phone: "", address: "" });
+        setSelectedProducts([]);
+        setNewProductInput("");
         const res = await fetch("/api/suppliers");
         setSuppliers(await res.json());
       } else {
-        setMessage({ type: "error", text: "Failed to add supplier" });
+        setMessage({ type: "error", text: json.error || "Failed to add supplier" });
       }
     } finally {
       setSubmitting(false);
@@ -98,7 +125,20 @@ export default function SuppliersPage() {
     }
   };
 
-  const totalDue = suppliers.reduce((acc, s) => acc + Number(s.dueAmount || 0), 0);
+  const handleDeleteSupplier = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this supplier?")) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/suppliers/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setSuppliers(suppliers.filter(s => s.id !== id));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const totalDue = (suppliers || []).reduce((acc, s) => acc + Number(s.dueAmount || 0), 0);
 
   const filteredSuppliers = useMemo(() => {
     if (!searchQuery) return suppliers;
@@ -253,6 +293,41 @@ export default function SuppliersPage() {
                   className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary" 
                 />
               </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-secondary uppercase ml-1">Products They Supply</label>
+                <div className="max-h-32 overflow-y-auto border border-border rounded-xl p-2 space-y-1">
+                  {products.map((product) => (
+                    <label key={product.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-background/50 p-1 rounded">
+                      <input
+                        type="checkbox"
+                        checked={selectedProducts.includes(product.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedProducts([...selectedProducts, product.id]);
+                          } else {
+                            setSelectedProducts(selectedProducts.filter(id => id !== product.id));
+                          }
+                        }}
+                        className="rounded border-border"
+                      />
+                      <span>{product.name}</span>
+                    </label>
+                  ))}
+                  {products.length === 0 && (
+                    <p className="text-xs text-secondary italic">No products available</p>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-secondary uppercase ml-1">Add New Products</label>
+                <input 
+                  value={newProductInput}
+                  onChange={(e) => setNewProductInput(e.target.value)}
+                  type="text" 
+                  placeholder="Battery, Screen, Charger (comma separated)"
+                  className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary" 
+                />
+              </div>
             </div>
 
             <button 
@@ -285,6 +360,7 @@ export default function SuppliersPage() {
             <thead>
               <tr className="bg-background text-secondary text-[10px] font-black uppercase tracking-widest border-b border-border">
                 <th className="px-6 py-4">Supplier</th>
+                <th className="px-6 py-4">Products</th>
                 <th className="px-6 py-4">Contact</th>
                 <th className="px-6 py-4">Total Due</th>
                 <th className="px-6 py-4 text-right">Actions</th>
@@ -298,6 +374,18 @@ export default function SuppliersPage() {
                     <p className="text-xs text-secondary">{supplier.address}</p>
                   </td>
                   <td className="px-6 py-5">
+                    <div className="flex flex-wrap gap-1">
+                      {supplier.products?.map((p: any) => (
+                        <span key={p.id} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                          {p.productName}
+                        </span>
+                      ))}
+                      {(!supplier.products || supplier.products.length === 0) && (
+                        <span className="text-xs text-secondary italic">No products</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-5">
                     <p className="text-sm flex items-center gap-2">
                       <Phone className="w-3 h-3 text-secondary" />
                       {supplier.phone || "N/A"}
@@ -309,18 +397,27 @@ export default function SuppliersPage() {
                     </span>
                   </td>
                   <td className="px-6 py-5 text-right">
-                    <button 
-                      onClick={() => setSelectedSupplier(supplier)}
-                      className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition-all"
-                    >
-                      Adjust
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => handleDeleteSupplier(supplier.id)}
+                        className="bg-red-50 text-red-500 hover:bg-red-500 hover:text-white p-2 rounded-lg transition-all"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => setSelectedSupplier(supplier)}
+                        className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                      >
+                        Adjust
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
               {filteredSuppliers.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-secondary italic">
+                  <td colSpan={5} className="px-6 py-10 text-center text-secondary italic">
                     No suppliers found.
                   </td>
                 </tr>

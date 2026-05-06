@@ -171,7 +171,15 @@ export class SaleService {
         storeId,
       } as EventStoreData);
 
-      return sale;
+      const saleWithItems = await tx.sale.findUnique({
+        where: { id: sale.id },
+        include: {
+          items: { include: { product: true } },
+          customer: true,
+        }
+      });
+
+      return saleWithItems;
     });
   }
 

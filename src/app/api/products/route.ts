@@ -74,12 +74,16 @@ export async function POST(req: Request) {
         name: data.name,
         model: data.model || data.name,
         brand: data.brand || "",
-        category: data.category || "Mobile",
+        category: (data.category || "SMARTPHONE").toUpperCase(),
         price: parseFloat(data.price) || 0,
         cost: data.cost ? parseFloat(data.cost) : 0,
         stock: data.stock ? parseInt(data.stock) : 0,
         minStock: parseInt(data.minStock) || 5,
         barcode: productBarcode,
+        storage: data.storage || null,
+        color: data.color || null,
+        imei: data.imei || null,
+        warranty: data.warranty ? parseInt(data.warranty) : null,
         storeId: session.user.storeId,
       }
     });

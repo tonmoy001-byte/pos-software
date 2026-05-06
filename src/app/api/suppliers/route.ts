@@ -8,28 +8,42 @@ const supplierService = new SupplierService();
 export async function GET(req: Request) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json([]);
   }
 
   try {
     const suppliers = await supplierService.findAll(session.user.storeId);
-    return NextResponse.json(suppliers);
+    return NextResponse.json(suppliers || []);
   } catch (error) {
     console.error("Suppliers fetch error:", error);
-    return NextResponse.json({ error: "Failed to fetch suppliers" }, { status: 500 });
+    return NextResponse.json([]);
   }
 }
 
 export async function POST(req: Request) {
-  const session = await getSession();
+  let session;
+  try {
+    session = await getSession();
+  } catch (e) {
+    session = null;
+  }
+  
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "No session" }, { status: 401 });
   }
 
   try {
     const data = await req.json();
 
     const supplier = await supplierService.create(data, session.user.storeId);
+    
+    if (data.productIds || data.newProducts) {
+      await supplierService.addProducts(supplier.id, {
+        productIds: data.productIds,
+        newProducts: data.newProducts,
+      });
+    }
+    
     return NextResponse.json(supplier);
   } catch (error) {
     console.error("Supplier creation error:", error);

@@ -53,3 +53,23 @@ export async function PATCH(
     return NextResponse.json({ error: "Failed to update supplier" }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  try {
+    await supplierService.delete(id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Supplier delete error:", error);
+    return NextResponse.json({ error: "Failed to delete supplier" }, { status: 500 });
+  }
+}

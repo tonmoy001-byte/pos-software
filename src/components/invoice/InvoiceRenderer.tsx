@@ -37,6 +37,8 @@ export function InvoiceRenderer({
       setFormattedTime(formatTime(data.date));
       setFormattedDate(formatDate(data.date));
     }
+    console.log("InvoiceRenderer - received data:", data);
+    console.log("InvoiceRenderer - items:", data.items);
   }, [data.date]);
 
   const cfg = settings ? {

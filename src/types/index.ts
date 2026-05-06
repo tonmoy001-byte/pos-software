@@ -70,6 +70,11 @@ export interface SupplierUpdateInput {
   note?: string;
 }
 
+export interface SupplierProductInput {
+  productIds?: string[];
+  newProducts?: string[];
+}
+
 export interface LoanCreateInput {
   personName: string;
   type: 'GIVE' | 'TAKE';

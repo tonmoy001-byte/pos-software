@@ -51,14 +51,21 @@ export default function InventoryPage() {
   const [message, setMessage] = useState<{type: "success"|"error", text: string} | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [printQuantity, setPrintQuantity] = useState(1);
+  const [activeTab, setActiveTab] = useState("ALL");
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [stockProduct, setStockProduct] = useState<any>(null);
 
   const [form, setForm] = useState({
     name: "",
     brand: "",
-    category: "Mobile",
+    category: "SMARTPHONE",
     price: "",
     cost: "",
-    minStock: "5"
+    minStock: "5",
+    storage: "",
+    color: "",
+    imei: "",
+    warranty: ""
   });
 
   const [stockForm, setStockForm] = useState({
@@ -101,13 +108,31 @@ export default function InventoryPage() {
       if (res.ok) {
         setMessage({ type: "success", text: "Product added!" });
         setIsAddOpen(false);
-        setForm({ name: "", brand: "", category: "Mobile", price: "", cost: "", minStock: "5" });
+        setForm({ name: "", brand: "", category: "SMARTPHONE", price: "", cost: "", minStock: "5", storage: "", color: "", imei: "", warranty: "" });
         fetchProducts();
       } else {
         setMessage({ type: "error", text: data.error || "Failed to add product" });
       }
     } catch (err) {
       setMessage({ type: "error", text: "Error" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok) {
+        setProducts(products.filter(p => p.id !== id));
+      } else {
+        alert(data.error || "Failed to delete product");
+      }
+    } catch (err) {
+      alert("Error deleting product");
     } finally {
       setSubmitting(false);
     }
@@ -156,11 +181,15 @@ export default function InventoryPage() {
     printArea.style.display = "none";
   };
 
-  const filteredProducts = products.filter(p => 
-    !searchQuery || 
-    p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.barcode?.includes(searchQuery)
-  );
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = !searchQuery || 
+      p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.barcode?.includes(searchQuery) ||
+      p.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.model?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTab = activeTab === "ALL" || p.category?.toUpperCase() === activeTab;
+    return matchesSearch && matchesTab;
+  });
 
   if (loading) {
     return <div className="p-8 animate-pulse text-secondary font-bold">Loading Inventory...</div>;
@@ -265,127 +294,129 @@ settings={barcodeSettings || {
           <h1 className="text-3xl font-bold">Inventory</h1>
           <p className="text-secondary">Manage stock and print barcode labels.</p>
         </div>
-        <div className="flex gap-3">
-          <Button onClick={() => setIsAddOpen(true)}>
-            <Plus className="w-5 h-5" /> Add Product
-          </Button>
-        </div>
+        <Button onClick={() => setIsAddOpen(true)}>
+          <Plus className="w-5 h-5" /> Add Product
+        </Button>
+      </div>
+
+      <div className="flex gap-2 border-b border-border">
+        {["ALL", "SMARTPHONE", "TABLET", "ACCESSORIES", "PARTS", "EARBUDS", "GADGET"].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 text-sm font-bold transition-all ${
+              activeTab === tab
+                ? "text-primary border-b-2 border-primary"
+                : "text-secondary hover:text-foreground"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary w-4 h-4" />
         <input 
           type="text" 
-          placeholder="Search by name or barcode..."
+          placeholder="Search by name, barcode, brand..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-10 pr-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredProducts.map((product) => (
-          <div key={product.id} className="bg-surface p-6 rounded-2xl border border-border card-shadow">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="font-bold text-lg">{product.name}</h3>
-                <p className="text-sm text-secondary">{product.brand} - {product.category}</p>
-              </div>
-              <span className="text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">
-                {product.stock || 0} in stock
-              </span>
-              {(product.advanceOrderQuantity ?? 0) > 0 && (
-                <span className="text-xs font-bold bg-orange-500 text-white px-2 py-1 rounded ml-2">
-                  {product.advanceOrderQuantity} in Advance
-                </span>
+      <div className="bg-surface rounded-2xl border border-border card-shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-background text-secondary text-[10px] font-black uppercase tracking-widest border-b border-border">
+                <th className="px-6 py-4">Product</th>
+                <th className="px-6 py-4">Category</th>
+                <th className="px-6 py-4">Storage</th>
+                <th className="px-6 py-4">Color</th>
+                <th className="px-6 py-4">Price</th>
+                <th className="px-6 py-4">Cost</th>
+                <th className="px-6 py-4">Stock</th>
+                <th className="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              {filteredProducts.map((product) => (
+                <tr key={product.id} className="hover:bg-background/50 transition-colors">
+                  <td className="px-6 py-4">
+                    <p className="font-bold">{product.name}</p>
+                    <p className="text-xs text-secondary">{product.brand}</p>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                      {product.category}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    {product.storage || "-"}
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    {product.color || "-"}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="font-bold">{formatCurrency(product.price)}</span>
+                  </td>
+                  <td className="px-6 py-4 text-secondary">
+                    {formatCurrency(product.cost)}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`font-bold ${(product.stock || 0) <= (product.minStock || 5) ? "text-red-500" : "text-green-600"}`}>
+                      {product.stock || 0}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setStockProduct(product);
+                          setStockForm({ quantity: "", cost: product.cost?.toString() || "" });
+                          setIsStockModalOpen(true);
+                        }}
+                        className="bg-green-50 text-green-600 hover:bg-green-500 hover:text-white p-2 rounded-lg transition-all"
+                        title="Add Stock"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => openBarcodePrint(product)}
+                        className="bg-primary/10 text-primary hover:bg-primary hover:text-white p-2 rounded-lg transition-all"
+                        title="Print Label"
+                      >
+                        <Printer className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProduct(product.id)}
+                        className="bg-red-50 text-red-500 hover:bg-red-500 hover:text-white p-2 rounded-lg transition-all"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredProducts.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-6 py-10 text-center text-secondary italic">
+                    No products found.
+                  </td>
+                </tr>
               )}
-            </div>
-
-            <div className="space-y-2 mb-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-secondary">Price:</span>
-                <span className="font-bold">{formatCurrency(product.price)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-secondary">Cost:</span>
-                <span className="font-bold">{formatCurrency(product.cost)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-secondary">Barcode:</span>
-                <span className="font-mono text-xs">{product.barcode || "N/A"}</span>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="flex-1"
-                onClick={() => openBarcodePrint(product)}
-                disabled={(product.stock || 0) === 0}
-              >
-                <Printer className="w-4 h-4" /> Print Label
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => {
-                  setSelectedProduct(product);
-                  setStockForm({ quantity: "", cost: product.cost?.toString() || "" });
-                }}
-              >
-                <Plus className="w-4 h-4" /> Add Stock
-              </Button>
-            </div>
-
-            {selectedProduct?.id === product.id && !isBarcodeOpen && (
-              <div className="mt-4 p-4 bg-background rounded-xl space-y-3">
-                <div>
-                  <label className="text-xs font-bold text-secondary uppercase">Quantity</label>
-                  <input 
-                    type="number"
-                    placeholder="Enter quantity"
-                    value={stockForm.quantity || ""}
-                    onChange={(e) => setStockForm({ ...stockForm, quantity: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-sm"
-                    min="1"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-secondary uppercase">Cost Price (per unit)</label>
-                  <input 
-                    type="number"
-                    placeholder="Cost price"
-                    value={stockForm.cost}
-                    onChange={(e) => setStockForm({ ...stockForm, cost: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border text-sm"
-                  />
-                </div>
-                <Button 
-                  size="sm" 
-                  className="w-full"
-                  onClick={() => handleAddStock(product.id)}
-                  disabled={submitting || !stockForm.quantity || Number(stockForm.quantity) < 1}
-                >
-                  {submitting ? "Adding..." : "Add to Stock"}
-                </Button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {filteredProducts.length === 0 && (
-        <div className="text-center py-12 text-secondary">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No products found. Add your first product!</p>
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
 
       {/* Add Product Modal */}
       {isAddOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface w-full max-w-md rounded-3xl p-8 space-y-6">
+          <div className="bg-surface w-full max-w-2xl rounded-3xl p-8 space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold">Add New Product</h2>
               <button onClick={() => setIsAddOpen(false)}><X className="w-5 h-5" /></button>
@@ -417,12 +448,15 @@ settings={barcodeSettings || {
                   <label className="text-xs font-bold text-secondary uppercase">Category</label>
                   <select 
                     value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    onChange={(e) => setForm({ ...form, category: e.target.value.toUpperCase() })}
                     className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
                   >
-                    <option value="Mobile">Mobile</option>
-                    <option value="Accessory">Accessory</option>
-                    <option value="Gadget">Gadget</option>
+                    <option value="SMARTPHONE">SMARTPHONE</option>
+                    <option value="TABLET">TABLET</option>
+                    <option value="ACCESSORIES">ACCESSORIES</option>
+                    <option value="PARTS">PARTS</option>
+                    <option value="EARBUDS">EARBUDS</option>
+                    <option value="GADGET">GADGET</option>
                   </select>
                 </div>
               </div>
@@ -457,6 +491,55 @@ settings={barcodeSettings || {
                   className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-secondary uppercase">Storage</label>
+                  <select 
+                    value={form.storage}
+                    onChange={(e) => setForm({ ...form, storage: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
+                  >
+                    <option value="">Select</option>
+                    <option value="64GB">64GB</option>
+                    <option value="128GB">128GB</option>
+                    <option value="256GB">256GB</option>
+                    <option value="512GB">512GB</option>
+                    <option value="1TB">1TB</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-secondary uppercase">Color</label>
+                  <input 
+                    type="text"
+                    value={form.color}
+                    onChange={(e) => setForm({ ...form, color: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
+                    placeholder="Black, White, etc."
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-secondary uppercase">IMEI</label>
+                  <input 
+                    type="text"
+                    value={form.imei}
+                    onChange={(e) => setForm({ ...form, imei: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
+                    placeholder="IMEI number"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-secondary uppercase">Warranty (Months)</label>
+                  <input 
+                    type="number"
+                    value={form.warranty}
+                    onChange={(e) => setForm({ ...form, warranty: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
+                    placeholder="12"
+                  />
+                </div>
+              </div>
             </div>
 
             <Button 
@@ -466,6 +549,57 @@ settings={barcodeSettings || {
               disabled={submitting || !form.name || !form.price}
             >
               {submitting ? "Saving..." : "Add Product"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Stock Modal */}
+      {isStockModalOpen && stockProduct && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface w-full max-w-md rounded-3xl p-8 space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold">Add Stock</h2>
+              <button onClick={() => setIsStockModalOpen(false)}><X className="w-5 h-5" /></button>
+            </div>
+            
+            <div className="bg-background p-4 rounded-xl">
+              <p className="font-bold">{stockProduct.name}</p>
+              <p className="text-xs text-secondary">{stockProduct.brand} - {stockProduct.category}</p>
+              <p className="text-xs text-secondary">Current Stock: {stockProduct.stock || 0}</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-secondary uppercase ml-1">Quantity</label>
+                <input 
+                  type="number"
+                  value={stockForm.quantity}
+                  onChange={(e) => setStockForm({ ...stockForm, quantity: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary font-bold text-xl"
+                  placeholder="0"
+                  min="1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-secondary uppercase ml-1">Cost Price (per unit)</label>
+                <input 
+                  type="number"
+                  value={stockForm.cost}
+                  onChange={(e) => setStockForm({ ...stockForm, cost: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary font-bold text-xl"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <Button 
+              className="w-full" 
+              size="lg"
+              onClick={() => handleAddStock(stockProduct.id)}
+              disabled={submitting || !stockForm.quantity || Number(stockForm.quantity) < 1}
+            >
+              {submitting ? "Adding..." : "Add to Stock"}
             </Button>
           </div>
         </div>
