@@ -3,9 +3,19 @@ import { InvoiceSettings, defaultInvoiceSettings, InvoiceData } from "./invoice-
 export const formatCurrency = (value: unknown): string => {
   const num = Number(value || 0);
   if (isNaN(num)) {
-    return "0.00";
+    return "0";
   }
-  return num.toFixed(2);
+  // Format with commas and no decimal for cleaner display
+  return Math.round(num).toLocaleString("en-BD");
+};
+
+export const formatCurrencyWithDecimal = (value: unknown): string => {
+  const num = Number(value || 0);
+  if (isNaN(num)) {
+    return "৳0";
+  }
+  // Format with comma separators
+  return "৳" + Math.round(num).toLocaleString("en-BD");
 };
 
 export const safeNumber = (value: unknown): number => {

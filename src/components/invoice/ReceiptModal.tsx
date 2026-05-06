@@ -14,9 +14,6 @@ interface ReceiptModalProps {
 export function ReceiptModal({ isOpen, onClose, data, settings }: ReceiptModalProps) {
   if (!isOpen || !data) return null;
 
-  console.log("ReceiptModal - raw data:", data);
-  console.log("ReceiptModal - data.items:", data.items);
-
   const subtotal = Number(data.totalAmount) + (Number(data.discount) || 0);
   
   // Robust customer mapping
@@ -29,18 +26,15 @@ export function ReceiptModal({ isOpen, onClose, data, settings }: ReceiptModalPr
   const invoiceData: InvoiceData = {
     invoiceId: data.invoiceId,
     date: data.createdAt,
-    items: (data.items || []).map((item: any) => {
-      console.log("ReceiptModal - raw item:", item);
-      return {
-        name: item.product?.name || item.name || "Unknown Product",
-        quantity: item.quantity,
-        price: item.price,
-        imeis: Array.isArray(item.imeis) ? item.imeis.map((i: any) => typeof i === 'string' ? i : i.imei) : [],
-        sku: item.product?.sku || item.sku || "",
-        warranty: item.product?.warranty || item.warranty || "",
-        discount: item.discount || 0,
-      };
-    }),
+    items: (data.items || []).map((item: any) => ({
+      name: item.product?.name || item.name || "Unknown Product",
+      quantity: item.quantity,
+      price: item.price,
+      imeis: Array.isArray(item.imeis) ? item.imeis.map((i: any) => typeof i === 'string' ? i : i.imei) : [],
+      sku: item.product?.sku || item.sku || "",
+      warranty: item.product?.warranty || item.warranty || "",
+      discount: item.discount || 0,
+    })),
     customer,
     subtotal,
     discount: Number(data.discount) || 0,
@@ -54,8 +48,6 @@ export function ReceiptModal({ isOpen, onClose, data, settings }: ReceiptModalPr
       phone: settings?.general?.phone || data.store?.phone || "",
     },
   };
-
-  console.log("ReceiptModal - invoiceData:", invoiceData);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">

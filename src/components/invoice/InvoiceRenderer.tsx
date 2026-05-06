@@ -8,7 +8,7 @@ import {
   defaultInvoiceSettings 
 } from "./invoice-types";
 import { 
-  formatCurrency, 
+  formatCurrencyWithDecimal, 
   safeNumber, 
   formatDate, 
   formatTime,
@@ -37,8 +37,6 @@ export function InvoiceRenderer({
       setFormattedTime(formatTime(data.date));
       setFormattedDate(formatDate(data.date));
     }
-    console.log("InvoiceRenderer - received data:", data);
-    console.log("InvoiceRenderer - items:", data.items);
   }, [data.date]);
 
   const cfg = settings ? {
@@ -50,198 +48,127 @@ export function InvoiceRenderer({
     print: { ...defaultInvoiceSettings.print, ...settings.print },
   } : defaultInvoiceSettings;
 
-  const { 
-    isA4, 
-    width, 
-    fontSizeClass, 
-    paddingClass, 
-    headerClass, 
-    headerTextClass, 
-    detailTextClass 
-  } = getInvoiceConfig(cfg);
+  const { isA4 } = getInvoiceConfig(cfg);
 
   const general = cfg.general;
   const layout = cfg.layout;
   const products = cfg.products;
   const payment = cfg.payment;
   const footer = cfg.footer;
-  const print = cfg.print;
 
   const showInPreview = mode === "preview" || mode === "a4" || isA4;
   const showInPrint = mode === "print" || mode === "thermal" || !isA4;
 
+  // Helper to format currency
+  const formatPrice = (value: unknown): string => {
+    return formatCurrencyWithDecimal(value);
+  };
+
+  // Calculate line total
+  const getLineTotal = (item: any): number => {
+    return safeNumber(item.price) * safeNumber(item.quantity);
+  };
+
   return (
     <div 
-      className={`invoice-renderer bg-white text-black font-mono mx-auto ${
+      className={`invoice-renderer bg-white text-gray-800 ${
         mode === "preview" ? "print:hidden" : "print:block"
-      } ${showInPreview ? '' : 'hidden'}`}
-      style={{ width, maxWidth: isA4 ? '210mm' : undefined }}
+      }`}
+      style={{ maxWidth: '400px', margin: '0 auto' }}
     >
       {(mode === "print" || mode === "thermal" || mode === "a4") && (
         <style jsx global>{`
           @media print {
             body * { visibility: hidden; }
             .invoice-renderer, .invoice-renderer * { visibility: visible; }
-            .invoice-renderer { position: absolute; left: 0; top: 0; width: ${width}; }
-            @page { size: ${isA4 ? 'A4' : width} auto; margin: 0; }
+            .invoice-renderer { position: absolute; left: 0; top: 0; }
+            @page { size: auto; margin: 0; }
           }
         `}</style>
       )}
 
-      <div className={paddingClass}>
-        {(layout.showLogo !== false && general.logoUrl) && (
-          <div className="text-center mb-3">
-            <img src={general.logoUrl} alt="Logo" className="max-h-16 mx-auto" />
-          </div>
-        )}
-
-        <div className={`text-center ${headerClass}`}>
-          <h1 className={`font-bold uppercase ${headerTextClass}`}>
-            {general.businessName || data.store.name || "Store"}
+      <div className="p-4 rounded-2xl shadow-sm border border-gray-200">
+        {/* Header - Centered */}
+        <div className="text-center border-b pb-3 mb-3">
+          <h1 className="text-lg font-semibold uppercase">
+            {general.businessName || data.store?.name || "STORE"}
           </h1>
-          {(layout.showAddress !== false && (general.address || data.store.address)) && (
-            <p className={detailTextClass}>{general.address || data.store.address}</p>
-          )}
-          {(layout.showPhone !== false && (general.phone || data.store.phone)) && (
-            <p className={detailTextClass}>{general.phone || data.store.phone}</p>
-          )}
+          <p className="text-xs text-gray-500">
+            {general.address || data.store?.address || ""}
+          </p>
+          <p className="text-xs text-gray-500">
+            Ph: {general.phone || data.store?.phone || ""}
+          </p>
         </div>
 
-        <div className={`border-t border-b border-dashed border-gray-600 py-1.5 mb-3 ${isA4 ? 'text-sm py-3' : ''} ${detailTextClass}`}>
-          {(layout.showInvoiceNumber !== false) && (
-            <div className="flex justify-between">
-              <span>{general.title || "INV"}:</span>
-              <span className="font-bold">{data.invoiceId}</span>
-            </div>
-          )}
+        {/* Invoice Info - Left Aligned */}
+        <div className="mb-3 text-xs">
+          <p>
+            <span className="font-medium">Invoice:</span> {data.invoiceId}
+          </p>
           {(layout.showDate !== false) && isClient && data.date && (
-            <div className="flex justify-between">
-              <span>Date:</span>
-              <span>{formattedDate}</span>
-            </div>
-          )}
-          {(layout.showTime !== false) && isClient && data.date && (
-            <div className="flex justify-between">
-              <span>Time:</span>
-              <span>{formattedTime}</span>
-            </div>
+            <p><span className="font-medium">Date:</span> {formattedDate}</p>
           )}
           {(layout.showCustomer !== false && data.customer?.name) && (
-            <>
-              <div className="flex justify-between">
-                <span>Cust:</span>
-                <span>{data.customer.name}</span>
-              </div>
-              {data.customer.phone && (
-                <div className="flex justify-between">
-                  <span>Phone:</span>
-                  <span>{data.customer.phone}</span>
-                </div>
-              )}
-            </>
-          )}
-          {(layout.showCashier === true && data.cashier) && (
-            <div className="flex justify-between">
-              <span>Cashier:</span>
-              <span>{data.cashier}</span>
-            </div>
+            <p><span className="font-medium">Customer:</span> {data.customer.name}</p>
           )}
         </div>
 
-        <div className={`space-y-1 mb-3 ${isA4 ? 'text-sm' : ''}`}>
-          <div className={`grid grid-cols-12 font-bold ${isA4 ? 'text-xs' : 'text-[9px]'} border-b border-gray-600 pb-1`}>
-            <div className="col-span-6">Item</div>
-            <div className="col-span-2 text-center">Qty</div>
-            <div className="col-span-2 text-right">Price</div>
-            <div className="col-span-2 text-right">Total</div>
-          </div>
-          {data.items.map((item, idx) => (
-            <div key={idx} className="space-y-0.5">
-              <div className={`grid grid-cols-12 ${fontSizeClass}`}>
-                <div className="col-span-6 font-medium truncate">{item.name}</div>
-                <div className="col-span-2 text-center">{safeNumber(item.quantity)}</div>
-                <div className="col-span-2 text-right">{formatCurrency(item.price)}</div>
-                <div className="col-span-2 text-right font-medium">
-                  {formatCurrency(safeNumber(item.price) * safeNumber(item.quantity))}
-                </div>
-              </div>
-              {(products.showSku === true && item.sku) && (
-                <div className="text-[8px] text-gray-500">SKU: {item.sku}</div>
-              )}
-              {(products.showImei !== false && item.imeis && item.imeis.length > 0) && isClient && (
-                <div className="text-[8px] text-gray-500">
-                  IMEI: {item.imeis.slice(0, products.maxImeiDisplay || 2).join(", ")}
-                  {item.imeis.length > (products.maxImeiDisplay || 2) && 
-                    ` +${item.imeis.length - (products.maxImeiDisplay || 2)}`}
-                </div>
-              )}
-              {(products.showDiscount !== false && item.discount && safeNumber(item.discount) > 0) && (
-                <div className="text-[8px] text-gray-500">Disc: -{formatCurrency(item.discount)}</div>
-              )}
-              {(products.showWarranty !== false && item.warranty) && (
-                <div className="text-[8px] text-gray-500">{item.warranty}</div>
-              )}
-            </div>
-          ))}
+        {/* Items Header */}
+        <div className="grid grid-cols-4 text-xs font-medium border-b pb-1.5 mb-1.5">
+          <span>Item</span>
+          <span className="text-center">Qty</span>
+          <span className="text-right">Price</span>
+          <span className="text-right">Total</span>
         </div>
 
-        <div className={`border-t border-dashed border-gray-600 pt-1.5 ${isA4 ? 'text-sm py-2' : ''} ${detailTextClass}`}>
+        {/* Items List */}
+        <div className="mb-3">
+          {data.items && data.items.length > 0 ? (
+            data.items.map((item: any, idx: number) => (
+              <div key={idx} className="grid grid-cols-4 text-xs py-1">
+                <span>{item.name || "Unknown"}</span>
+                <span className="text-center">{safeNumber(item.quantity)}</span>
+                <span className="text-right">{formatPrice(item.price)}</span>
+                <span className="text-right">{formatPrice(getLineTotal(item))}</span>
+              </div>
+            ))
+          ) : (
+            <div className="text-xs text-center text-gray-400 py-2">No items</div>
+          )}
+        </div>
+
+        {/* Totals Section */}
+        <div className="border-t pt-3 text-xs space-y-1">
           {(payment.showSubtotal !== false) && (
             <div className="flex justify-between">
-              <span>Subtotal:</span>
-              <span>{formatCurrency(data.subtotal)}</span>
+              <span>Subtotal</span>
+              <span>{formatPrice(data.subtotal)}</span>
             </div>
           )}
-          {(payment.showDiscount !== false && safeNumber(data.discount) > 0) && (
-            <div className="flex justify-between">
-              <span>Discount:</span>
-              <span>-{formatCurrency(data.discount)}</span>
-            </div>
-          )}
-          {(payment.showTax === true && safeNumber(data.tax) > 0) && (
-            <div className="flex justify-between">
-              <span>{payment.taxLabel || data.taxLabel || "VAT"}:</span>
-              <span>{formatCurrency(data.tax)}</span>
-            </div>
-          )}
-          <div className="flex justify-between text-sm font-bold border-t border-gray-600 pt-1">
-            <span>TOTAL:</span>
-            <span>{formatCurrency(data.total)}</span>
+          <div className="flex justify-between font-semibold">
+            <span>Total</span>
+            <span>{formatPrice(data.total)}</span>
           </div>
           {(payment.showPaid !== false) && (
             <div className="flex justify-between">
-              <span>Paid:</span>
-              <span>{formatCurrency(data.paid)}</span>
+              <span>Paid</span>
+              <span>{formatPrice(data.paid)}</span>
             </div>
           )}
           {(payment.showDue !== false && safeNumber(data.due) > 0) && (
-            <div className="flex justify-between">
-              <span>Due:</span>
-              <span>{formatCurrency(data.due)}</span>
-            </div>
-          )}
-          {(payment.showPaymentMethod !== false && data.paymentMethod) && (
-            <div className="flex justify-between">
-              <span>Method:</span>
-              <span>{data.paymentMethod}</span>
+            <div className="flex justify-between text-red-500 font-medium">
+              <span>Due</span>
+              <span>{formatPrice(data.due)}</span>
             </div>
           )}
         </div>
 
-        {(footer.showPolicies !== false) && (
-          <div className={`mt-3 text-center ${isA4 ? 'text-sm' : 'text-[9px]'} space-y-0.5`}>
-            {footer.thankYouMessage && <p className="font-medium">{footer.thankYouMessage}</p>}
-            {footer.returnPolicy && <p>{footer.returnPolicy}</p>}
-            {footer.warrantyPolicy && <p>{footer.warrantyPolicy}</p>}
-          </div>
-        )}
-
-        <div className={`mt-3 text-center ${isA4 ? 'text-xs' : 'text-[8px]'} text-gray-400`}>
-          {general.website || "Powered by RetailOS"}
+        {/* Footer - Simple Thank You */}
+        <div className="text-center text-xs text-gray-400 mt-4">
+          {footer.thankYouMessage || "Thank you for shopping with us!"}
         </div>
       </div>
     </div>
   );
 }
-
-export default InvoiceRenderer;

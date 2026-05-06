@@ -107,8 +107,16 @@ const [barcodeInput, setBarcodeInput] = useState("");
   }, [customerSearch]);
 
   const addToCart = (product: any) => {
+    // Block if product is out of stock
+    if (!product.stock || product.stock <= 0) {
+      return;
+    }
     const existing = cart.find(item => item.productId === product.id);
     if (existing) {
+      // Check if adding more exceeds available stock
+      if (existing.quantity >= product.stock) {
+        return;
+      }
       setCart(cart.map(item => item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item));
     } else {
       setCart([...cart, { productId: product.id, name: product.name, price: product.price, quantity: 1 }]);
@@ -424,16 +432,18 @@ const [barcodeInput, setBarcodeInput] = useState("");
 
         <div className="flex-1 overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredProducts.map((product) => (
-              <div 
-                key={product.id} 
-                onClick={() => addToCart(product)}
-                className={`bg-surface p-4 rounded-2xl border ${(product.stock ?? 0) > 0 ? 'border-green-300' : 'border-border hover:border-primary/30'} cursor-pointer group transition-all`}
-              >
-                <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
-                  <Smartphone className={`w-12 h-12 ${(product.stock ?? 0) > 0 ? 'text-green-400' : 'text-primary/20 group-hover:scale-110'} transition-transform`} />
-                  <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-md ${(product.stock ?? 0) > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
-                    {(product.stock ?? 0) > 0 ? 'IN STOCK' : 'OUT OF STOCK'}
+            {filteredProducts.map((product) => {
+              const isOutOfStock = !product.stock || product.stock <= 0;
+              return (
+                <div 
+                  key={product.id} 
+                  onClick={() => !isOutOfStock && addToCart(product)}
+                  className={`bg-surface p-4 rounded-2xl border ${isOutOfStock ? 'border-gray-200 opacity-60 cursor-not-allowed' : 'border-green-300 cursor-pointer group transition-all'}`}
+                >
+                  <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
+                    <Smartphone className={`w-12 h-12 ${isOutOfStock ? 'text-gray-300' : 'text-green-400 group-hover:scale-110'} transition-transform`} />
+                    <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-md ${isOutOfStock ? 'bg-gray-500 text-white' : 'bg-green-500 text-white'}`}>
+                      {isOutOfStock ? 'OUT OF STOCK' : 'IN STOCK'}
                   </span>
                   {(product.stock ?? 0) > 0 && (
                     <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-1 rounded-md bg-white/90 text-green-600">
@@ -450,15 +460,18 @@ const [barcodeInput, setBarcodeInput] = useState("");
                 <p className="text-xs text-secondary mt-1">{product.model} | {product.brand}</p>
                 <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/50">
                   <span className="font-black text-primary">{formatCurrency(product.price)}</span>
-                  <div className="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${!isOutOfStock ? 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white' : 'bg-gray-200 text-gray-400'}`}>
                     <Plus className="w-4 h-4" />
                   </div>
                 </div>
               </div>
-            ))}
-            {products.length === 0 && <p className="text-secondary italic">No products in inventory.</p>}
-          </div>
+            );
+          })}
+          {filteredProducts.length === 0 && (
+            <p className="text-secondary italic col-span-full text-center py-8">No products in inventory.</p>
+          )}
         </div>
+      </div>
       </div>
 
       <div className="w-[500px] bg-surface border-l border-border flex flex-col card-shadow">
