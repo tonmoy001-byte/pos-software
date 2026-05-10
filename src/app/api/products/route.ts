@@ -2,11 +2,34 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { hasPermission } from "@/lib/services";
 import { generateBarcode } from "@/lib/barcode";
+import { z } from "zod";
+import type { Role } from "@prisma/client";
+
+const productSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  model: z.string().optional(),
+  brand: z.string().optional(),
+  category: z.string().optional(),
+  price: z.union([z.number(), z.string()]).transform((v) => parseFloat(v.toString()) || 0),
+  cost: z.union([z.number(), z.string()]).optional().transform((v) => v ? parseFloat(v.toString()) : 0),
+  stock: z.union([z.number(), z.string()]).optional().transform((v) => v ? parseInt(v.toString()) : 0),
+  minStock: z.union([z.number(), z.string()]).optional().transform((v) => v ? parseInt(v.toString()) : 5),
+  barcode: z.string().optional(),
+  storage: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
+  imei: z.string().nullable().optional(),
+  warranty: z.union([z.number(), z.string()]).nullable().optional().transform((v) => v ? parseInt(v.toString()) : null),
+});
 
 export async function GET(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (!hasPermission(session.user.role as Role, "product:view")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search");
@@ -28,7 +51,9 @@ export async function GET(req: Request) {
     orderBy: { name: "asc" }
   });
 
-  const advanceOrderItems = await prisma.saleItem.findMany({
+  // Optimize: Calculate advanceOrderQuantity using an aggregated query
+  const advanceOrderStats = await prisma.saleItem.groupBy({
+    by: ['productId'],
     where: {
       sale: {
         storeId: session.user.storeId,
@@ -36,13 +61,14 @@ export async function GET(req: Request) {
         status: { notIn: ["COMPLETED", "CANCELLED"] }
       }
     },
-    select: { productId: true, quantity: true }
+    _sum: {
+      quantity: true
+    }
   });
 
   const advanceOrderMap = new Map<string, number>();
-  for (const item of advanceOrderItems) {
-    const current = advanceOrderMap.get(item.productId) || 0;
-    advanceOrderMap.set(item.productId, current + item.quantity);
+  for (const stat of advanceOrderStats) {
+    advanceOrderMap.set(stat.productId, stat._sum.quantity || 0);
   }
 
   const productsWithAdvanceInfo = products.map(p => ({
@@ -54,20 +80,26 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  console.log("POST /api/products - Starting");
   const session = await getSession();
-  console.log("Session:", session);
-  
-  if (!session) return NextResponse.json({ error: "Unauthorized - no session" }, { status: 401 });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (!hasPermission(session.user.role as Role, "product:create")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
-    const data = await req.json();
+    const json = await req.json();
+    const result = productSchema.safeParse(json);
     
-    if (!data.name || !data.price) {
-      return NextResponse.json({ error: "Name and price are required" }, { status: 400 });
+    if (!result.success) {
+      return NextResponse.json({
+        error: "Validation failed",
+        details: result.error.format()
+      }, { status: 400 });
     }
     
-    const productBarcode = generateBarcode();
+    const data = result.data;
+    const productBarcode = data.barcode || generateBarcode();
     
     const product = await prisma.product.create({
       data: {
@@ -75,15 +107,15 @@ export async function POST(req: Request) {
         model: data.model || data.name,
         brand: data.brand || "",
         category: (data.category || "SMARTPHONE").toUpperCase(),
-        price: parseFloat(data.price) || 0,
-        cost: data.cost ? parseFloat(data.cost) : 0,
-        stock: data.stock ? parseInt(data.stock) : 0,
-        minStock: parseInt(data.minStock) || 5,
+        price: data.price,
+        cost: data.cost,
+        stock: data.stock,
+        minStock: data.minStock,
         barcode: productBarcode,
         storage: data.storage || null,
         color: data.color || null,
         imei: data.imei || null,
-        warranty: data.warranty ? parseInt(data.warranty) : null,
+        warranty: data.warranty,
         storeId: session.user.storeId,
       }
     });

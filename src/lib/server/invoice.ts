@@ -1,30 +1,23 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
-export async function generateInvoiceNumber(storeId: string): Promise<string> {
-  let prefix = "INV";
-  let nextNumber = 1;
-
-  const store = await prisma.store.findUnique({
+export async function generateInvoiceNumber(
+  storeId: string,
+  tx: Prisma.TransactionClient = prisma
+): Promise<string> {
+  const store = await tx.store.update({
     where: { id: storeId },
+    data: { invoiceNumbering: { increment: 1 } },
     select: { invoicePrefix: true, invoiceNumbering: true },
   });
 
-  if (store) {
-    prefix = store.invoicePrefix || "INV";
-    nextNumber = store.invoiceNumbering || 1;
-  }
+  const prefix = store.invoicePrefix || "INV";
+  const currentNumber = store.invoiceNumbering - 1;
 
-  const paddedSequence = String(nextNumber).padStart(6, "0");
+  const paddedSequence = String(currentNumber).padStart(6, "0");
   const date = new Date();
   const year = date.getFullYear().toString().slice(-2);
   const month = String(date.getMonth() + 1).padStart(2, "0");
 
-  const invoiceNumber = `${prefix}-${year}${month}${paddedSequence}`;
-
-  await prisma.store.update({
-    where: { id: storeId },
-    data: { invoiceNumbering: nextNumber + 1 },
-  });
-
-  return invoiceNumber;
+  return `${prefix}-${year}${month}${paddedSequence}`;
 }
