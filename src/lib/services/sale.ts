@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { eventStore, EventStoreData, calculateProfit } from "./eventStore";
+import { eventStore, EventStoreData } from "./eventStore";
+import { generateInvoiceNumber } from "@/lib/server/invoice";
 
 interface SaleItem {
   productId: string;
@@ -24,22 +25,46 @@ interface SaleCreateInput {
 
 export class SaleService {
   async create(input: SaleCreateInput, storeId: string, userId: string) {
-    const { items, customerId, customerName, totalAmount, paidAmount, dueAmount, paymentMethod, discount, saleType, deliveryDate } = input;
+    const { items, customerId, totalAmount, paidAmount, dueAmount, paymentMethod, discount, saleType, deliveryDate } = input;
 
     return prisma.$transaction(async (tx) => {
+      // 1. Fetch products and validate stock/existence
+      const uniqueProductIds = Array.from(new Set(items.map(i => i.productId)));
+      const products = await tx.product.findMany({
+        where: { id: { in: uniqueProductIds }, storeId }
+      });
+
+      if (products.length !== uniqueProductIds.length) {
+        throw new Error("One or more products not found");
+      }
+
+      // 2. Validate stock for non-advance orders
+      if (saleType !== "ADVANCE_ORDER") {
+        for (const item of items) {
+          const product = products.find(p => p.id === item.productId);
+          if (!product || product.stock < item.quantity) {
+            throw new Error(`Insufficient stock for product: ${product?.name || "Unknown"}`);
+          }
+        }
+      }
+
+      // 3. Resolve customer name (snapshot)
+      let resolvedCustomerName = input.customerName || "Walking Customer";
+      if (customerId) {
+        const customer = await tx.customer.findUnique({ where: { id: customerId } });
+        if (customer) {
+          resolvedCustomerName = customer.name;
+        }
+      }
+
+      // 4. Generate atomic invoice number
+      const invoiceId = await generateInvoiceNumber(storeId, tx);
+
       let totalCost = 0;
       let totalProfit = 0;
       const eventPayloads = [];
 
-      // Fetch products to ensure we have costs if not provided
-      const productIds = items.map(i => i.productId);
-      const products = await tx.product.findMany({
-        where: { id: { in: productIds } }
-      });
-
-      const invoiceId = `INV-${Date.now()}`;
-
-      // 1. Create the Sale record first to get the ID
+      // 5. Create Sale record
       const sale = await tx.sale.create({
         data: {
           invoiceId,
@@ -52,7 +77,7 @@ export class SaleService {
           profit: 0,
           status: dueAmount > 0 ? (paidAmount > 0 ? "PARTIAL" : "DUE") : "PAID",
           customerId: customerId || null,
-          customerName: customerName || "Walking Customer",
+          customerName: resolvedCustomerName,
           storeId,
           deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
           payments: paidAmount > 0
@@ -67,7 +92,7 @@ export class SaleService {
         },
       });
 
-      // 2. Create Sale Items and update cost/profit
+      // 6. Create Sale Items, update stock, and calculate financials
       for (const item of items) {
         const product = products.find(p => p.id === item.productId);
         const itemCost = item.cost ?? Number(product?.cost || 0);
@@ -76,7 +101,7 @@ export class SaleService {
         totalCost += itemCost * item.quantity;
         totalProfit += itemProfit;
 
-        const saleItem = await tx.saleItem.create({
+        await tx.saleItem.create({
           data: {
             saleId: sale.id,
             productId: item.productId,
@@ -103,7 +128,7 @@ export class SaleService {
         }
       }
 
-      // 3. Update the Sale record with calculated cost and profit
+      // 7. Update Sale record with final financials
       await tx.sale.update({
         where: { id: sale.id },
         data: {
@@ -112,7 +137,7 @@ export class SaleService {
         }
       });
 
-      // 4. Create a transaction record for the sale
+      // 8. Create financial transaction
       if (paidAmount > 0) {
         await tx.transaction.create({
           data: {
@@ -132,7 +157,7 @@ export class SaleService {
         });
       }
 
-      // 5. Update customer due
+      // 9. Update customer due
       if (customerId && dueAmount > 0) {
         const customer = await tx.customer.findUnique({ where: { id: customerId } });
         if (customer) {
@@ -153,6 +178,7 @@ export class SaleService {
         }
       }
 
+      // 10. Audit event
       await eventStore.append({
         aggregateType: "Sale",
         aggregateId: sale.id,
@@ -171,15 +197,14 @@ export class SaleService {
         storeId,
       } as EventStoreData);
 
-      const saleWithItems = await tx.sale.findUnique({
+      return tx.sale.findUnique({
         where: { id: sale.id },
         include: {
           items: { include: { product: true } },
           customer: true,
+          payments: true
         }
       });
-
-      return saleWithItems;
     });
   }
 
@@ -334,6 +359,14 @@ export class SaleService {
           storeId,
         },
       });
+
+      // Restore stock
+      for (const item of sale.items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stock: { increment: item.quantity } }
+        });
+      }
 
       return { success: true };
     });

@@ -66,7 +66,7 @@ model User {
 model Product {
   id        String           @id @default(uuid())
   name      String
-  barcode   String?          @unique
+  barcode   String?
   model     String
   brand     String
   category  String
@@ -84,12 +84,14 @@ model Product {
   updatedAt DateTime         @updatedAt
   store     Store            @relation(fields: [storeId], references: [id])
   saleItems SaleItem[]
+
+  @@unique([barcode, storeId])
 }
 
 model Customer {
   id        String   @id @default(uuid())
   name      String
-  phone     String   @unique
+  phone     String
   address   String?
   dueAmount Decimal  @default(0)
   storeId   String
@@ -97,11 +99,13 @@ model Customer {
   updatedAt DateTime @updatedAt
   store     Store    @relation(fields: [storeId], references: [id])
   sales     Sale[]
+
+  @@unique([phone, storeId])
 }
 
 model Sale {
   id               String     @id @default(uuid())
-  invoiceId        String     @unique
+  invoiceId        String
   saleType         String     @default("REGULAR")
   totalAmount      Decimal
   paidAmount       Decimal
@@ -121,6 +125,8 @@ model Sale {
   store            Store      @relation(fields: [storeId], references: [id])
   customer         Customer?  @relation(fields: [customerId], references: [id])
   items            SaleItem[]
+
+  @@unique([invoiceId, storeId])
 }
 
 model SaleItem {
@@ -165,7 +171,7 @@ model Loan {
   remaining    Decimal
   date         DateTime      @default(now())
   storeId      String
-  store        Store         @relation(fields: [storeId], references: [id])
+  store         Store         @relation(fields: [storeId], references: [id])
   transactions Transaction[]
 }
 
@@ -195,7 +201,7 @@ model SupplierProduct {
 
 model DailyBalance {
   id            String   @id @default(uuid())
-  date          DateTime @unique
+  date          DateTime
   openingCash   Decimal  @default(0)
   closingCash   Decimal  @default(0)
   expectedCash  Decimal  @default(0)
@@ -209,6 +215,7 @@ model DailyBalance {
   updatedAt     DateTime @updatedAt
   store         Store    @relation(fields: [storeId], references: [id])
 
+  @@unique([date, storeId])
   @@index([storeId, date])
 }
 

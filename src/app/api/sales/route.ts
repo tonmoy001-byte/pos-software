@@ -1,26 +1,49 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { SaleService } from "@/lib/services";
-import { generateInvoiceNumber } from "@/lib/server/invoice";
+import { SaleService, hasPermission } from "@/lib/services";
+import { z } from "zod";
+import type { Role } from "@prisma/client";
 
 const saleService = new SaleService();
+
+const saleItemSchema = z.object({
+  productId: z.string().min(1, "Product ID is required"),
+  quantity: z.number().int().positive("Quantity must be positive"),
+  price: z.number().nonnegative("Price cannot be negative"),
+  cost: z.number().nonnegative().optional(),
+  imeis: z.array(z.string()).optional(),
+});
+
+const saleCreateSchema = z.object({
+  items: z.array(saleItemSchema).min(1, "At least one item is required"),
+  customerId: z.string().nullable().optional(),
+  totalAmount: z.number().nonnegative(),
+  paidAmount: z.number().nonnegative(),
+  dueAmount: z.number().nonnegative(),
+  paymentMethod: z.string().optional().default("CASH"),
+  discount: z.number().nonnegative().optional().default(0),
+  saleType: z.string().optional().default("REGULAR"),
+  deliveryDate: z.string().nullable().optional(),
+});
 
 export async function GET(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  if (!hasPermission(session.user.role as Role, "sale:view")) {
+    return NextResponse.json({ error: "Forbidden: Missing sale:view permission" }, { status: 403 });
+  }
+
   try {
-    const { searchParams } = new URL(req.url);
-    const storeId = searchParams.get("storeId") || session.user.storeId;
+    const storeId = session.user.storeId;
     const sales = await saleService.findAll(storeId);
     
     const formattedSales = sales.map((sale: any) => ({
       id: sale.id,
       invoiceId: sale.invoiceId,
       saleType: sale.saleType || "REGULAR",
-      customerName: sale.customer?.name || null,
+      customerName: sale.customer?.name || sale.customerName || "Walking Customer",
       customerPhone: sale.customer?.phone || null,
       items: sale.items.map((item: any) => ({
         id: item.id,
@@ -39,6 +62,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(formattedSales);
   } catch (error) {
+    console.error("GET /api/sales error:", error);
     return NextResponse.json({ error: "Failed to fetch sales" }, { status: 500 });
   }
 }
@@ -47,50 +71,33 @@ export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  if (!hasPermission(session.user.role as Role, "sale:create")) {
+    return NextResponse.json({ error: "Forbidden: Missing sale:create permission" }, { status: 403 });
+  }
+
   try {
-    const data = await req.json();
-    const { items, customerId, totalAmount, paidAmount, dueAmount, paymentMethod, discount, saleType, deliveryDate } = data;
+    const json = await req.json();
+    const result = saleCreateSchema.safeParse(json);
 
-    // Calculate dueAmount properly for advance orders
-    const total = Number(totalAmount) || 0;
-    const paid = Number(paidAmount) || 0;
-    const calculatedDue = total - paid;
-
-    // Fetch customer info to store snapshot for advance orders
-    let customerName = "Walking Customer";
-    if (customerId) {
-      const customer = await prisma.customer.findUnique({ where: { id: customerId } });
-      if (customer) {
-        customerName = customer.name;
-      }
+    if (!result.success) {
+      return NextResponse.json({
+        error: "Validation failed",
+        details: result.error.format()
+      }, { status: 400 });
     }
 
-    // Fetch product costs for profit calculation
-    const productIds = items.map((i: any) => i.productId);
-    const products = await prisma.product.findMany({
-      where: { id: { in: productIds } },
-      select: { id: true, cost: true }
-    });
-
-    const itemsWithCosts = items.map((item: any) => {
-      const product = products.find(p => p.id === item.productId);
-      return {
-        ...item,
-        cost: product ? Number(product.cost) : 0
-      };
-    });
+    const data = result.data;
 
     const sale = await saleService.create({
-      items: itemsWithCosts,
-      customerId,
-      customerName,
-      totalAmount: total,
-      paidAmount: paid,
-      dueAmount: calculatedDue,
-      paymentMethod: paymentMethod || "CASH",
-      discount: Number(discount || 0),
-      saleType: saleType || "REGULAR",
-      deliveryDate: deliveryDate || null
+      items: data.items,
+      customerId: data.customerId || undefined,
+      totalAmount: data.totalAmount,
+      paidAmount: data.paidAmount,
+      dueAmount: data.dueAmount,
+      paymentMethod: data.paymentMethod,
+      discount: data.discount,
+      saleType: data.saleType,
+      deliveryDate: data.deliveryDate
     }, session.user.storeId, session.user.id);
 
     return NextResponse.json(sale);
