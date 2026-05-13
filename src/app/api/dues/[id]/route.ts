@@ -21,6 +21,12 @@ export async function GET(
     if (!sale) {
       return NextResponse.json({ error: "Sale not found" }, { status: 404 });
     }
+    
+    // Security: Validate storeId matches session
+    if (sale.storeId !== session.user.storeId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+    
     return NextResponse.json(sale);
   } catch (error) {
     console.error("Sale fetch error:", error);

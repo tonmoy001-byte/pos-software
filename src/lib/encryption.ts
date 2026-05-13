@@ -3,7 +3,7 @@ import { createCipheriv, randomBytes, scryptSync } from "crypto";
 function getEncryptionKey(): Buffer {
   const storeKey = process.env.ENCRYPTION_STORE_KEY;
   if (!storeKey) {
-    return Buffer.alloc(32);
+    throw new Error("ENCRYPTION_STORE_KEY environment variable is not set. Please configure encryption key for secure data storage.");
   }
   return scryptSync(storeKey, "pos-encryption", 32);
 }

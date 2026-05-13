@@ -9,15 +9,26 @@ import {
   Users,
   Calendar,
   Download,
-  FileSpreadsheet,
-  ChevronDown
+  ChevronDown,
+  FileSpreadsheet
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import DailySheet from "@/components/daily-activity/DailySheet";
 
 export default function ReportsPage() {
+  const [activeTab, setActiveTab] = useState<"overview" | "sheet">("overview");
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [range, setRange] = useState("today");
+  const [sheetDate, setSheetDate] = useState("");
+
+  useEffect(() => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    setSheetDate(`${y}-${m}-${d}`);
+  }, []);
 
   useEffect(() => {
     async function fetchReports() {
@@ -34,6 +45,45 @@ export default function ReportsPage() {
     }
     fetchReports();
   }, [range]);
+
+  if (activeTab === "sheet") {
+    return (
+      <div className="p-4 md:p-6 lg:p-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black text-foreground">Business Reports</h1>
+            <p className="text-xs text-secondary font-bold uppercase tracking-widest mt-1">Daily Activity Sheet</p>
+          </div>
+          <div className="flex bg-background p-1 rounded-2xl border border-border">
+            <button 
+              onClick={() => setActiveTab("overview")}
+              className="px-6 py-2 rounded-xl text-sm font-black text-secondary hover:text-foreground transition-all"
+            >
+              Overview
+            </button>
+            <button 
+              onClick={() => setActiveTab("sheet")}
+              className="px-6 py-2 rounded-xl text-sm font-black bg-primary text-white shadow-lg shadow-primary/20 transition-all"
+            >
+              Daily Sheet
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Calendar className="w-5 h-5 text-secondary" />
+          <input
+            type="date"
+            value={sheetDate}
+            onChange={(e) => setSheetDate(e.target.value)}
+            className="px-4 py-2 rounded-xl border border-border bg-surface text-sm font-bold outline-none focus:border-primary"
+          />
+        </div>
+
+        <DailySheet date={sheetDate} onDateChange={setSheetDate} />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -89,14 +139,29 @@ export default function ReportsPage() {
   ];
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 md:p-6 lg:p-8 space-y-8">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Business Reports</h1>
-          <p className="text-secondary">Financial overview and analytics.</p>
+          <h1 className="text-2xl md:text-3xl font-black text-foreground">Business Reports</h1>
+          <p className="text-xs text-secondary font-bold uppercase tracking-widest mt-1">Financial overview and analytics.</p>
         </div>
         
         <div className="flex items-center gap-3">
+          <div className="flex bg-background p-1 rounded-2xl border border-border">
+            <button 
+              onClick={() => setActiveTab("overview")}
+              className="px-6 py-2 rounded-xl text-sm font-black bg-primary text-white shadow-lg shadow-primary/20 transition-all"
+            >
+              Overview
+            </button>
+            <button 
+              onClick={() => setActiveTab("sheet")}
+              className="px-6 py-2 rounded-xl text-sm font-black text-secondary hover:text-foreground transition-all"
+            >
+              Daily Sheet
+            </button>
+          </div>
+
           <div className="relative">
             <select 
               value={range}
@@ -110,11 +175,6 @@ export default function ReportsPage() {
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary pointer-events-none" />
           </div>
-          
-          <button className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm">
-            <Download className="w-4 h-4" />
-            Export
-          </button>
         </div>
       </div>
 
@@ -226,6 +286,32 @@ export default function ReportsPage() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Export All Transactions */}
+      <div className="bg-surface rounded-2xl border border-border card-shadow p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-lg">All-Time Transaction Export</h3>
+            <p className="text-sm text-secondary mt-1">Download every sale, purchase, expense, loan, and payment in a single Excel sheet.</p>
+          </div>
+          <button
+            onClick={async () => {
+              const res = await fetch("/api/export/transactions");
+              const blob = await res.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "all-transactions.xlsx";
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-primary/90 transition-all shadow-lg"
+          >
+            <FileSpreadsheet className="w-5 h-5" />
+            Export All Transactions
+          </button>
         </div>
       </div>
     </div>

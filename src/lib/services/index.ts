@@ -2,6 +2,7 @@ export { TransactionService, CapitalService } from "./transaction";
 export { SupplierService } from "./supplier";
 export { LoanService } from "./loan";
 export { SaleService } from "./sale";
+export { DailyActivityService, dailyActivityService } from "./dailyActivity";
 export { EventStore, eventStore, calculateProfit, applyEventToState, replayEvents } from "./eventStore";
 export { TenantService, tenantService, validateTenantAccess, getTenantFilter, getAdminFilter } from "./tenant";
 export { hasPermission, hasAnyPermission, hasAllPermissions, getPermissions, getRoleHierarchy, canManageRole, checkAccess } from "./rbac";

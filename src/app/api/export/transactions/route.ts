@@ -1,0 +1,25 @@
+export const dynamic = "force-dynamic";
+import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
+import { dailyActivityService } from "@/lib/services";
+
+export async function GET() {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const buffer = await dailyActivityService.exportAllTransactions(session.user.storeId);
+    const uint8 = new Uint8Array(buffer);
+    return new NextResponse(uint8, {
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="all-transactions.xlsx"`,
+      },
+    });
+  } catch (error) {
+    console.error("Export error:", error);
+    return NextResponse.json({ error: "Export failed" }, { status: 500 });
+  }
+}

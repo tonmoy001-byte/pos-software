@@ -25,6 +25,7 @@ const saleCreateSchema = z.object({
   discount: z.number().nonnegative().optional().default(0),
   saleType: z.string().optional().default("REGULAR"),
   deliveryDate: z.string().nullable().optional(),
+  dueDate: z.string().nullable().optional(),
 });
 
 export async function GET(req: Request) {
@@ -97,7 +98,8 @@ export async function POST(req: Request) {
       paymentMethod: data.paymentMethod,
       discount: data.discount,
       saleType: data.saleType,
-      deliveryDate: data.deliveryDate
+      deliveryDate: data.deliveryDate || null,
+      dueDate: data.dueDate || null,
     }, session.user.storeId, session.user.id);
 
     return NextResponse.json(sale);

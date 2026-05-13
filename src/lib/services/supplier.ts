@@ -83,36 +83,38 @@ export class SupplierService {
   }
 
   async addProducts(supplierId: string, data: SupplierProductInput) {
-    const links = [];
-    
-    if (data.productIds && data.productIds.length > 0) {
-      const products = await prisma.product.findMany({
-        where: { id: { in: data.productIds } },
-      });
+    return prisma.$transaction(async (tx) => {
+      const links = [];
       
-      for (const product of products) {
-        const link = await prisma.supplierProduct.upsert({
-          where: { supplierId_productName: { supplierId, productName: product.name } },
-          update: {},
-          create: { supplierId, productId: product.id, productName: product.name },
+      if (data.productIds && data.productIds.length > 0) {
+        const products = await tx.product.findMany({
+          where: { id: { in: data.productIds } },
         });
-        links.push(link);
+        
+        for (const product of products) {
+          const link = await tx.supplierProduct.upsert({
+            where: { supplierId_productName: { supplierId, productName: product.name } },
+            update: {},
+            create: { supplierId, productId: product.id, productName: product.name },
+          });
+          links.push(link);
+        }
       }
-    }
-    
-    if (data.newProducts && data.newProducts.length > 0) {
-      for (const name of data.newProducts) {
-        if (!name.trim()) continue;
-        const link = await prisma.supplierProduct.upsert({
-          where: { supplierId_productName: { supplierId, productName: name.trim() } },
-          update: {},
-          create: { supplierId, productName: name.trim() },
-        });
-        links.push(link);
+      
+      if (data.newProducts && data.newProducts.length > 0) {
+        for (const name of data.newProducts) {
+          if (!name.trim()) continue;
+          const link = await tx.supplierProduct.upsert({
+            where: { supplierId_productName: { supplierId, productName: name.trim() } },
+            update: {},
+            create: { supplierId, productName: name.trim() },
+          });
+          links.push(link);
+        }
       }
-    }
-    
-    return links;
+      
+      return links;
+    });
   }
 
   async getProductsBySupplier(supplierId: string) {

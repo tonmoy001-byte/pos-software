@@ -25,7 +25,7 @@ export default function RootLayout({
 
   return (
     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable}`}>
-      <body className="flex bg-background min-h-screen">
+      <body className="flex bg-background min-h-screen" suppressHydrationWarning>
         <Sidebar userRole={mockUserRole} />
         <main className="flex-1 overflow-y-auto">
           {children}

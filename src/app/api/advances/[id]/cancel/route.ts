@@ -18,6 +18,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    // Security: Validate storeId matches session
+    if (sale.storeId !== session.user.storeId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
     if (sale.saleType !== "ADVANCE_ORDER") {
       return NextResponse.json({ error: "Not an advance order" }, { status: 400 });
     }

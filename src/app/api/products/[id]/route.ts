@@ -21,6 +21,15 @@ export async function DELETE(
   try {
     const { id } = await params;
     
+    // Security: Verify product belongs to user's store before delete
+    const product = await prisma.product.findFirst({
+      where: { id, storeId: session.user.storeId }
+    });
+    
+    if (!product) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+    
     await prisma.product.delete({
       where: { id },
       include: { saleItems: true }

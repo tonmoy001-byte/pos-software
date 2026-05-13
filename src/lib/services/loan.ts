@@ -54,12 +54,15 @@ export class LoanService {
   }
 
   async payment(id: string, data: LoanPaymentInput, userId: string, storeId: string) {
-    const loan = await prisma.loan.findUnique({ where: { id } });
-    if (!loan) throw new Error("Loan not found");
-
-    const transactionType = loan.type === "GIVE" ? "HAWLAT_RECEIVED" : "HAWLAT_GIVEN";
-
     return prisma.$transaction(async (tx) => {
+      // Security: Validate loan belongs to store inside transaction
+      const loan = await tx.loan.findFirst({
+        where: { id, storeId }
+      });
+      if (!loan) throw new Error("Loan not found or unauthorized");
+
+      const transactionType = loan.type === "GIVE" ? "HAWLAT_RECEIVED" : "HAWLAT_GIVEN";
+
       const [updated] = await Promise.all([
         tx.loan.update({
           where: { id },

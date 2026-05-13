@@ -16,6 +16,7 @@ model Store {
   description       String?
   logo              String?
   invoicePrefix     String             @default("INV")
+  invoiceCode       String             @default("")
   invoiceNumbering  Int                @default(1)
   invoiceFooter     String?
   taxId             String?
@@ -86,6 +87,9 @@ model Product {
   saleItems SaleItem[]
 
   @@unique([barcode, storeId])
+  @@index([storeId])
+  @@index([storeId, category])
+  @@index([barcode])
 }
 
 model Customer {
@@ -101,6 +105,7 @@ model Customer {
   sales     Sale[]
 
   @@unique([phone, storeId])
+  @@index([storeId])
 }
 
 model Sale {
@@ -120,6 +125,7 @@ model Sale {
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
   deliveryDate     DateTime?
+  dueDate          DateTime?  // Expected payment date for due sales
   advanceAmount    Decimal?   // Advance paid amount for advance orders
   payments         Payment[]
   store            Store      @relation(fields: [storeId], references: [id])
@@ -127,6 +133,11 @@ model Sale {
   items            SaleItem[]
 
   @@unique([invoiceId, storeId])
+  @@index([storeId, status])
+  @@index([storeId, createdAt])
+  @@index([customerId])
+  @@index([storeId, saleType])
+  @@index([dueDate])
 }
 
 model SaleItem {
@@ -150,6 +161,9 @@ model Payment {
   storeId   String
   createdAt DateTime @default(now())
   sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, date])
+  @@index([saleId])
 }
 
 model Expense {
@@ -160,6 +174,8 @@ model Expense {
   date        DateTime @default(now())
   storeId     String
   store       Store    @relation(fields: [storeId], references: [id])
+
+  @@index([storeId, date])
 }
 
 model Loan {
@@ -173,6 +189,8 @@ model Loan {
   storeId      String
   store         Store         @relation(fields: [storeId], references: [id])
   transactions Transaction[]
+
+  @@index([storeId, type])
 }
 
 model Supplier {
@@ -209,13 +227,16 @@ model DailyBalance {
   bankDeposits  Decimal  @default(0)
   totalExpenses Decimal  @default(0)
   totalDuePaid  Decimal  @default(0)
+  totalPurchases Decimal @default(0)
+  isLocked      Boolean  @default(false)
+  lockedAt      DateTime?
   storeId       String
   notes         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   store         Store    @relation(fields: [storeId], references: [id])
 
-  @@unique([date, storeId])
+  @@unique([storeId, date])
   @@index([storeId, date])
 }
 
