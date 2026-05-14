@@ -1,6 +1,8 @@
 export type TransactionType = 
   | 'SALE'
+  | 'SALE_REFUND'
   | 'PURCHASE'
+  | 'PURCHASE_RETURN'
   | 'DUE_PAYMENT'
   | 'HAWLAT_GIVEN'
   | 'HAWLAT_RECEIVED'

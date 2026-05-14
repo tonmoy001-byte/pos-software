@@ -2,8 +2,28 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { TransactionService } from "@/lib/services";
+import { z } from "zod";
 
 const transactionService = new TransactionService();
+
+const transactionCreateSchema = z.object({
+  type: z.enum([
+    "SALE", "SALE_REFUND", "PURCHASE", "PURCHASE_RETURN",
+    "DUE_PAYMENT", "HAWLAT_GIVEN", "HAWLAT_RECEIVED",
+    "EXPENSE", "STOCK_IN", "SECONDHAND_BUY", "OPENING", "CLOSING"
+  ]),
+  amount: z.coerce.number().positive("Amount must be positive"),
+  costAmount: z.coerce.number().optional(),
+  mode: z.enum(["CASH", "BANK", "BKASH", "NAGAD", "CARD", "DUE"]).default("CASH"),
+  description: z.string().optional(),
+  barcode: z.string().optional(),
+  productId: z.string().optional(),
+  customerId: z.string().optional(),
+  supplierId: z.string().optional(),
+  loanId: z.string().optional(),
+  referenceId: z.string().optional(),
+  referenceType: z.string().optional(),
+});
 
 export async function GET(req: Request) {
   const session = await getSession();
@@ -45,13 +65,23 @@ export async function POST(req: Request) {
   }
 
   try {
-    const data = await req.json();
+    const json = await req.json();
+    const result = transactionCreateSchema.safeParse(json);
+
+    if (!result.success) {
+      return NextResponse.json({
+        error: "Validation failed",
+        details: result.error.format()
+      }, { status: 400 });
+    }
+
+    const data = result.data;
 
     const transaction = await transactionService.create(
       {
-        type: data.type,
-        amount: parseFloat(data.amount),
-        costAmount: data.costAmount ? parseFloat(data.costAmount) : undefined,
+        type: data.type as any,
+        amount: data.amount,
+        costAmount: data.costAmount,
         mode: data.mode,
         description: data.description,
         barcode: data.barcode,

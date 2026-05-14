@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { dailyActivityService } from "@/lib/services";
 
 export async function GET(req: Request) {
@@ -31,6 +32,23 @@ export async function POST(req: Request) {
     const body = await req.json();
     const storeId = session.user.storeId;
     const userId = session.user.id;
+
+    // Check if day is locked (skip for CLOSING type which is the locking action itself)
+    if (body.type !== "CLOSING") {
+      const today = new Date();
+      const dateStr = body.date || today.toISOString().split("T")[0];
+      const dayStart = new Date(dateStr + "T00:00:00");
+      const balance = await prisma.dailyBalance.findUnique({
+        where: { storeId_date: { storeId, date: dayStart } },
+        select: { isLocked: true },
+      });
+      if (balance?.isLocked) {
+        return NextResponse.json(
+          { error: "This day is locked. No new transactions allowed." },
+          { status: 403 }
+        );
+      }
+    }
 
     let result;
     switch (body.type) {

@@ -148,8 +148,12 @@ model SaleItem {
   price     Decimal
   cost      Decimal?
   profit    Decimal          @default(0)
+  imeis     String?          // JSON array of IMEI/serial numbers
   product   Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
   sale      Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([saleId])
 }
 
 model Payment {
@@ -207,6 +211,9 @@ model Supplier {
   store        Store               @relation(fields: [storeId], references: [id])
   transactions Transaction[]
   products     SupplierProduct[]
+
+  @@index([storeId])
+  @@index([phone])
 }
 
 model SupplierProduct {

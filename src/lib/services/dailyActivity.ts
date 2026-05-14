@@ -245,14 +245,20 @@ export class DailyActivityService {
 
   async saveClosing(storeId: string, dateStr: string, closingCash: number, notes?: string) {
     const dayStart = new Date(dateStr + "T00:00:00");
+    const dayEnd = new Date(dateStr + "T23:59:59");
 
     const prevDate = new Date(dayStart);
     prevDate.setDate(prevDate.getDate() - 1);
-    const prevBalance = await prisma.dailyBalance.findUnique({
-      where: { storeId_date: { storeId, date: prevDate } }
-    });
+
+    const [prevBalance, todaysSheet] = await Promise.all([
+      prisma.dailyBalance.findUnique({
+        where: { storeId_date: { storeId, date: prevDate } }
+      }),
+      this.getSheet(storeId, dateStr),
+    ]);
 
     const openingCash = prevBalance?.closingCash ? Number(prevBalance.closingCash) : 0;
+    const expectedCash = todaysSheet.cashPosition.expectedCash;
 
     return prisma.dailyBalance.upsert({
       where: { storeId_date: { storeId, date: dayStart } },
@@ -261,7 +267,7 @@ export class DailyActivityService {
         date: dayStart,
         openingCash,
         closingCash,
-        expectedCash: 0,
+        expectedCash,
         notes: notes || "",
         isLocked: true,
         lockedAt: new Date(),
@@ -269,6 +275,7 @@ export class DailyActivityService {
       update: {
         closingCash,
         notes: notes || "",
+        expectedCash,
         isLocked: true,
         lockedAt: new Date(),
       },

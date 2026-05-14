@@ -32,8 +32,7 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error("Error in GET /api/barcode-settings:", error);
     return NextResponse.json({ 
-      error: "Internal Server Error", 
-      details: error instanceof Error ? error.message : String(error) 
+      error: "Internal Server Error"
     }, { status: 500 });
   }
 }
@@ -57,8 +56,7 @@ export async function PUT(req: Request) {
   } catch (error) {
     console.error("Error in PUT /api/barcode-settings:", error);
     return NextResponse.json({ 
-      error: "Internal Server Error", 
-      details: error instanceof Error ? error.message : String(error) 
+      error: "Internal Server Error"
     }, { status: 500 });
   }
 }

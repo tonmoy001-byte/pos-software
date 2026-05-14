@@ -16,7 +16,7 @@ export async function GET(
 
   try {
     const { id } = await params;
-    const products = await supplierService.getProductsBySupplier(id);
+    const products = await supplierService.getProductsBySupplier(id, session.user.storeId);
     return NextResponse.json(products);
   } catch (error) {
     console.error("Supplier products fetch error:", error);
@@ -37,7 +37,7 @@ export async function POST(
     const { id } = await params;
     const data = await req.json();
     
-    const products = await supplierService.addProducts(id, data);
+    const products = await supplierService.addProducts(id, data, session.user.storeId);
     return NextResponse.json(products);
   } catch (error) {
     console.error("Supplier products add error:", error);

@@ -4,21 +4,25 @@ import { getSession } from "@/lib/auth";
 import { dailyActivityService } from "@/lib/services";
 import { formatCurrency } from "@/lib/utils";
 
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 function renderPrintHtml(sheet: any, date: string) {
   const summary = sheet.summary;
   const cashPos = sheet.cashPosition;
 
   const txRows = sheet.transactions.map((t: any) => `
     <tr>
-      <td>${new Date(t.createdAt).toLocaleTimeString()}</td>
-      <td>${t.type}</td>
-      <td>${t.description || ""}</td>
+      <td>${escapeHtml(new Date(t.createdAt).toLocaleTimeString())}</td>
+      <td>${escapeHtml(t.type)}</td>
+      <td>${escapeHtml(t.description || "")}</td>
       <td style="text-align:right">${formatCurrency(t.amount)}</td>
     </tr>
   `).join("");
 
   return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Daily Sheet - ${date}</title>
+<html><head><meta charset="utf-8"><title>Daily Sheet - ${escapeHtml(date)}</title>
 <style>
   body { font-family: Arial, sans-serif; padding: 20px; color: #111; }
   h1 { font-size: 20px; margin-bottom: 4px; }

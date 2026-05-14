@@ -47,6 +47,15 @@ export async function POST(
   const data = await req.json();
 
   try {
+    // Security: Validate storeId matches session before payment
+    const sale = await saleService.findById(id);
+    if (!sale) {
+      return NextResponse.json({ error: "Sale not found" }, { status: 404 });
+    }
+    if (sale.storeId !== session.user.storeId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
     const result = await saleService.collectPayment(
       id,
       parseFloat(data.amount),

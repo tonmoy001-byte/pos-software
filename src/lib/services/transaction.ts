@@ -43,16 +43,17 @@ export class TransactionService {
       } as EventStoreData);
 
       if (data.type === "PURCHASE" && data.supplierId) {
-        const supplier = await tx.supplier.findUnique({ where: { id: data.supplierId } });
-        const currentDue = supplier?.dueAmount ? Number(supplier.dueAmount) : 0;
+        const supplier = await tx.supplier.findFirst({ where: { id: data.supplierId, storeId } });
+        if (!supplier) throw new Error("Supplier not found or unauthorized");
+        const currentDue = Number(supplier.dueAmount) || 0;
         const isPaid = data.mode !== "DUE";
 
         await tx.supplier.update({
           where: { id: data.supplierId },
           data: {
             dueAmount: isPaid
-              ? Math.max(0, currentDue - data.amount)
-              : currentDue + data.amount
+              ? currentDue   // Cash purchase: supplier due stays the same (new purchase is separate)
+              : currentDue + data.amount  // Due purchase: increases supplier due
           },
         });
 
@@ -68,7 +69,7 @@ export class TransactionService {
       }
 
       if ((data.type === "HAWLAT_GIVEN" || data.type === "HAWLAT_RECEIVED") && data.loanId) {
-        const loan = await tx.loan.findUnique({ where: { id: data.loanId } });
+        const loan = await tx.loan.findFirst({ where: { id: data.loanId, storeId } });
         if (loan) {
           const newPaid = Number(loan.paid) + data.amount;
           const newRemaining = Math.max(0, Number(loan.remaining) - data.amount);

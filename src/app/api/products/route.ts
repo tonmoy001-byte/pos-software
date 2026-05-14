@@ -48,7 +48,8 @@ export async function GET(req: Request) {
 
   const products = await prisma.product.findMany({
     where,
-    orderBy: { name: "asc" }
+    orderBy: { name: "asc" },
+    take: 200,
   });
 
   // Optimize: Calculate advanceOrderQuantity using an aggregated query

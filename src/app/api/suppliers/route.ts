@@ -2,6 +2,15 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { SupplierService } from "@/lib/services";
+import { z } from "zod";
+
+const supplierCreateSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  productIds: z.array(z.string()).optional(),
+  newProducts: z.array(z.string()).optional(),
+});
 
 const supplierService = new SupplierService();
 
@@ -33,7 +42,16 @@ export async function POST(req: Request) {
   }
 
   try {
-    const data = await req.json();
+    const json = await req.json();
+    const result = supplierCreateSchema.safeParse(json);
+    if (!result.success) {
+      return NextResponse.json({
+        error: "Validation failed",
+        details: result.error.format()
+      }, { status: 400 });
+    }
+
+    const data = result.data;
 
     const supplier = await supplierService.create(data, session.user.storeId);
     
@@ -41,7 +59,7 @@ export async function POST(req: Request) {
       await supplierService.addProducts(supplier.id, {
         productIds: data.productIds,
         newProducts: data.newProducts,
-      });
+      }, session.user.storeId);
     }
     
     return NextResponse.json(supplier);

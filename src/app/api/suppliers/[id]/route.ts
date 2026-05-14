@@ -17,7 +17,7 @@ export async function GET(
   const { id } = await params;
 
   try {
-    const supplier = await supplierService.findById(id);
+    const supplier = await supplierService.findById(id, session.user.storeId);
     if (!supplier) {
       return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
     }
@@ -66,7 +66,7 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    await supplierService.delete(id);
+    await supplierService.delete(id, session.user.storeId);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Supplier delete error:", error);

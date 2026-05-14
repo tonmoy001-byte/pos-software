@@ -123,6 +123,7 @@ export class SaleService {
           price: item.price,
           cost: itemCost,
           profit: itemProfit,
+          imeis: item.imeis ? JSON.stringify(item.imeis) : null,
         };
       });
 
@@ -158,7 +159,7 @@ export class SaleService {
             amount: paidAmount,
             costAmount: totalCost,
             profit: totalProfit,
-            mode: (paymentMethod as any) || "CASH",
+            mode: (paymentMethod as "CASH" | "BANK" | "BKASH" | "NAGAD" | "CARD" | "DUE") || "CASH",
             description: `Sale: ${invoiceId}`,
             customerId: customerId || null,
             referenceId: sale.id,
@@ -231,6 +232,7 @@ export class SaleService {
     return prisma.sale.findMany({
       where: { storeId },
       orderBy: { createdAt: "desc" },
+      take: 100,
       include: {
         customer: { select: { name: true, phone: true } },
         items: { include: { product: true } },
@@ -383,7 +385,7 @@ export class SaleService {
         data: {
           dueAmount: newDue,
           paidAmount: newPaid,
-          status: newStatus as any,
+            status: newStatus as "PAID" | "PARTIAL" | "DUE" | "PENDING" | "COMPLETED" | "CANCELLED",
         },
       });
 
@@ -418,7 +420,7 @@ export class SaleService {
           data: {
             type: "DUE_PAYMENT",
             amount,
-            mode: method as any,
+            mode: method as "CASH" | "BANK" | "BKASH" | "NAGAD" | "CARD" | "DUE",
             description: `Payment for ${sale.invoiceId}`,
             customerId: sale.customerId,
             referenceId: saleId,
@@ -483,14 +485,6 @@ export class SaleService {
           storeId,
         },
       });
-
-      // Restore stock
-      for (const item of sale.items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { increment: item.quantity } }
-        });
-      }
 
       return { success: true };
     });

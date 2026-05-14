@@ -27,7 +27,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ error: "Customer not found" }, { status: 404 });
   }
 
-  return NextResponse.json(customer);
+  // Also fetch standalone payments (from customer page payment, not linked to a specific sale)
+  const standalonePayments = await prisma.payment.findMany({
+    where: { customerId: id },
+    select: { amount: true, method: true, date: true, createdAt: true },
+    orderBy: { date: "desc" },
+  });
+
+  return NextResponse.json({ ...customer, standalonePayments });
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {

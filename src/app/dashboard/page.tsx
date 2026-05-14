@@ -77,6 +77,7 @@ export default function ExecutiveDashboard() {
   const [chartLoading, setChartLoading] = useState(false);
   const [chartStart, setChartStart] = useState("");
   const [chartEnd, setChartEnd] = useState("");
+  const [formattedDate, setFormattedDate] = useState("");
 
   function localDateStr(d: Date) {
     const y = d.getFullYear();
@@ -92,6 +93,7 @@ export default function ExecutiveDashboard() {
     start.setDate(start.getDate() - 6);
     setChartStart(localDateStr(start));
     setChartEnd(localDateStr(end));
+    setFormattedDate(end.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }));
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -170,7 +172,7 @@ export default function ExecutiveDashboard() {
         <div>
           <h1 className="text-2xl md:text-3xl font-black text-foreground">Dashboard</h1>
           <p className="text-xs text-secondary font-bold uppercase tracking-widest mt-1">
-            {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+            {formattedDate}
           </p>
         </div>
         <button

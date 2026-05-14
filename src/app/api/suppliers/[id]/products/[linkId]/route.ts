@@ -16,7 +16,7 @@ export async function DELETE(
 
   try {
     const { linkId } = await params;
-    await supplierService.removeProduct(linkId);
+    await supplierService.removeProduct(linkId, session.user.storeId);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Supplier product remove error:", error);

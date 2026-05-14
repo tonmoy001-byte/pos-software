@@ -77,9 +77,12 @@ export default function DueSalePage() {
   const fetchDues = async () => {
     setLoadingDues(true);
     try {
-      const res = await fetch("/api/dues");
+      const params = new URLSearchParams();
+      if (duesSearch) params.set("search", duesSearch);
+      if (filterStatus !== "ALL") params.set("status", filterStatus);
+      const res = await fetch(`/api/dues?${params}`);
       const json = await res.json();
-      setDues(json);
+      setDues(json.data || []);
     } catch (err) {
       console.error("Failed to fetch dues", err);
     } finally {

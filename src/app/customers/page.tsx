@@ -23,7 +23,6 @@ export default function CustomersPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customerDetails, setCustomerDetails] = useState<any>(null);
   const [detailsTab, setDetailsTab] = useState<"overview" | "sales" | "payments">("overview");
-  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{type: "success"|"error", text: string} | null>(null);
@@ -119,7 +118,6 @@ export default function CustomersPage() {
 
   const openCustomerDetails = async (id: string) => {
     setDetailsTab("overview");
-    setIsPaymentOpen(false);
     try {
       const res = await fetch(`/api/customers/${id}`);
       if (res.ok) {
@@ -145,7 +143,6 @@ export default function CustomersPage() {
       });
       if (res.ok) {
         setMessage({ type: "success", text: "Payment received!" });
-        setIsPaymentOpen(false);
         setPaymentForm({ amount: "", method: "CASH", note: "" });
         openCustomerDetails(selectedCustomer.id);
         fetchCustomers();
@@ -392,7 +389,7 @@ export default function CustomersPage() {
       {/* Customer Details Modal */}
       {selectedCustomer && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-surface w-full max-w-2xl rounded-3xl p-8 space-y-6 relative">
+          <div className="bg-surface w-full max-w-xl rounded-3xl p-6 space-y-5 relative">
             <button onClick={() => { setSelectedCustomer(null); setCustomerDetails(null); }}
               className="absolute top-6 right-6 text-secondary hover:text-foreground"><X className="w-5 h-5" /></button>
 
@@ -424,58 +421,67 @@ export default function CustomersPage() {
               </button>
             </div>
 
-            {/* Due Summary + Payment */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className={`p-5 rounded-2xl border ${Number(customerDetails?.dueAmount || 0) > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-                <p className="text-sm font-bold flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" /> Total Due
-                </p>
-                <p className={`text-2xl font-black mt-1 ${Number(customerDetails?.dueAmount || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  {formatCurrency(customerDetails?.dueAmount || 0)}
-                </p>
+            {/* Compact Due + Payment */}
+            <div className="bg-background rounded-2xl border border-border p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-secondary uppercase tracking-widest">Due</span>
+                  <span className={`text-xl font-black ${Number(customerDetails?.dueAmount || 0) > 0 ? 'text-red-500' : 'text-green-600'}`}>
+                    {formatCurrency(customerDetails?.dueAmount || 0)}
+                  </span>
+                </div>
+                {Number(customerDetails?.dueAmount || 0) > 0 && (
+                  <div className="flex gap-2">
+                    {[Number(customerDetails?.dueAmount || 0), 500, 1000, 2000].map((amt) => (
+                      <button
+                        key={amt}
+                        onClick={() => setPaymentForm({ ...paymentForm, amount: amt.toString() })}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                          Number(paymentForm.amount) === amt
+                            ? "bg-primary text-white border-primary"
+                            : "bg-surface text-secondary border-border hover:border-primary"
+                        }`}
+                      >
+                        {amt === Number(customerDetails?.dueAmount || 0) ? "Full" : formatCurrency(amt)}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <button
-                onClick={() => setIsPaymentOpen(!isPaymentOpen)}
-                className="p-5 bg-green-50 rounded-2xl border border-green-200 hover:bg-green-100 transition-colors text-left"
-              >
-                <p className="text-sm font-bold text-green-600 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" /> Receive Payment
-                </p>
-                <p className="text-lg font-black text-green-600 mt-1">Click to Pay</p>
-              </button>
-            </div>
-
-            {/* Payment Form */}
-            {isPaymentOpen && (
-              <div className="p-6 bg-background rounded-2xl space-y-4 border border-border">
-                <h3 className="font-bold">Receive Payment</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-bold text-secondary uppercase">Amount</label>
+              {Number(customerDetails?.dueAmount || 0) > 0 && (
+                <div className="flex items-end gap-3">
+                  <div className="flex-1">
+                    <label className="text-[10px] font-bold text-secondary uppercase">Amount</label>
                     <input type="number" value={paymentForm.amount}
                       onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary font-bold mt-1" />
+                      className="w-full px-3 py-2 rounded-xl border border-border outline-none focus:border-primary font-bold text-sm mt-0.5"
+                      placeholder="0" />
                   </div>
-                  <div>
-                    <label className="text-xs font-bold text-secondary uppercase">Method</label>
+                  <div className="w-36">
+                    <label className="text-[10px] font-bold text-secondary uppercase">Method</label>
                     <select value={paymentForm.method}
                       onChange={(e) => setPaymentForm({ ...paymentForm, method: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary mt-1">
+                      className="w-full px-3 py-2 rounded-xl border border-border outline-none focus:border-primary text-sm mt-0.5">
                       {["CASH","BKASH","NAGAD","CARD","BANK"].map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                   </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-bold text-secondary uppercase">Note</label>
+                    <input type="text" value={paymentForm.note}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, note: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-border outline-none focus:border-primary text-sm mt-0.5"
+                      placeholder="Optional" />
+                  </div>
+                  <button
+                    onClick={handleReceivePayment}
+                    disabled={submitting || !paymentForm.amount || Number(paymentForm.amount) <= 0}
+                    className="px-5 py-2 bg-green-600 text-white rounded-xl font-bold text-sm hover:bg-green-700 disabled:opacity-50 transition-all shrink-0"
+                  >
+                    {submitting ? "..." : "Pay"}
+                  </button>
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-secondary uppercase">Note</label>
-                  <input type="text" value={paymentForm.note}
-                    onChange={(e) => setPaymentForm({ ...paymentForm, note: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary mt-1" />
-                </div>
-                <Button className="w-full" onClick={handleReceivePayment} disabled={submitting || !paymentForm.amount}>
-                  {submitting ? "Processing..." : "Confirm Payment"}
-                </Button>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Tabs */}
             <div className="flex bg-background p-1 rounded-2xl border border-border">
@@ -558,21 +564,40 @@ export default function CustomersPage() {
 
             {detailsTab === "payments" && (
               <div className="space-y-3 max-h-72 overflow-y-auto">
-                {customerDetails?.sales?.filter((s: any) => s.payments?.length > 0).length > 0 ? (
-                  customerDetails.sales.flatMap((sale: any) =>
-                    sale.payments?.map((pmt: any, i: number) => (
-                      <div key={`${sale.id}-${i}`} className="p-4 bg-background rounded-xl flex justify-between items-center border border-border/50">
+                {(() => {
+                  // Merge sale-linked payments + standalone payments
+                  const salePayments = (customerDetails?.sales || [])
+                    .filter((s: any) => s.payments?.length > 0)
+                    .flatMap((sale: any) =>
+                      sale.payments.map((pmt: any) => ({
+                        ...pmt,
+                        invoiceId: sale.invoiceId,
+                        source: "sale",
+                      }))
+                    );
+                  const standalone = (customerDetails?.standalonePayments || []).map((pmt: any) => ({
+                    ...pmt,
+                    invoiceId: "—",
+                    source: "direct",
+                  }));
+                  const allPayments = [...salePayments, ...standalone].sort(
+                    (a: any, b: any) => new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime()
+                  );
+
+                  return allPayments.length > 0 ? (
+                    allPayments.map((pmt: any, i: number) => (
+                      <div key={i} className="p-4 bg-background rounded-xl flex justify-between items-center border border-border/50">
                         <div>
-                          <p className="font-bold text-sm">{sale.invoiceId}</p>
-                          <p className="text-xs text-secondary">{pmt.method} · {formatDate(pmt.date)}</p>
+                          <p className="font-bold text-sm">{pmt.invoiceId}</p>
+                          <p className="text-xs text-secondary">{pmt.method} · {formatDate(pmt.date || pmt.createdAt)}</p>
                         </div>
                         <p className="font-bold text-green-600">{formatCurrency(pmt.amount)}</p>
                       </div>
                     ))
-                  )
-                ) : (
-                  <p className="text-center text-secondary italic py-8">No payments recorded.</p>
-                )}
+                  ) : (
+                    <p className="text-center text-secondary italic py-8">No payments recorded.</p>
+                  );
+                })()}
               </div>
             )}
           </div>
