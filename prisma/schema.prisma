@@ -157,13 +157,15 @@ model Payment {
   amount    Decimal
   method    String
   date      DateTime @default(now())
-  saleId    String
+  saleId    String?
+  customerId String?
   storeId   String
   createdAt DateTime @default(now())
-  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  sale      Sale?    @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   @@index([storeId, date])
   @@index([saleId])
+  @@index([customerId])
 }
 
 model Expense {

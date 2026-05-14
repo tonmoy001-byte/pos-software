@@ -161,6 +161,17 @@ export default function DailySheet({ date, onDateChange }: DailySheetProps) {
     window.open(`/api/daily-activity/export?date=${date}&format=pdf`, "_blank");
   };
 
+  const handleDownloadDetailedExcel = async () => {
+    const res = await fetch(`/api/daily-activity/export?date=${date}&format=detailed-xlsx`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `daily-sheet-${date}-detailed.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-secondary" /><span className="ml-3 text-sm font-bold text-secondary">Loading daily sheet...</span></div>;
   }
@@ -672,6 +683,10 @@ export default function DailySheet({ date, onDateChange }: DailySheetProps) {
         <Button onClick={handleDownloadExcel} variant="secondary" className="flex items-center gap-2">
           <FileSpreadsheet className="w-4 h-4" />
           Download Excel
+        </Button>
+        <Button onClick={handleDownloadDetailedExcel} variant="secondary" className="flex items-center gap-2">
+          <FileSpreadsheet className="w-4 h-4" />
+          Download Detailed Excel
         </Button>
         <Button onClick={handlePrintPdf} variant="secondary" className="flex items-center gap-2">
           <Printer className="w-4 h-4" />

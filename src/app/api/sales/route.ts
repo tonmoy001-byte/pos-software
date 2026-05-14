@@ -9,20 +9,20 @@ const saleService = new SaleService();
 
 const saleItemSchema = z.object({
   productId: z.string().min(1, "Product ID is required"),
-  quantity: z.number().int().positive("Quantity must be positive"),
-  price: z.number().nonnegative("Price cannot be negative"),
-  cost: z.number().nonnegative().optional(),
+  quantity: z.coerce.number().int().positive("Quantity must be positive"),
+  price: z.coerce.number().nonnegative("Price cannot be negative"),
+  cost: z.coerce.number().nonnegative().optional(),
   imeis: z.array(z.string()).optional(),
 });
 
 const saleCreateSchema = z.object({
   items: z.array(saleItemSchema).min(1, "At least one item is required"),
   customerId: z.string().nullable().optional(),
-  totalAmount: z.number().nonnegative(),
-  paidAmount: z.number().nonnegative(),
-  dueAmount: z.number().nonnegative(),
+  totalAmount: z.coerce.number().nonnegative(),
+  paidAmount: z.coerce.number().nonnegative(),
+  dueAmount: z.coerce.number().nonnegative(),
   paymentMethod: z.string().optional().default("CASH"),
-  discount: z.number().nonnegative().optional().default(0),
+  discount: z.coerce.number().nonnegative().optional().default(0),
   saleType: z.string().optional().default("REGULAR"),
   deliveryDate: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),

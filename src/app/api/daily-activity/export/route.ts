@@ -94,6 +94,17 @@ export async function GET(req: Request) {
       });
     }
 
+    if (format === "detailed-xlsx") {
+      const buffer = await dailyActivityService.exportDailySheetDetailed(storeId, date);
+      const uint8 = new Uint8Array(buffer);
+      return new NextResponse(uint8, {
+        headers: {
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename="daily-sheet-${date}-detailed.xlsx"`,
+        },
+      });
+    }
+
     const sheet = await dailyActivityService.getSheet(storeId, date);
     const html = renderPrintHtml(sheet, date);
     return new NextResponse(html, {

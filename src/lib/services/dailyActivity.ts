@@ -437,6 +437,147 @@ export class DailyActivityService {
     XLSX.utils.book_append_sheet(wb, ws, "All Transactions");
     return Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }));
   }
+
+  async exportDailySheetDetailed(storeId: string, dateStr: string): Promise<Buffer> {
+    const dayStart = new Date(dateStr + "T00:00:00");
+    const dayEnd = new Date(dateStr + "T23:59:59");
+
+    const [sales, transactions, loans, payments] = await Promise.all([
+      prisma.sale.findMany({
+        where: { storeId, createdAt: { gte: dayStart, lte: dayEnd } },
+        include: {
+          customer: { select: { name: true, phone: true } },
+          items: { include: { product: { select: { name: true, model: true } } } },
+          payments: { select: { method: true, amount: true } },
+        },
+      }),
+      prisma.transaction.findMany({
+        where: { storeId, createdAt: { gte: dayStart, lte: dayEnd } },
+        include: { supplier: { select: { name: true } } },
+      }),
+      prisma.loan.findMany({
+        where: { storeId, date: { gte: dayStart, lte: dayEnd } },
+      }),
+      prisma.payment.findMany({
+        where: { storeId, date: { gte: dayStart, lte: dayEnd } },
+        include: { sale: { select: { invoiceId: true } } },
+      }),
+    ]);
+
+    const rows: any[] = [];
+
+    for (const sale of sales) {
+      const itemsStr = sale.items
+        .map(i => `${i.product?.name || "Unknown"}×${i.quantity}`)
+        .join(", ");
+      rows.push({
+        "Date": new Date(sale.createdAt).toLocaleDateString(),
+        "Type": "SALE",
+        "Invoice": sale.invoiceId,
+        "Customer": sale.customer?.name || sale.customerName || "Walking",
+        "Phone": sale.customer?.phone || "",
+        "Supplier": "",
+        "Borrower": "",
+        "Category": "",
+        "Items": itemsStr,
+        "Amount": Number(sale.totalAmount),
+        "Paid": Number(sale.paidAmount),
+        "Due": Number(sale.dueAmount),
+        "Discount": Number(sale.discount),
+        "Profit": Number(sale.profit),
+        "Method": sale.payments?.[0]?.method || "",
+        "Status": sale.status,
+        "Description": "",
+      });
+    }
+
+    for (const tx of transactions) {
+      const isSaleType = tx.type === "DUE_PAYMENT";
+      rows.push({
+        "Date": new Date(tx.createdAt).toLocaleDateString(),
+        "Type": tx.type,
+        "Invoice": isSaleType ? tx.referenceId || "" : "",
+        "Customer": "",
+        "Phone": "",
+        "Supplier": tx.supplier?.name || "",
+        "Borrower": "",
+        "Category": tx.type === "EXPENSE" ? tx.description || "" : "",
+        "Items": "",
+        "Amount": Number(tx.amount),
+        "Paid": "",
+        "Due": "",
+        "Discount": "",
+        "Profit": "",
+        "Method": tx.mode,
+        "Status": tx.status || "COMPLETED",
+        "Description": tx.description || "",
+      });
+    }
+
+    for (const loan of loans) {
+      rows.push({
+        "Date": new Date(loan.date).toLocaleDateString(),
+        "Type": loan.type === "GIVE" ? "HAWLAT_GIVEN" : "HAWLAT_RECEIVED",
+        "Invoice": "",
+        "Customer": "",
+        "Phone": "",
+        "Supplier": "",
+        "Borrower": loan.borrower,
+        "Category": "",
+        "Items": "",
+        "Amount": Number(loan.amount),
+        "Paid": Number(loan.paid),
+        "Due": Number(loan.remaining),
+        "Discount": "",
+        "Profit": "",
+        "Method": "",
+        "Status": Number(loan.remaining) > 0 ? "ACTIVE" : "SETTLED",
+        "Description": "",
+      });
+    }
+
+    for (const pmt of payments) {
+      rows.push({
+        "Date": new Date(pmt.date).toLocaleDateString(),
+        "Type": "PAYMENT",
+        "Invoice": pmt.sale?.invoiceId || "",
+        "Customer": "",
+        "Phone": "",
+        "Supplier": "",
+        "Borrower": "",
+        "Category": "",
+        "Items": "",
+        "Amount": Number(pmt.amount),
+        "Paid": "",
+        "Due": "",
+        "Discount": "",
+        "Profit": "",
+        "Method": pmt.method,
+        "Status": "COMPLETED",
+        "Description": "",
+      });
+    }
+
+    rows.sort((a, b) => {
+      const dateA = a["Date"] || "";
+      const dateB = b["Date"] || "";
+      if (dateA > dateB) return -1;
+      if (dateA < dateB) return 1;
+      return 0;
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [
+      { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 20 },
+      { wch: 14 }, { wch: 20 }, { wch: 16 }, { wch: 14 },
+      { wch: 40 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      { wch: 30 },
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, "Detailed Daily Report");
+    return Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }));
+  }
 }
 
 export const dailyActivityService = new DailyActivityService();
