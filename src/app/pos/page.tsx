@@ -821,7 +821,11 @@ setPaidAmount(String(total));
                   </button>
                   <span className="font-bold text-sm w-8 text-center">{item.quantity}</span>
                   <button 
-                    onClick={() => setCart(cart.map(c => c.productId === item.productId ? { ...c, quantity: c.quantity + 1 } : c))} 
+                    onClick={() => {
+                      const product = products.find(p => p.id === item.productId);
+                      const maxQty = product?.stock || 99;
+                      setCart(cart.map(c => c.productId === item.productId ? { ...c, quantity: Math.min(maxQty, c.quantity + 1) } : c));
+                    }}
                     className="w-7 h-7 bg-surface border border-border rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:border-primary transition-colors"
                   >
                     <Plus className="w-4 h-4" />

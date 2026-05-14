@@ -298,14 +298,19 @@ export default function ReportsPage() {
           </div>
           <button
             onClick={async () => {
-              const res = await fetch("/api/export/transactions");
-              const blob = await res.blob();
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = "all-transactions.xlsx";
-              a.click();
-              URL.revokeObjectURL(url);
+              try {
+                const res = await fetch("/api/export/transactions");
+                if (!res.ok) throw new Error("Export failed");
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "all-transactions.xlsx";
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch (err) {
+                console.error("Export failed:", err);
+              }
             }}
             className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-primary/90 transition-all shadow-lg"
           >

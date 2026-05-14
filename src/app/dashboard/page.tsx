@@ -408,7 +408,7 @@ export default function ExecutiveDashboard() {
           <Button variant="ghost" onClick={() => router.push("/second-hand")} className="justify-start">
             <span className="font-bold">Second-Hand</span>
           </Button>
-          <Button variant="ghost" onClick={() => router.push("/products")} className="justify-start">
+          <Button variant="ghost" onClick={() => router.push("/inventory")} className="justify-start">
             <span className="font-bold">Products</span>
           </Button>
         </div>

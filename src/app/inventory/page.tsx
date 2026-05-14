@@ -633,7 +633,7 @@ settings={barcodeSettings || {
                   {printQuantity}
                 </span>
                 <button 
-                  onClick={() => setPrintQuantity(printQuantity + 1)} 
+                  onClick={() => setPrintQuantity(Math.min(100, printQuantity + 1))} 
                   className="w-10 h-10 flex items-center justify-center bg-surface border-2 border-border rounded-xl hover:border-primary hover:bg-primary/5 transition-all font-bold text-lg"
                 >
                   +

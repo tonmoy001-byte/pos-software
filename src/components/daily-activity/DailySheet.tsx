@@ -147,14 +147,19 @@ export default function DailySheet({ date, onDateChange }: DailySheetProps) {
   };
 
   const handleDownloadExcel = async () => {
-    const res = await fetch(`/api/daily-activity/export?date=${date}&format=xlsx`);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `daily-sheet-${date}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const res = await fetch(`/api/daily-activity/export?date=${date}&format=xlsx`);
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `daily-sheet-${date}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download failed:", err);
+    }
   };
 
   const handlePrintPdf = () => {
@@ -162,14 +167,19 @@ export default function DailySheet({ date, onDateChange }: DailySheetProps) {
   };
 
   const handleDownloadDetailedExcel = async () => {
-    const res = await fetch(`/api/daily-activity/export?date=${date}&format=detailed-xlsx`);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `daily-sheet-${date}-detailed.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const res = await fetch(`/api/daily-activity/export?date=${date}&format=detailed-xlsx`);
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `daily-sheet-${date}-detailed.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download failed:", err);
+    }
   };
 
   if (loading) {

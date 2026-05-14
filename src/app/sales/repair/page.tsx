@@ -55,8 +55,12 @@ export default function RepairSalePage() {
   const removeFromCart = (idx: number) => setCart(cart.filter((_, i) => i !== idx));
 
   const handleAddCustomer = async () => {
-    const res = await fetch("/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newCustomer) });
-    if (res.ok) { const data = await res.json(); setSelectedCustomer(data); setIsAddingCustomer(false); }
+    try {
+      const res = await fetch("/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newCustomer) });
+      if (res.ok) { const data = await res.json(); setSelectedCustomer(data); setIsAddingCustomer(false); }
+    } catch (err) {
+      console.error("Failed to add customer:", err);
+    }
   };
 
   const handleSubmit = async () => {

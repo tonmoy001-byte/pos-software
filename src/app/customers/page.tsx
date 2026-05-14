@@ -156,14 +156,19 @@ export default function CustomersPage() {
   };
 
   const handleDownloadExport = async () => {
-    const res = await fetch("/api/customers/export");
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "customers-export.xlsx";
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const res = await fetch("/api/customers/export");
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "customers-export.xlsx";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export failed:", err);
+    }
   };
 
   if (loading && customers.length === 0) {

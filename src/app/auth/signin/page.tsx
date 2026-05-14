@@ -125,7 +125,7 @@ export default function SignInPage() {
             <div className="space-y-2">
               <div className="flex justify-between items-center px-1">
                 <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">Password</label>
-                <button type="button" className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">Forgot?</button>
+                <button type="button" onClick={() => alert("Contact admin to reset password")} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">Forgot?</button>
               </div>
               <div className="relative group">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20 group-focus-within:text-primary transition-colors" />

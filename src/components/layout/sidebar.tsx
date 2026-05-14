@@ -46,7 +46,6 @@ const menuItems = [
   { icon: Wallet, label: "Hawlat", href: "/loans", roles: ["ADMIN", "STAFF"] },
   { icon: Calculator, label: "Suppliers", href: "/suppliers", roles: ["ADMIN"] },
   { icon: Smartphone, label: "Second Hand", href: "/second-hand", roles: ["ADMIN", "STAFF"] },
-  { icon: TrendingUp, label: "Capital", href: "/capital", roles: ["ADMIN"] },
   { icon: FileText, label: "Reports", href: "/reports", roles: ["ADMIN"] },
   { icon: UserPlus, label: "Users", href: "/users", roles: ["ADMIN"] },
   { 
