@@ -436,8 +436,8 @@ export class SaleService {
   }
 
   async refund(saleId: string, reason: string, userId: string, storeId: string) {
-    const sale = await prisma.sale.findUnique({
-      where: { id: saleId },
+    const sale = await prisma.sale.findFirst({
+      where: { id: saleId, storeId },
       include: { items: { include: { product: true } } },
     });
     if (!sale) throw new Error("Sale not found");

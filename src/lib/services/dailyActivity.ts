@@ -61,10 +61,9 @@ export interface ClosingInput {
 
 export class DailyActivityService {
   async getSheet(storeId: string, dateStr: string) {
-    const dayStart = new Date(dateStr + "T00:00:00");
-    const dayEnd = new Date(dateStr + "T23:59:59");
-    const prevDate = new Date(dayStart);
-    prevDate.setDate(prevDate.getDate() - 1);
+    const dayStart = new Date(dateStr + "T00:00:00.000Z");
+    const dayEnd = new Date(dateStr + "T23:59:59.999Z");
+    const prevDate = new Date(dayStart.getTime() - 86400000);
 
     const [
       salesAgg,
@@ -244,11 +243,10 @@ export class DailyActivityService {
   }
 
   async saveClosing(storeId: string, dateStr: string, closingCash: number, notes?: string) {
-    const dayStart = new Date(dateStr + "T00:00:00");
-    const dayEnd = new Date(dateStr + "T23:59:59");
+    const dayStart = new Date(dateStr + "T00:00:00.000Z");
+    const dayEnd = new Date(dateStr + "T23:59:59.999Z");
 
-    const prevDate = new Date(dayStart);
-    prevDate.setDate(prevDate.getDate() - 1);
+    const prevDate = new Date(dayStart.getTime() - 86400000);
 
     const [prevBalance, todaysSheet] = await Promise.all([
       prisma.dailyBalance.findUnique({
