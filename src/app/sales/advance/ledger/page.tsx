@@ -3,15 +3,9 @@
 import { useState, useEffect } from "react";
 import { 
   Search,
-  Calendar,
-  ChevronRight,
-  Clock,
-  Check,
-  X,
-  CreditCard,
   AlertTriangle
 } from "lucide-react";
-import { Button, Card, CardTitle, Input, Modal } from "@/components/ui";
+import { Button, Card, Input, Modal } from "@/components/ui";
 import { formatCurrency } from "@/lib/utils";
 
 export default function AdvanceLedgerPage() {
@@ -23,6 +17,8 @@ export default function AdvanceLedgerPage() {
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [completing, setCompleting] = useState(false);
   const [message, setMessage] = useState<{type: "success"|"error", text: string} | null>(null);
+  const [stockInfo, setStockInfo] = useState<any[]>([]);
+  const [loadingStock, setLoadingStock] = useState(false);
 
   const fetchAdvances = async () => {
     try {
@@ -49,6 +45,53 @@ export default function AdvanceLedgerPage() {
   const totalAdvance = advances.reduce((sum, a) => sum + (Number(a.paidAmount) || 0), 0);
   const totalDue = advances.reduce((sum, a) => sum + (Number(a.dueAmount) || 0), 0);
 
+  const fetchStockInfo = async (advance: any) => {
+    setLoadingStock(true);
+    setStockInfo([]);
+    try {
+      const productIds = advance.items?.map((item: any) => item.productId) || [];
+      if (productIds.length === 0) {
+        setLoadingStock(false);
+        return;
+      }
+
+      const stockData: any[] = [];
+      for (const item of advance.items) {
+        try {
+          const res = await fetch(`/api/products/${item.productId}`);
+          if (res.ok) {
+            const product = await res.json();
+            stockData.push({
+              name: item.name || product.name,
+              currentStock: product.stock,
+              required: item.quantity,
+              sufficient: product.stock >= item.quantity,
+            });
+          }
+        } catch {
+          stockData.push({
+            name: item.name,
+            currentStock: null,
+            required: item.quantity,
+            sufficient: false,
+          });
+        }
+      }
+      setStockInfo(stockData);
+    } catch (err) {
+      console.error("Failed to fetch stock info", err);
+    } finally {
+      setLoadingStock(false);
+    }
+  };
+
+  const handleOpenComplete = (advance: any) => {
+    setSelectedAdvance(advance);
+    setPayAmount(advance.dueAmount.toString());
+    setMessage(null);
+    fetchStockInfo(advance);
+  };
+
   const handleComplete = async () => {
     if (!selectedAdvance || !payAmount) return;
     setCompleting(true);
@@ -69,7 +112,10 @@ export default function AdvanceLedgerPage() {
         setPayAmount("");
         fetchAdvances();
       } else {
-        setMessage({ type: "error", text: data.error || "Failed to complete" });
+        const errorMsg = data.details 
+          ? `${data.error}\n${data.details.join("\n")}`
+          : data.error || "Failed to complete";
+        setMessage({ type: "error", text: errorMsg });
       }
     } catch (err) {
       setMessage({ type: "error", text: "Connection error" });
@@ -201,10 +247,7 @@ export default function AdvanceLedgerPage() {
                   </p>
                   {advance.status !== "COMPLETED" && (
                     <Button 
-                      onClick={() => {
-                        setSelectedAdvance(advance);
-                        setPayAmount(advance.dueAmount.toString());
-                      }}
+                      onClick={() => handleOpenComplete(advance)}
                       size="sm"
                     >
                       {advance.status === "COMPLETED" ? "Completed" : "Complete Order"}
@@ -219,7 +262,7 @@ export default function AdvanceLedgerPage() {
 
       <Modal 
         isOpen={!!selectedAdvance} 
-        onClose={() => { setSelectedAdvance(null); setPayAmount(""); setMessage(null); }} 
+        onClose={() => { setSelectedAdvance(null); setPayAmount(""); setMessage(null); setStockInfo([]); }} 
         title="Complete Advance Order"
       >
         <div className="space-y-4">
@@ -235,6 +278,58 @@ export default function AdvanceLedgerPage() {
                   <p className="font-black text-green-600">{formatCurrency(selectedAdvance.paidAmount)}</p>
                 </div>
               </div>
+
+              {loadingStock ? (
+                <div className="p-4 text-center text-secondary animate-pulse">Checking stock...</div>
+              ) : stockInfo.length > 0 && (
+                <div className="bg-background p-4 rounded-xl">
+                  <p className="text-xs font-bold text-secondary mb-2">Stock Status</p>
+                  <div className="space-y-2">
+                    {stockInfo.map((stock, idx) => (
+                      <div key={idx} className={`flex justify-between items-center p-2 rounded-lg ${
+                        stock.sufficient ? "bg-green-50" : "bg-red-50"
+                      }`}>
+                        <div>
+                          <p className={`text-sm font-bold ${
+                            stock.sufficient ? "text-green-700" : "text-red-700"
+                          }`}>
+                            {stock.name}
+                          </p>
+                          <p className="text-xs text-secondary">
+                            Required: {stock.required} unit{stock.required > 1 ? "s" : ""}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          {stock.currentStock !== null ? (
+                            <>
+                              <p className={`text-sm font-black ${
+                                stock.sufficient ? "text-green-600" : "text-red-600"
+                              }`}>
+                                {stock.currentStock} in stock
+                              </p>
+                              {!stock.sufficient && (
+                                <p className="text-xs text-red-500 font-bold">
+                                  Short by {stock.required - stock.currentStock}
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-xs text-secondary">Unknown</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {stockInfo.some(s => !s.sufficient) && (
+                    <div className="mt-3 p-3 bg-red-50 rounded-lg flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-700 font-bold">
+                        Insufficient stock! Complete this order after restocking.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <Input
                 label="Payment Amount"
@@ -259,7 +354,7 @@ export default function AdvanceLedgerPage() {
               </div>
 
               {message && (
-                <div className={`p-3 rounded-xl text-sm font-bold ${
+                <div className={`p-3 rounded-xl text-sm font-bold whitespace-pre-line ${
                   message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
                 }`}>
                   {message.text}
