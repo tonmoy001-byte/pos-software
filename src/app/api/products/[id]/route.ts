@@ -2,20 +2,19 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { eventStore, EventStoreData, hasPermission, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let session;
-  try {
-    session = await getSession();
-  } catch (e) {
-    session = null;
-  }
-  
+  const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "Please login to delete products" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasPermission(session.user.role as Role, "product:delete")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -34,10 +33,22 @@ export async function DELETE(
       where: { id },
       include: { saleItems: true }
     });
+
+    await eventStore.append({
+      aggregateType: "Product",
+      aggregateId: id,
+      type: "DELETED",
+      payload: {
+        name: product.name,
+        barcode: product.barcode,
+      },
+      userId: session.user.id,
+      storeId: session.user.storeId,
+    });
     
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error("Product delete error:", error);
+    logger.error("Failed to delete product", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
     return NextResponse.json({ error: error.message || "Failed to delete product" }, { status: 500 });
   }
 }

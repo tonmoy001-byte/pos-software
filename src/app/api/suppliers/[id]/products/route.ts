@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { SupplierService } from "@/lib/services";
+import { SupplierService, logger } from "@/lib/services";
 
 const supplierService = new SupplierService();
 
@@ -18,8 +18,8 @@ export async function GET(
     const { id } = await params;
     const products = await supplierService.getProductsBySupplier(id, session.user.storeId);
     return NextResponse.json(products);
-  } catch (error) {
-    console.error("Supplier products fetch error:", error);
+  } catch (error: any) {
+    logger.error("Supplier products fetch error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
   }
 }
@@ -39,8 +39,8 @@ export async function POST(
     
     const products = await supplierService.addProducts(id, data, session.user.storeId);
     return NextResponse.json(products);
-  } catch (error) {
-    console.error("Supplier products add error:", error);
+  } catch (error: any) {
+    logger.error("Supplier products add error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json({ error: "Failed to add products" }, { status: 500 });
   }
 }

@@ -2,12 +2,25 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { eventStore, EventStoreData } from "@/lib/services";
+import { eventStore, EventStoreData, hasPermission, checkIdempotency, markIdempotent, createIdempotencyKey, completeIdempotencyKey, extractIdempotencyKey, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasPermission(session.user.role as Role, "customer:update")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const idempotencyKey = extractIdempotencyKey(req);
+  if (idempotencyKey) {
+    const { isDuplicate, existingResponse } = await checkIdempotency(idempotencyKey, session.user.storeId);
+    if (isDuplicate) {
+      return NextResponse.json(existingResponse);
+    }
+    await createIdempotencyKey(idempotencyKey, session.user.storeId);
+  }
 
   try {
     const { amount, method, note } = await req.json();
@@ -120,19 +133,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         },
         userId: session.user.id,
         storeId: session.user.storeId,
-      } as EventStoreData);
+      } as EventStoreData, tx);
 
-      return {
+      const responseData = {
         success: true,
         amount: paymentAmount,
         appliedPayments,
         remainingDue: Number(remainingDues._sum.dueAmount || 0),
       };
+
+      if (idempotencyKey) {
+        await completeIdempotencyKey(idempotencyKey, session.user.storeId, responseData);
+      }
+
+      return responseData;
     });
 
     return NextResponse.json(result);
-  } catch (error) {
-    console.error("Payment error:", error);
+  } catch (error: any) {
+    logger.error("Failed to process payment", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error instanceof Error ? error.message : "Payment failed" });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Payment failed" },
       { status: 500 }

@@ -278,7 +278,7 @@ if (found) {
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const total = subtotal - discount;
+  const total = Math.max(0, subtotal - discount);
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -552,12 +552,14 @@ setPaidAmount(String(total));
 
       {/* Hidden Thermal Receipt for Printing */}
       {lastSale && (
-        <ThermalReceipt 
+        <ThermalReceipt
           data={{
             invoiceId: lastSale.invoiceId,
             date: lastSale.createdAt,
             items: lastSale.items,
-            subtotal: lastSale.totalAmount + lastSale.discount,
+            subtotal: lastSale.items.reduce(
+              (sum: number, item: any) => sum + Number(item.price) * item.quantity, 0
+            ),
             discount: lastSale.discount,
             total: lastSale.totalAmount,
             paid: lastSale.paidAmount,
@@ -824,6 +826,7 @@ setPaidAmount(String(total));
                     onClick={() => {
                       const product = products.find(p => p.id === item.productId);
                       const maxQty = product?.stock || 99;
+                      if (item.quantity >= maxQty) return;
                       setCart(cart.map(c => c.productId === item.productId ? { ...c, quantity: Math.min(maxQty, c.quantity + 1) } : c));
                     }}
                     className="w-7 h-7 bg-surface border border-border rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:border-primary transition-colors"

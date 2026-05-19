@@ -1,0 +1,524 @@
+⚠ Slow filesystem detected. The benchmark took 237ms. If H:\Tonmoy\antigravity\pos-software\.next/dev is a network drive, consider moving it to a local folder.
+See more: https://nextjs.org/docs/app/guides/local-development
+Product creation error: SyntaxError: Unterminated string in JSON at position 13 (line 1 column 14)
+    at JSON.parse (<anonymous>)
+Sale error: Error: One or more products not found
+    at <unknown> (src\lib\services\sale.ts:39:15)
+    at async POST (src\app\api\sales\route.ts:92:18)
+  37 |
+  38 |       if (products.length !== uniqueProductIds.length) {
+> 39 |         throw new Error("One or more products not found");
+     |               ^
+  40 |       }
+  41 |
+  42 |       // 2. Validate stock for non-advance orders
+Sale error: Error: One or more products not found
+    at <unknown> (src\lib\services\sale.ts:39:15)
+    at async POST (src\app\api\sales\route.ts:92:18)
+  37 |
+  38 |       if (products.length !== uniqueProductIds.length) {
+> 39 |         throw new Error("One or more products not found");
+     |               ^
+  40 |       }
+  41 |
+  42 |       // 2. Validate stock for non-advance orders
+Sale error: Error: One or more products not found
+    at <unknown> (src\lib\services\sale.ts:39:15)
+    at async POST (src\app\api\sales\route.ts:92:18)
+  37 |
+  38 |       if (products.length !== uniqueProductIds.length) {
+> 39 |         throw new Error("One or more products not found");
+     |               ^
+  40 |       }
+  41 |
+  42 |       // 2. Validate stock for non-advance orders
+Payment error: Error [PrismaClientKnownRequestError]: 
+Invalid `tx.payment.create()` invocation in
+H:\Tonmoy\antigravity\pos-software\.next\dev\server\chunks\[root-of-the-server]__0jw2mzi._.js:2948:30
+
+  2945     }
+  2946 });
+  2947 // 4. Create Payment record (link to first sale for reference)
+→ 2948 await tx.payment.create(
+Null constraint violation on the fields: (`saleId`)
+    at <unknown> (src\app\api\customers\[id]\payment\route.ts:83:24)
+    at async (src\app\api\customers\[id]\payment\route.ts:83:7)
+    at async POST (src\app\api\customers\[id]\payment\route.ts:33:20)
+  81 |
+  82 |       // 4. Create Payment record (link to first sale for reference)
+> 83 |       await tx.payment.create({
+     |                        ^
+  84 |         data: {
+  85 |           amount: paymentAmount,
+  86 |           method, {
+  code: 'P2011',
+  meta: {
+    modelName: 'Payment',
+    driverAdapterError: Error [DriverAdapterError]: NullConstraintViolation
+        at ignore-listed frames {
+      [cause]: [Object]
+    }
+  },
+  clientVersion: '7.8.0'
+}
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/sales/adv..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head headCacheNode={{rsc:{...}, ...}}>
+                    <__next_viewport_boundary__>
+                    <MetadataWrapper>
+                      <div
+                        hidden={true}
+-                       bis_skin_checked="1"
+                      >
+                    ...
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html lang="en" className="inter_5901...">
+                          <body className="flex bg-ba..." suppressHydrationWarning={true}>
+                            <Sidebar userRole="ADMIN">
+                              <div
+                                className="w-64 h-screen bg-surface border-r border-border flex flex-col"
+-                               bis_skin_checked="1"
+                              >
+                                <div
+                                  className="p-6"
+-                                 bis_skin_checked="1"
+                                >
+                                <div
+                                  className="px-4 mb-4"
+-                                 bis_skin_checked="1"
+                                >
+                                <nav className="flex-1 px-...">
+                                  <div
+-                                   bis_skin_checked="1"
+                                  >
+                                  <div
+-                                   bis_skin_checked="1"
+                                  >
+                                    <button onClick={function onClick} className="flex items...">
+                                      <div
+                                        className="flex items-center gap-3"
+-                                       bis_skin_checked="1"
+                                      >
+                                      ...
+                                    <div
+                                      className="ml-4 mt-1 space-y-1"
+-                                     bis_skin_checked="1"
+                                    >
+                                  <div
+-                                   bis_skin_checked="1"
+                                  >
+                                  <div
+-                                   bis_skin_checked="1"
+                                  >
+                                  <div
+-                                   bis_skin_checked="1"
+                                  >
+                                  <div
+-                                   bis_skin_checked="1"
+                                  >
+                                  <div
+-                                   bis_skin_checked="1"
+                                  >
+                                  <div
+-                                   bis_skin_checked="1"
+                                  >
+                                  <div
+-                                   bis_skin_checked="1"
+                                  >
+                                  <div
+-                                   bis_skin_checked="1"
+                                  >
+                                    <button onClick={function onClick} className="flex items...">
+                                      <div
+                                        className="flex items-center gap-3"
+-                                       bis_skin_checked="1"
+                                      >
+                                      ...
+                                <div
+                                  className="p-4 border-t border-border"
+-                                 bis_skin_checked="1"
+                                >
+                                  <div
+                                    className="flex items-center gap-3 px-2"
+-                                   bis_skin_checked="1"
+                                  >
+                                    <div
+                                      className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center..."
+-                                     bis_skin_checked="1"
+                                    >
++                                     A
+                                    <div
+-                                     bis_skin_checked="1"
+                                    >
+                            ...
+                              <SegmentViewNode type="page" pagePath="sales/adva...">
+                                <SegmentTrieNode>
+                                <ClientPageRoot Component={function AdvanceOrderPage} serverProvidedParams={{...}}>
+                                  <AdvanceOrderPage params={Promise} searchParams={Promise}>
+                                    <div
+                                      className="p-8 animate-pulse text-secondary font-bold"
+-                                     bis_skin_checked="1"
+                                    >
++                                     Loading Inventory...
+                  ...
+ 
+Daily activity POST error: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+    at JSON.parse (<anonymous>)
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+⨯ ReferenceError: Sidebar is not defined
+    at RootLayout (src\app\layout.tsx:29:10)
+  27 |     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable}`}>
+  28 |       <body className="flex bg-background min-h-screen" suppressHydrationWarning>
+> 29 |         <Sidebar userRole={mockUserRole} />
+     |          ^
+  30 |         <main className="flex-1 overflow-y-auto">
+  31 |           {children}
+  32 |         </main> {
+  digest: '2886123329'
+}
+⨯ ReferenceError: Sidebar is not defined
+    at RootLayout (src\app\layout.tsx:29:10)
+  27 |     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable}`}>
+  28 |       <body className="flex bg-background min-h-screen" suppressHydrationWarning>
+> 29 |         <Sidebar userRole={mockUserRole} />
+     |          ^
+  30 |         <main className="flex-1 overflow-y-auto">
+  31 |           {children}
+  32 |         </main> {
+  digest: '2886123329'
+}
+⨯ ReferenceError: Sidebar is not defined
+    at RootLayout (src\app\layout.tsx:29:10)
+  27 |     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable}`}>
+  28 |       <body className="flex bg-background min-h-screen" suppressHydrationWarning>
+> 29 |         <Sidebar userRole={mockUserRole} />
+     |          ^
+  30 |         <main className="flex-1 overflow-y-auto">
+  31 |           {children}
+  32 |         </main> {
+  digest: '2886123329'
+}
+⨯ ReferenceError: Sidebar is not defined
+    at RootLayout (src\app\layout.tsx:29:10)
+  27 |     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable}`}>
+  28 |       <body className="flex bg-background min-h-screen" suppressHydrationWarning>
+> 29 |         <Sidebar userRole={mockUserRole} />
+     |          ^
+  30 |         <main className="flex-1 overflow-y-auto">
+  31 |           {children}
+  32 |         </main> {
+  digest: '2886123329'
+}
+⨯ ReferenceError: Sidebar is not defined
+    at RootLayout (src\app\layout.tsx:29:10)
+  27 |     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable}`}>
+  28 |       <body className="flex bg-background min-h-screen" suppressHydrationWarning>
+> 29 |         <Sidebar userRole={mockUserRole} />
+     |          ^
+  30 |         <main className="flex-1 overflow-y-auto">
+  31 |           {children}
+  32 |         </main> {
+  digest: '2886123329'
+}
+⨯ ReferenceError: Sidebar is not defined
+    at RootLayout (src\app\layout.tsx:29:10)
+  27 |     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable}`}>
+  28 |       <body className="flex bg-background min-h-screen" suppressHydrationWarning>
+> 29 |         <Sidebar userRole={mockUserRole} />
+     |          ^
+  30 |         <main className="flex-1 overflow-y-auto">
+  31 |           {children}
+  32 |         </main> {
+  digest: '2886123329'
+}
+⨯ ReferenceError: Sidebar is not defined
+    at RootLayout (src\app\layout.tsx:29:10)
+  27 |     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable}`}>
+  28 |       <body className="flex bg-background min-h-screen" suppressHydrationWarning>
+> 29 |         <Sidebar userRole={mockUserRole} />
+     |          ^
+  30 |         <main className="flex-1 overflow-y-auto">
+  31 |           {children}
+  32 |         </main> {
+  digest: '2886123329'
+}
+⨯ ReferenceError: Sidebar is not defined
+    at RootLayout (src\app\layout.tsx:29:10)
+  27 |     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable}`}>
+  28 |       <body className="flex bg-background min-h-screen" suppressHydrationWarning>
+> 29 |         <Sidebar userRole={mockUserRole} />
+     |          ^
+  30 |         <main className="flex-1 overflow-y-auto">
+  31 |           {children}
+  32 |         </main> {
+  digest: '2886123329'
+}
+⨯ ReferenceError: Sidebar is not defined
+    at RootLayout (src\app\layout.tsx:29:10)
+  27 |     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable}`}>
+  28 |       <body className="flex bg-background min-h-screen" suppressHydrationWarning>
+> 29 |         <Sidebar userRole={mockUserRole} />
+     |          ^
+  30 |         <main className="flex-1 overflow-y-auto">
+  31 |           {children}
+  32 |         </main> {
+  digest: '2886123329'
+}
+⨯ ReferenceError: Sidebar is not defined
+    at RootLayout (src\app\layout.tsx:29:10)
+  27 |     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable}`}>
+  28 |       <body className="flex bg-background min-h-screen" suppressHydrationWarning>
+> 29 |         <Sidebar userRole={mockUserRole} />
+     |          ^
+  30 |         <main className="flex-1 overflow-y-auto">
+  31 |           {children}
+  32 |         </main> {
+  digest: '2886123329'
+}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/dashboard" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head headCacheNode={{rsc:{...}, ...}}>
+                    <__next_viewport_boundary__>
+                    <MetadataWrapper>
+                      <div
+                        hidden={true}
+-                       bis_skin_checked="1"
+                      >
+                    ...
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html lang="en" className="inter_5901...">
+                          <body className="flex bg-ba..." suppressHydrationWarning={true}>
+                            <SidebarWrapper>
+                              <Sidebar userRole="ADMIN">
+                                <div
+                                  className="w-64 h-screen bg-surface border-r border-border flex flex-col"
+-                                 bis_skin_checked="1"
+                                >
+                                  <div
+                                    className="p-6"
+-                                   bis_skin_checked="1"
+                                  >
+                                  <div
+                                    className="px-4 mb-4"
+-                                   bis_skin_checked="1"
+                                  >
+                                  <nav className="flex-1 px-...">
+                                    <div
+-                                     bis_skin_checked="1"
+                                    >
+                                    <div
+-                                     bis_skin_checked="1"
+                                    >
+                                      <button onClick={function onClick} className="flex items...">
+                                        <div
+                                          className="flex items-center gap-3"
+-                                         bis_skin_checked="1"
+                                        >
+                                        ...
+                                      <div
+                                        className="ml-4 mt-1 space-y-1"
+-                                       bis_skin_checked="1"
+                                      >
+                                    <div
+-                                     bis_skin_checked="1"
+                                    >
+                                    <div
+-                                     bis_skin_checked="1"
+                                    >
+                                    <div
+-                                     bis_skin_checked="1"
+                                    >
+                                    <div
+-                                     bis_skin_checked="1"
+                                    >
+                                    <div
+-                                     bis_skin_checked="1"
+                                    >
+                                    <div
+-                                     bis_skin_checked="1"
+                                    >
+                                    <div
+-                                     bis_skin_checked="1"
+                                    >
+                                    <div
+-                                     bis_skin_checked="1"
+                                    >
+                                      <button onClick={function onClick} className="flex items...">
+                                        <div
+                                          className="flex items-center gap-3"
+-                                         bis_skin_checked="1"
+                                        >
+                                        ...
+                                  <div
+                                    className="p-4 border-t border-border"
+-                                   bis_skin_checked="1"
+                                  >
+                                    <div
+                                      className="flex items-center gap-3 px-2"
+-                                     bis_skin_checked="1"
+                                    >
+                                      <div
+                                        className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-cent..."
+-                                       bis_skin_checked="1"
+                                      >
++                                       A
+                                      <div
+-                                       bis_skin_checked="1"
+                                      >
+                            ...
+                              <SegmentViewNode type="page" pagePath="dashboard/...">
+                                <SegmentTrieNode>
+                                <ClientPageRoot Component={function ExecutiveDashboard} serverProvidedParams={{...}}>
+                                  <ExecutiveDashboard params={Promise} searchParams={Promise}>
+                                    <div
+                                      className="min-h-screen bg-background flex items-center justify-center"
+-                                     bis_skin_checked="1"
+                                    >
+                                      <div
+                                        className="animate-pulse text-lg font-bold text-secondary"
+-                                       bis_skin_checked="1"
+                                      >
++                                       Loading Dashboard...
+                  ...
+ 
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[browser] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { hasPermission } from "@/lib/services";
+import { hasPermission, eventStore, EventStoreData, logger } from "@/lib/services";
 import { z } from "zod";
 import type { Role } from "@prisma/client";
 
@@ -79,8 +79,8 @@ export async function GET(req: Request) {
       page,
       totalPages: Math.ceil(total / limit),
     });
-  } catch (error) {
-    console.error("Customers fetch error:", error);
+  } catch (error: any) {
+    logger.error("Failed to fetch customers", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
     return NextResponse.json({ error: "Failed to fetch customers" }, { status: 500 });
   }
 }
@@ -115,6 +115,16 @@ export async function POST(req: Request) {
           storeId: session.user.storeId
         }
       });
+
+      await eventStore.append({
+        aggregateType: "Customer",
+        aggregateId: customer.id,
+        type: "CREATED",
+        payload: { name: customer.name, phone: customer.phone },
+        userId: session.user.id,
+        storeId: session.user.storeId,
+      });
+
       return NextResponse.json(customer);
     } catch (error: any) {
       if (error?.code === "P2002") {
@@ -125,8 +135,8 @@ export async function POST(req: Request) {
       }
       throw error;
     }
-  } catch (error) {
-    console.error("Customer POST error:", error);
+  } catch (error: any) {
+    logger.error("Failed to save customer", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
     return NextResponse.json({ error: "Failed to save customer" }, { status: 500 });
   }
 }

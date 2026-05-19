@@ -12,9 +12,11 @@ export type Permission =
   | "product:view"
   | "customer:create"
   | "customer:update"
+  | "customer:delete"
   | "customer:view"
   | "supplier:create"
   | "supplier:update"
+  | "supplier:delete"
   | "supplier:view"
   | "supplier:due_adjust"
   | "loan:create"
@@ -47,8 +49,8 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ADMIN: [
     "sale:create", "sale:view", "sale:refund", "sale:cancel", "sale:view_all",
     "product:create", "product:update", "product:delete", "product:view",
-    "customer:create", "customer:update", "customer:view",
-    "supplier:create", "supplier:update", "supplier:view", "supplier:due_adjust",
+    "customer:create", "customer:update", "customer:delete", "customer:view",
+    "supplier:create", "supplier:update", "supplier:delete", "supplier:view", "supplier:due_adjust",
     "loan:create", "loan:update", "loan:view",
     "expense:create", "expense:view", "expense:delete",
     "transaction:create", "transaction:view", "transaction:refund",
@@ -63,7 +65,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "sale:create", "sale:view", "sale:refund", "sale:cancel",
     "product:create", "product:update", "product:view",
     "customer:create", "customer:update", "customer:view",
-    "supplier:create", "supplier:update", "supplier:view", "supplier:due_adjust",
+    "supplier:create", "supplier:update", "supplier:delete", "supplier:view", "supplier:due_adjust",
     "loan:create", "loan:update", "loan:view",
     "expense:create", "expense:view",
     "transaction:create", "transaction:view", "transaction:refund",

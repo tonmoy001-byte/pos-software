@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import type { SupplierCreateInput, SupplierUpdateInput, SupplierProductInput } from "@/types";
+import { eventStore, EventStoreData } from "./eventStore";
 
 export class SupplierService {
   async create(data: SupplierCreateInput, storeId: string) {
-    return prisma.supplier.create({
+    const supplier = await prisma.supplier.create({
       data: {
         name: data.name,
         phone: data.phone,
@@ -11,6 +12,16 @@ export class SupplierService {
         storeId,
       },
     });
+
+    await eventStore.append({
+      aggregateType: "Supplier",
+      aggregateId: supplier.id,
+      type: "CREATED",
+      payload: { name: data.name, phone: data.phone },
+      storeId,
+    } as EventStoreData);
+
+    return supplier;
   }
 
   async findAll(storeId?: string) {
@@ -44,29 +55,43 @@ export class SupplierService {
     if (data.dueAdjustment !== undefined) {
       const currentDue = Number(supplier.dueAmount) || 0;
       const newDue = currentDue + data.dueAdjustment;
+      const adjustment = data.dueAdjustment;
 
-      const [updated] = await prisma.$transaction([
-        prisma.supplier.update({
+      const [updated] = await prisma.$transaction(async (tx) => {
+        const updatedSupplier = await tx.supplier.update({
           where: { id },
           data: { dueAmount: newDue },
-        }),
-        prisma.transaction.create({
+        });
+
+        await tx.transaction.create({
           data: {
-            type: data.dueAdjustment > 0 ? "PURCHASE" : "DUE_PAYMENT",
-            amount: Math.abs(data.dueAdjustment),
+            type: adjustment > 0 ? "PURCHASE" : "DUE_PAYMENT",
+            amount: Math.abs(adjustment),
             mode: "DUE",
             description: `Due adjustment: ${data.note || "Manual"}`,
             supplierId: id,
             userId,
             storeId,
           },
-        }),
-      ]);
+        });
+
+        await eventStore.append({
+          aggregateType: "Supplier",
+          aggregateId: id,
+          type: "UPDATED",
+          payload: { dueAmount: newDue, adjustment },
+          metadata: { previousState: { dueAmount: currentDue } },
+          userId,
+          storeId,
+        } as EventStoreData, tx);
+
+        return [updatedSupplier];
+      });
 
       return updated;
     }
 
-    return prisma.supplier.update({
+    const updatedSupplier = await prisma.supplier.update({
       where: { id },
       data: {
         name: data.name,
@@ -74,6 +99,16 @@ export class SupplierService {
         address: data.address,
       },
     });
+
+    await eventStore.append({
+      aggregateType: "Supplier",
+      aggregateId: id,
+      type: "UPDATED",
+      payload: { name: data.name, phone: data.phone },
+      storeId,
+    } as EventStoreData);
+
+    return updatedSupplier;
   }
 
   async getProductsBySupplier(supplierId: string, storeId: string) {
@@ -95,7 +130,7 @@ export class SupplierService {
     });
     if (!supplier) throw new Error("Supplier not found");
 
-    const productEntries = [];
+    const productEntries: { supplierId: string; productName: string; productId?: string }[] = [];
 
     if (data.productIds?.length) {
       for (const productId of data.productIds) {
@@ -118,9 +153,9 @@ export class SupplierService {
 
     // Bulk create all entries
     if (productEntries.length > 0) {
-      await prisma.$transaction(
-        productEntries.map(entry =>
-          prisma.supplierProduct.upsert({
+      await prisma.$transaction(async (tx) => {
+        for (const entry of productEntries) {
+          await tx.supplierProduct.upsert({
             where: {
               supplierId_productName: {
                 supplierId: entry.supplierId,
@@ -129,9 +164,17 @@ export class SupplierService {
             },
             update: { productId: entry.productId },
             create: entry,
-          })
-        )
-      );
+          });
+        }
+
+        await eventStore.append({
+          aggregateType: "Supplier",
+          aggregateId: supplierId,
+          type: "UPDATED",
+          payload: { productsAdded: productEntries.map(e => e.productName) },
+          storeId,
+        }, tx);
+      });
     }
 
     return this.getProductsBySupplier(supplierId, storeId);
@@ -146,6 +189,14 @@ export class SupplierService {
       throw new Error("Product link not found");
     }
     await prisma.supplierProduct.delete({ where: { id: linkId } });
+
+    await eventStore.append({
+      aggregateType: "Supplier",
+      aggregateId: link.supplierId,
+      type: "UPDATED",
+      payload: { productRemoved: link.productName },
+      storeId,
+    });
   }
 
   async delete(id: string, storeId: string) {
@@ -154,7 +205,19 @@ export class SupplierService {
     });
     if (!supplier) throw new Error("Supplier not found");
 
-    await prisma.supplierProduct.deleteMany({ where: { supplierId: id } });
-    return prisma.supplier.delete({ where: { id } });
+    return prisma.$transaction(async (tx) => {
+      await tx.supplierProduct.deleteMany({ where: { supplierId: id } });
+      const result = await tx.supplier.delete({ where: { id } });
+
+      await eventStore.append({
+        aggregateType: "Supplier",
+        aggregateId: id,
+        type: "DELETED",
+        payload: { name: supplier.name },
+        storeId,
+      } as EventStoreData, tx);
+
+      return result;
+    });
   }
 }

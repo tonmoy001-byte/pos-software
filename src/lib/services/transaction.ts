@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { startOfDay, endOfDay, subDays } from "date-fns";
 import type { TransactionCreateInput, TransactionFilter, DailySummary, CapitalSummary } from "@/types";
 import { eventStore, EventStoreData, calculateProfit } from "./eventStore";
+import { postTransactionEntry } from "./posting";
 import { getTenantFilter } from "./tenant";
 
 export class TransactionService {
@@ -40,7 +41,17 @@ export class TransactionService {
         },
         userId,
         storeId,
-      } as EventStoreData);
+      } as EventStoreData, tx);
+
+      await postTransactionEntry(
+        transaction.id,
+        data.type,
+        data.amount,
+        data.mode,
+        data.description || data.type,
+        storeId,
+        tx
+      );
 
       if (data.type === "PURCHASE" && data.supplierId) {
         const supplier = await tx.supplier.findFirst({ where: { id: data.supplierId, storeId } });
@@ -52,8 +63,8 @@ export class TransactionService {
           where: { id: data.supplierId },
           data: {
             dueAmount: isPaid
-              ? currentDue   // Cash purchase: supplier due stays the same (new purchase is separate)
-              : currentDue + data.amount  // Due purchase: increases supplier due
+              ? currentDue
+              : currentDue + data.amount
           },
         });
 
@@ -65,7 +76,7 @@ export class TransactionService {
           metadata: { previousState: { dueAmount: currentDue } },
           userId,
           storeId,
-        } as EventStoreData);
+        } as EventStoreData, tx);
       }
 
       if ((data.type === "HAWLAT_GIVEN" || data.type === "HAWLAT_RECEIVED") && data.loanId) {
@@ -89,7 +100,7 @@ export class TransactionService {
             payload: { paid: newPaid, remaining: newRemaining },
             userId,
             storeId,
-          } as EventStoreData);
+          } as EventStoreData, tx);
         }
       }
 

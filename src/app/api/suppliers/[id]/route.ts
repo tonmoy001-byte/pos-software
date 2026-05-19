@@ -1,7 +1,8 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { SupplierService } from "@/lib/services";
+import { SupplierService, hasPermission, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 
 const supplierService = new SupplierService();
 
@@ -22,8 +23,8 @@ export async function GET(
       return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
     }
     return NextResponse.json(supplier);
-  } catch (error) {
-    console.error("Supplier fetch error:", error);
+  } catch (error: any) {
+    logger.error("Supplier fetch error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json({ error: "Failed to fetch supplier" }, { status: 500 });
   }
 }
@@ -35,6 +36,9 @@ export async function PATCH(
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasPermission(session.user.role as Role, "supplier:update")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id } = await params;
@@ -48,8 +52,8 @@ export async function PATCH(
       session.user.storeId
     );
     return NextResponse.json(supplier);
-  } catch (error) {
-    console.error("Supplier update error:", error);
+  } catch (error: any) {
+    logger.error("Supplier update error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json({ error: "Failed to update supplier" }, { status: 500 });
   }
 }
@@ -63,13 +67,17 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  if (!hasPermission(session.user.role as Role, "supplier:delete")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const { id } = await params;
 
   try {
     await supplierService.delete(id, session.user.storeId);
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Supplier delete error:", error);
+  } catch (error: any) {
+    logger.error("Supplier delete error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json({ error: "Failed to delete supplier" }, { status: 500 });
   }
 }

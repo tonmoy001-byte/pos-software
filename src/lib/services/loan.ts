@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { LoanCreateInput, LoanPaymentInput } from "@/types";
+import { eventStore } from "./eventStore";
 
 export class LoanService {
   async create(data: LoanCreateInput, storeId: string, userId: string) {
@@ -29,6 +30,19 @@ export class LoanService {
           },
         });
       }
+
+      await eventStore.append({
+        aggregateType: "Loan",
+        aggregateId: loan.id,
+        type: "CREATED",
+        payload: {
+          borrower: loan.borrower,
+          type: loan.type,
+          amount: loan.amount,
+        },
+        userId,
+        storeId,
+      }, tx);
 
       return loan;
     });
@@ -63,12 +77,20 @@ export class LoanService {
 
       const transactionType = loan.type === "GIVE" ? "HAWLAT_RECEIVED" : "HAWLAT_GIVEN";
 
+      const currentPaid = Number(loan.paid);
+      const currentRemaining = Number(loan.remaining);
+      const cappedAmount = Math.min(data.amount, currentRemaining);
+
+      if (data.amount > currentRemaining) {
+        throw new Error(`Payment (${data.amount}) exceeds remaining balance (${currentRemaining}). Overpayment not allowed.`);
+      }
+
       const [updated] = await Promise.all([
         tx.loan.update({
           where: { id },
           data: {
-            paid: { increment: data.amount },
-            remaining: { decrement: data.amount },
+            paid: { increment: cappedAmount },
+            remaining: { decrement: cappedAmount },
           },
         }),
       ]);
@@ -77,7 +99,7 @@ export class LoanService {
         await tx.transaction.create({
           data: {
             type: transactionType,
-            amount: data.amount,
+            amount: cappedAmount,
             mode: data.mode,
             description: data.note,
             loanId: id,
@@ -86,6 +108,19 @@ export class LoanService {
           },
         });
       }
+
+      await eventStore.append({
+        aggregateType: "Loan",
+        aggregateId: id,
+        type: "UPDATED",
+        payload: {
+          paymentAmount: cappedAmount,
+          paid: currentPaid + cappedAmount,
+          remaining: currentRemaining - cappedAmount,
+        },
+        userId,
+        storeId,
+      }, tx);
 
       return updated;
     });

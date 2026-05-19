@@ -7,6 +7,29 @@ datasource db {
   provider = "sqlite"
 }
 
+model Branch {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  phone     String?
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sales     Sale[]
+  customers Customer[]
+  products  Product[]
+  users     User[]
+  transactions Transaction[]
+  expenses  Expense[]
+  loans     Loan[]
+  secondHandRecords SecondHandRecord[]
+
+  @@unique([name, storeId])
+  @@index([storeId])
+}
+
 model Store {
   id                String             @id @default(uuid())
   name              String
@@ -36,6 +59,10 @@ model Store {
   suppliers         Supplier[]
   transactions      Transaction[]
   users             User[]
+  stockMovements    StockMovement[]
+  accounts          Account[]
+  journalEntries    JournalEntry[]
+  branches          Branch[]
 }
 
 model InvoiceSettings {
@@ -62,6 +89,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   store     Store    @relation(fields: [storeId], references: [id])
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
 }
 
 model Product {
@@ -84,7 +113,10 @@ model Product {
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
   store     Store            @relation(fields: [storeId], references: [id])
-  saleItems SaleItem[]
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
+  saleItems     SaleItem[]
+  stockMovements StockMovement[]
 
   @@unique([barcode, storeId])
   @@index([storeId])
@@ -102,6 +134,8 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   store     Store    @relation(fields: [storeId], references: [id])
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
   sales     Sale[]
 
   @@unique([phone, storeId])
@@ -126,9 +160,12 @@ model Sale {
   updatedAt        DateTime   @updatedAt
   deliveryDate     DateTime?
   dueDate          DateTime?  // Expected payment date for due sales
+  refundedAmount   Decimal    @default(0)
   advanceAmount    Decimal?   // Advance paid amount for advance orders
   payments         Payment[]
   store            Store      @relation(fields: [storeId], references: [id])
+  branchId         String?
+  branch           Branch?  @relation(fields: [branchId], references: [id])
   customer         Customer?  @relation(fields: [customerId], references: [id])
   items            SaleItem[]
 
@@ -149,7 +186,7 @@ model SaleItem {
   cost      Decimal?
   profit    Decimal          @default(0)
   imeis     String?          // JSON array of IMEI/serial numbers
-  product   Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
   sale      Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   @@index([productId])
@@ -157,15 +194,16 @@ model SaleItem {
 }
 
 model Payment {
-  id        String   @id @default(uuid())
+  id        String        @id @default(uuid())
   amount    Decimal
   method    String
-  date      DateTime @default(now())
+  status    PaymentStatus @default(ACTIVE)
+  date      DateTime      @default(now())
   saleId    String?
   customerId String?
   storeId   String
-  createdAt DateTime @default(now())
-  sale      Sale?    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+  sale      Sale?         @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   @@index([storeId, date])
   @@index([saleId])
@@ -180,6 +218,8 @@ model Expense {
   date        DateTime @default(now())
   storeId     String
   store       Store    @relation(fields: [storeId], references: [id])
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
 
   @@index([storeId, date])
 }
@@ -194,6 +234,8 @@ model Loan {
   date         DateTime      @default(now())
   storeId      String
   store         Store         @relation(fields: [storeId], references: [id])
+  branchId      String?
+  branch        Branch?  @relation(fields: [branchId], references: [id])
   transactions Transaction[]
 
   @@index([storeId, type])
@@ -266,6 +308,19 @@ model Event {
   @@index([aggregateType, aggregateId, createdAt])
 }
 
+model IdempotencyKey {
+  id        String   @id @default(uuid())
+  key       String
+  response  String
+  status    String   @default("COMPLETED")
+  storeId   String
+  createdAt DateTime @default(now())
+
+  @@unique([key, storeId])
+  @@index([storeId])
+  @@index([createdAt])
+}
+
 model Transaction {
   id            String            @id @default(uuid())
   type          TransactionType
@@ -288,10 +343,55 @@ model Transaction {
   supplier      Supplier?         @relation(fields: [supplierId], references: [id])
   loan          Loan?             @relation(fields: [loanId], references: [id])
   store         Store             @relation(fields: [storeId], references: [id])
+  branchId      String?
+  branch        Branch?  @relation(fields: [branchId], references: [id])
 
   @@index([storeId, type, createdAt])
   @@index([storeId, createdAt])
   @@index([barcode])
+}
+
+model Account {
+  id            String        @id @default(uuid())
+  code          String
+  name          String
+  type          String        // ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
+  isSystem      Boolean       @default(false)
+  storeId       String
+  store         Store         @relation(fields: [storeId], references: [id])
+  createdAt     DateTime      @default(now())
+  journalLines  JournalLine[]
+
+  @@unique([code, storeId])
+  @@index([storeId])
+}
+
+model JournalEntry {
+  id            String        @id @default(uuid())
+  date          DateTime
+  description   String
+  referenceId   String?
+  referenceType String?
+  storeId       String
+  store         Store         @relation(fields: [storeId], references: [id])
+  createdAt     DateTime      @default(now())
+  lines         JournalLine[]
+
+  @@index([storeId, date])
+  @@index([referenceId])
+}
+
+model JournalLine {
+  id             String        @id @default(uuid())
+  journalEntryId String
+  journalEntry   JournalEntry  @relation(fields: [journalEntryId], references: [id])
+  accountId      String
+  account        Account       @relation(fields: [accountId], references: [id])
+  debit          Decimal       @default(0)
+  credit         Decimal       @default(0)
+
+  @@index([journalEntryId])
+  @@index([accountId])
 }
 
 model SecondHandRecord {
@@ -309,7 +409,28 @@ model SecondHandRecord {
   encryptionIv  String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  store     Store    @relation(fields: [storeId], references: [id])
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
+}
+
+model StockMovement {
+  id            String   @id @default(uuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id])
+  quantityChange Int
+  stockBefore   Int
+  stockAfter    Int
+  reason        String
+  referenceId   String?
+  referenceType String?
+  storeId       String
   store         Store    @relation(fields: [storeId], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@index([productId])
+  @@index([storeId, createdAt])
+  @@index([referenceId])
 }
 
 model BarcodeSettings {
@@ -340,17 +461,24 @@ enum Role {
 }
 
 enum SaleStatus {
-  PAID
-  PARTIAL
-  DUE
-  PENDING   // For advance orders
-  COMPLETED // For advance orders
-  CANCELLED
+  PAID       // Full cash / instant-payment sale
+  PARTIAL    // Customer still owes; has paid something
+  DUE        // Pure credit sale; nothing collected yet
+  PENDING    // Advance order: customer has paid deposit, not yet collected
+  COMPLETED  // Advance order: customer collected goods; stock decremented here
+  CANCELLED  // Sale voided (refunded, wrong entry, etc.)
 }
 
 enum SaleType {
   REGULAR
   ADVANCE_ORDER
+  DUE
+  EMI
+  ONLINE
+  EXCHANGE
+  SECOND_HAND
+  REPAIR
+  WHOLESALE
 }
 
 enum TransactionType {
@@ -375,6 +503,11 @@ enum TransactionMode {
   NAGAD
   CARD
   DUE
+}
+
+enum PaymentStatus {
+  ACTIVE
+  REFUNDED
 }
 
 enum TransactionStatus {

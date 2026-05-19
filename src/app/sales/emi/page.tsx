@@ -101,7 +101,17 @@ export default function EMISalePage() {
     if (!selectedCustomer) return setError("Customer required for EMI");
     for (const item of cart) { if (item.imeis.length !== item.quantity) return setError(`Select ${item.quantity} IMEIs`); }
     setSubmitting(true);
-    const payload = { customerId: selectedCustomer.id, items: cart, totalAmount: total, paidAmount: firstPayment, dueAmount: total - firstPayment, discount, paymentMethod: "EMI", saleType: "EMI", emiMonths };
+    const payload = {
+      customerId:        selectedCustomer.id,
+      items:             cart,
+      totalAmount:       total,
+      paidAmount:        firstPayment,
+      dueAmount:         total - firstPayment,
+      discount,
+      paymentMethod:     "EMI",
+      saleType:          "EMI",
+      emiMonths,
+    };
     try {
       const res = await fetch("/api/sales", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
@@ -124,8 +134,9 @@ export default function EMISalePage() {
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const total = subtotal - discount;
-  const firstPayment = total / emiMonths;
+  const total = Math.round(subtotal - discount);             // round to nearest whole Taka
+  const firstPayment = Math.round(total / emiMonths);         // first EMIs are whole Taka
+  const lastEmi       = total - firstPayment * (emiMonths - 1); // last month picks up the residual
   const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.model.toLowerCase().includes(searchQuery.toLowerCase()));
 
   if (loading) return <div className="p-8 animate-pulse text-secondary">Loading...</div>;
@@ -156,7 +167,8 @@ export default function EMISalePage() {
             <div className="bg-background p-4 rounded-xl space-y-2">
               <div className="flex justify-between"><span>Total</span><span className="font-bold">{formatCurrency(total)}</span></div>
               <div className="flex justify-between text-primary"><span>First Payment</span><span className="font-black">{formatCurrency(firstPayment)}</span></div>
-              <div className="flex justify-between text-sm text-secondary"><span>Monthly</span><span>{formatCurrency(firstPayment)}</span></div>
+              <div className="flex justify-between text-sm text-secondary"><span>{emiMonths - 1} more × {formatCurrency(firstPayment)}</span><span>+ {emiMonths > 1 ? formatCurrency(lastEmi) : "—"}</span></div>
+              <p className="text-[10px] text-secondary mt-1">Final month adjusts to cover the balance exactly.</p>
             </div>
             <button disabled={submitting} onClick={handleCheckout} className="w-full py-4 bg-primary text-white rounded-xl font-bold disabled:opacity-50">{submitting ? "Processing..." : "Create EMI Sale"}</button>
           </div>

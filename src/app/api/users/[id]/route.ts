@@ -32,7 +32,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     });
 
     return NextResponse.json({ message: "User deleted successfully" });
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json({ error: "Failed to delete user" }, { status: 500 });
   }
 }

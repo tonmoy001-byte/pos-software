@@ -124,7 +124,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     // Only DECREMENT stock on COMPLETED (advance orders carry no stock on creation)
     if (isFullyPaid) {
+      const productIds = sale.items.map(item => item.productId);
+      const currentProducts = await tx.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, stock: true },
+      });
       for (const item of sale.items) {
+        const currentProduct = currentProducts.find(p => p.id === item.productId);
+        const currentStock = currentProduct ? Number(currentProduct.stock) : 0;
         await tx.product.update({
           where: { id: item.productId },
           data: { stock: { decrement: item.quantity } },
@@ -133,6 +140,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           referenceId:   sale.id,
           referenceType: "Sale",
           tx,
+          stockBefore: currentStock,
         });
       }
     }

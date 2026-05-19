@@ -2,12 +2,17 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { hasPermission, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 import * as XLSX from "xlsx";
 
 export async function GET() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasPermission(session.user.role as Role, "customer:view")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -44,8 +49,8 @@ export async function GET() {
         "Content-Disposition": `attachment; filename="customers-export.xlsx"`,
       },
     });
-  } catch (error) {
-    console.error("Customer export error:", error);
+  } catch (error: any) {
+    logger.error("Failed to export customers", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
     return NextResponse.json({ error: "Export failed" }, { status: 500 });
   }
 }

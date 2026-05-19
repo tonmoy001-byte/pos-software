@@ -1,7 +1,8 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { SupplierService } from "@/lib/services";
+import { SupplierService, hasPermission, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 import { z } from "zod";
 
 const supplierCreateSchema = z.object({
@@ -17,14 +18,17 @@ const supplierService = new SupplierService();
 export async function GET(req: Request) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json([]);
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasPermission(session.user.role as Role, "supplier:view")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
     const suppliers = await supplierService.findAll(session.user.storeId);
     return NextResponse.json(suppliers || []);
-  } catch (error) {
-    console.error("Suppliers fetch error:", error);
+  } catch (error: any) {
+    logger.error("Suppliers fetch error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json([]);
   }
 }
@@ -39,6 +43,9 @@ export async function POST(req: Request) {
   
   if (!session) {
     return NextResponse.json({ error: "No session" }, { status: 401 });
+  }
+  if (!hasPermission(session.user.role as Role, "supplier:create")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -63,8 +70,8 @@ export async function POST(req: Request) {
     }
     
     return NextResponse.json(supplier);
-  } catch (error) {
-    console.error("Supplier creation error:", error);
+  } catch (error: any) {
+    logger.error("Supplier creation error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json({ error: "Failed to create supplier" }, { status: 500 });
   }
 }

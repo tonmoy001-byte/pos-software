@@ -1,7 +1,8 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { dailyActivityService } from "@/lib/services";
+import { dailyActivityService, hasPermission, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 import { formatCurrency } from "@/lib/utils";
 
 function escapeHtml(str: string): string {
@@ -79,6 +80,9 @@ export async function GET(req: Request) {
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (!hasPermission(session.user.role as Role, "report:view")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { searchParams } = new URL(req.url);
   const date = searchParams.get("date") || new Date().toISOString().split("T")[0];
@@ -114,8 +118,8 @@ export async function GET(req: Request) {
     return new NextResponse(html, {
       headers: { "Content-Type": "text/html" },
     });
-  } catch (error) {
-    console.error("Export error:", error);
+  } catch (error: any) {
+    logger.error("Failed to export daily activity", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
     return NextResponse.json({ error: "Export failed" }, { status: 500 });
   }
 }

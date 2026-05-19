@@ -8,6 +8,14 @@ export { TenantService, tenantService, validateTenantAccess, getTenantFilter, ge
 export { hasPermission, hasAnyPermission, hasAllPermissions, getPermissions, getRoleHierarchy, canManageRole, checkAccess } from "./rbac";
 export { SecureDocumentService, SecondHandService, secureDocumentService, secondHandService } from "./secondhand";
 export { OptimisticUIStore, OptimisticRollbackManager, optimisticStore, rollbackManager, resolveConflict, createOptimisticResponse, createRollbackResponse } from "./optimisticUI";
+export { checkIdempotency, markIdempotent, extractIdempotencyKey, createIdempotencyKey, completeIdempotencyKey } from "./idempotency";
+export { recordStockMovement } from "./stockMovement";
+export { postSaleEntry, postRefundEntry, postTransactionEntry, postDueCollectionEntry } from "./posting";
+export { checkRateLimit } from "./rateLimiter";
+export { logger } from "./logger";
+export { createBackup, listBackups } from "./backup";
+export { runFullReconciliation } from "./reconciliation";
 export type { Permission, AccessCheck } from "./rbac";
 export type { EventStoreData, EventAggregateType, EventType } from "./eventStore";
 export type { OptimisticUpdate, OptimisticRollback, ConflictResolution } from "./optimisticUI";
+export type { ReconciliationItem, ReconciliationReport } from "./reconciliation";

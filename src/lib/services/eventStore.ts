@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
 export type EventAggregateType =
   | "Sale"
@@ -7,7 +8,9 @@ export type EventAggregateType =
   | "Supplier"
   | "Loan"
   | "Transaction"
-  | "SecondHandRecord";
+  | "SecondHandRecord"
+  | "DailyBalance"
+  | "Store";
 
 export type EventType =
   | "CREATED"
@@ -43,8 +46,9 @@ export interface EventStoreData {
 }
 
 export class EventStore {
-  async append(data: EventStoreData) {
-    return prisma.event.create({
+  async append(data: EventStoreData, tx?: Prisma.TransactionClient) {
+    const client = tx || prisma;
+    return client.event.create({
       data: {
         aggregateType: data.aggregateType,
         aggregateId: data.aggregateId,
@@ -113,7 +117,7 @@ export const eventStore = new EventStore();
 
 export function calculateProfit(salePrice: number, costPrice: number): number {
   const profit = salePrice - costPrice;
-  return Math.max(0, profit);
+  return profit;
 }
 
 export function applyEventToState(

@@ -2,6 +2,8 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { hasPermission, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 
 export async function GET() {
   const session = await getSession();
@@ -46,8 +48,8 @@ export async function GET() {
     };
 
     return NextResponse.json(parsedSettings);
-  } catch (error) {
-    console.error("Failed to fetch invoice settings:", error);
+  } catch (error: any) {
+    logger.error("Failed to fetch invoice settings", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
     return NextResponse.json({ error: "Failed to fetch invoice settings" }, { status: 500 });
   }
 }
@@ -61,10 +63,13 @@ export async function PUT(req: Request) {
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (!hasPermission(session.user.role as Role, "store:settings")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
     const data = await req.json();
-    console.log("Saving invoice settings for store:", session.user.storeId, data);
+    logger.info("Saving invoice settings", { storeId: session.user.storeId, userId: session.user.id, data });
 
     let settings = await prisma.invoiceSettings.findUnique({
       where: { storeId: session.user.storeId }
@@ -98,7 +103,7 @@ if (settings) {
 
     return NextResponse.json(settings);
   } catch (error: any) {
-    console.error("Failed to update invoice settings:", error);
+    logger.error("Failed to update invoice settings", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
     return NextResponse.json({ 
       error: "Failed to update invoice settings",
       message: error.message 

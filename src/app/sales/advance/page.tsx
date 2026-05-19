@@ -155,9 +155,14 @@ export default function AdvanceOrderPage() {
   }, [customerSearch]);
 
   const addToCart = (product: any) => {
+    // Advance orders are for OUT-OF-STOCK items.
+    // Block only when stock > 0 AND there are existing advance units
+    // so shopkeepers can still pre-order an item they already
+    // have some physical stock of.
     const availableStock = product.stock ?? 0;
-    if (availableStock > 0) {
-      setError(`Product available in stock (${availableStock} units). Please complete sale from POS sales page.`);
+    const pendingAdvances = product.advanceOrderQuantity ?? 0;
+    if (availableStock > 0 && pendingAdvances > 0) {
+      setError(`Already have ${pendingAdvances} in advance orders for this item. Use POS Sales instead.`);
       setTimeout(() => setError(null), 4000);
       return;
     }
@@ -166,7 +171,7 @@ export default function AdvanceOrderPage() {
       name: product.name,
       price: product.price,
       quantity: 1,
-      cost: product.cost || 0
+      cost: product.cost || 0,
     };
     const existing = cart.find(item => item.productId === product.id);
     if (existing) {

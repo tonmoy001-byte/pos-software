@@ -3,10 +3,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import bcrypt from "bcryptjs";
+import { hasPermission, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 
 export async function GET(req: Request) {
   const session = await getSession();
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || !hasPermission(session.user.role as Role, "user:view")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -26,7 +28,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const session = await getSession();
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || !hasPermission(session.user.role as Role, "user:create")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -48,7 +50,7 @@ export async function POST(req: Request) {
         username,
         password: hashedPassword,
         name,
-        role: role || "STAFF",
+        role: (role as Role) || "CASHIER",
         storeId: session.user.storeId
       },
       select: {
@@ -60,8 +62,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(user);
-  } catch (error) {
-    console.error("Failed to create user", error);
+  } catch (error: any) {
+    logger.error("Failed to create user", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
     return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
   }
 }

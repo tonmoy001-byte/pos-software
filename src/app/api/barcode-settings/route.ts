@@ -1,62 +1,60 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import path from "path";
 import { getSession } from "@/lib/auth";
-
-// Create a local prisma client to bypass any caching issues
-const dbUrl = path.join(process.cwd(), "prisma", "dev.db");
-const adapter = new PrismaBetterSqlite3({ url: dbUrl });
-const localPrisma = new PrismaClient({ adapter });
+import { prisma } from "@/lib/prisma";
+import { hasPermission, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
+import type { BarcodeSettings } from "@prisma/client";
 
 export async function GET(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    // @ts-ignore
-    const settings = await localPrisma.barcodeSettings.findUnique({
-      where: { storeId: session.user.storeId }
+    const settings = await prisma.barcodeSettings.findUnique({
+      where: { storeId: session.user.storeId },
     });
 
     if (!settings) {
-      // @ts-ignore
-      const newSettings = await localPrisma.barcodeSettings.create({
-        data: { storeId: session.user.storeId }
+      const newSettings = await prisma.barcodeSettings.create({
+        data: { storeId: session.user.storeId },
       });
       return NextResponse.json(newSettings);
     }
 
     return NextResponse.json(settings);
-  } catch (error) {
-    console.error("Error in GET /api/barcode-settings:", error);
-    return NextResponse.json({ 
-      error: "Internal Server Error"
-    }, { status: 500 });
+  } catch (error: any) {
+    logger.error("Error in GET /api/barcode-settings", { error: error.message });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
 
 export async function PUT(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasPermission(session.user.role as Role, "store:settings")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
     const body = await req.json();
     const { id, storeId, createdAt, updatedAt, ...updateData } = body;
 
-    // @ts-ignore
-    const settings = await localPrisma.barcodeSettings.upsert({
+    const settings = await prisma.barcodeSettings.upsert({
       where: { storeId: session.user.storeId },
-      update: updateData,
-      create: { ...updateData, storeId: session.user.storeId }
+      update: updateData as any,
+      create: { ...(updateData as any), storeId: session.user.storeId },
     });
 
     return NextResponse.json(settings);
-  } catch (error) {
-    console.error("Error in PUT /api/barcode-settings:", error);
-    return NextResponse.json({ 
-      error: "Internal Server Error"
-    }, { status: 500 });
+  } catch (error: any) {
+    logger.error("Error in PUT /api/barcode-settings", { error: error.message });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

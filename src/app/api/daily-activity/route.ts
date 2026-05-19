@@ -2,7 +2,8 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { dailyActivityService } from "@/lib/services";
+import { dailyActivityService, hasPermission, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 
 export async function GET(req: Request) {
   const session = await getSession();
@@ -16,8 +17,8 @@ export async function GET(req: Request) {
   try {
     const sheet = await dailyActivityService.getSheet(session.user.storeId, date);
     return NextResponse.json(sheet);
-  } catch (error) {
-    console.error("Daily sheet fetch error:", error);
+  } catch (error: any) {
+    logger.error("Failed to fetch daily sheet", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
     return NextResponse.json({ error: "Failed to fetch daily sheet" }, { status: 500 });
   }
 }
@@ -32,6 +33,36 @@ export async function POST(req: Request) {
     const body = await req.json();
     const storeId = session.user.storeId;
     const userId = session.user.id;
+
+    // Check permissions based on transaction type
+    switch (body.type) {
+      case "SALE":
+        if (!hasPermission(session.user.role as Role, "sale:create")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+        break;
+      case "PURCHASE":
+      case "EXPENSE":
+        if (!hasPermission(session.user.role as Role, "transaction:create")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+        break;
+      case "HAWLAT":
+        if (!hasPermission(session.user.role as Role, "loan:create")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+        break;
+      case "DUE":
+        if (!hasPermission(session.user.role as Role, "sale:create")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+        break;
+      case "CLOSING":
+        if (!hasPermission(session.user.role as Role, "cash:closing")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+        break;
+    }
 
     // Check if day is locked (skip for CLOSING type which is the locking action itself)
     if (body.type !== "CLOSING") {
@@ -71,7 +102,7 @@ export async function POST(req: Request) {
         result = await dailyActivityService.recordDueCollection(storeId, userId, body.data);
         break;
       case "CLOSING":
-        result = await dailyActivityService.saveClosing(storeId, body.date, body.data.closingCash, body.data.notes);
+        result = await dailyActivityService.saveClosing(storeId, userId, body.date, body.data.closingCash, body.data.notes);
         break;
       default:
         return NextResponse.json({ error: "Invalid transaction type" }, { status: 400 });
@@ -79,7 +110,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(result);
   } catch (error: any) {
-    console.error("Daily activity POST error:", error);
+    logger.error("Failed to process transaction", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
     return NextResponse.json(
       { error: error.message || "Failed to process transaction" },
       { status: 400 }

@@ -2,6 +2,8 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { hasPermission, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 
 export async function GET(req: Request) {
   const session = await getSession();
@@ -29,8 +31,8 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json(store);
-  } catch (error) {
-    console.error("Failed to fetch store:", error);
+  } catch (error: any) {
+    logger.error("Failed to fetch store", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json({ error: "Failed to fetch store" }, { status: 500 });
   }
 }
@@ -40,10 +42,13 @@ export async function PUT(req: Request) {
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (!hasPermission(session.user.role as Role, "store:settings")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
     const data = await req.json();
-    console.log("Saving store settings:", session.user.storeId, data);
+    logger.info("Saving store settings", { storeId: session.user.storeId, userId: session.user.id, data });
     
     const store = await prisma.store.update({
       where: { id: session.user.storeId },
@@ -58,8 +63,8 @@ export async function PUT(req: Request) {
     });
 
     return NextResponse.json(store);
-  } catch (error) {
-    console.error("Failed to update store:", error);
+  } catch (error: any) {
+    logger.error("Failed to update store", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json({ error: "Failed to update store" }, { status: 500 });
   }
 }

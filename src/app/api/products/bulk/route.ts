@@ -3,11 +3,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { generateBarcode } from "@/lib/barcode";
+import { hasPermission, eventStore, EventStoreData, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 import * as XLSX from "xlsx";
 
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasPermission(session.user.role as Role, "product:create")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
     const formData = await req.formData();
@@ -42,14 +47,30 @@ export async function POST(req: Request) {
           }
         });
 
+        await eventStore.append({
+          aggregateType: "Product",
+          aggregateId: product.id,
+          type: "CREATED",
+          payload: {
+            name: product.name,
+            brand: product.brand,
+            price: product.price,
+            cost: product.cost,
+            stock: product.stock,
+            bulkImport: true,
+          },
+          userId: session.user.id,
+          storeId: session.user.storeId,
+        }, tx);
+
         createdProducts.push(product);
       }
       return createdProducts;
     });
 
     return NextResponse.json({ message: `Imported ${results.length} products`, count: results.length });
-  } catch (error) {
-    console.error("Bulk import failed:", error);
+  } catch (error: any) {
+    logger.error("Bulk import failed", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
     return NextResponse.json({ error: "Import failed. Check format: Name, Brand, Category, Price, Cost, Stock, MinStock" }, { status: 500 });
   }
 }

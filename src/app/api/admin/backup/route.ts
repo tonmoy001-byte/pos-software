@@ -1,0 +1,31 @@
+export const dynamic = "force-dynamic";
+import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
+import { createBackup, listBackups } from "@/lib/services";
+import { hasPermission } from "@/lib/services";
+import type { Role } from "@prisma/client";
+
+export async function POST() {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasPermission(session.user.role as Role, "store:settings")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    const backup = await createBackup();
+    return NextResponse.json({ success: true, ...backup });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || "Backup failed" }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasPermission(session.user.role as Role, "store:settings")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  return NextResponse.json(listBackups());
+}

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Hind_Siliguri } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/sidebar";
+import { SidebarWrapper } from "@/components/layout/SidebarWrapper";
+import SWRegister from "@/components/sw-register";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const hindSiliguri = Hind_Siliguri({ 
@@ -13,6 +14,25 @@ const hindSiliguri = Hind_Siliguri({
 export const metadata: Metadata = {
   title: "RetailOS | Unified POS Control Center",
   description: "Cloud-Based Retail ERP/POS for Mobile Phone Shops",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icons/icon-192.svg",
+    apple: "/icons/icon-192.svg",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "RetailOS",
+  },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#1a1a2e",
 };
 
 export default function RootLayout({
@@ -20,13 +40,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // In a real app, we'd get the role from the session
-  const mockUserRole = "ADMIN"; 
-
   return (
     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable}`}>
       <body className="flex bg-background min-h-screen" suppressHydrationWarning>
-        <Sidebar userRole={mockUserRole} />
+        <SWRegister />
+        <SidebarWrapper />
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>

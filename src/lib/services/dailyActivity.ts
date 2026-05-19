@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { SaleService } from "./sale";
 import { TransactionService } from "./transaction";
 import { LoanService } from "./loan";
+import { eventStore, EventStoreData } from "./eventStore";
 import * as XLSX from "xlsx";
 import type { TransactionCreateInput } from "@/types";
 
@@ -242,9 +243,17 @@ export class DailyActivityService {
     );
   }
 
-  async saveClosing(storeId: string, dateStr: string, closingCash: number, notes?: string) {
+  async saveClosing(storeId: string, userId: string, dateStr: string, closingCash: number, notes?: string) {
     const dayStart = new Date(dateStr + "T00:00:00.000Z");
     const dayEnd = new Date(dateStr + "T23:59:59.999Z");
+
+    // Prevent modification of locked days
+    const existingBalance = await prisma.dailyBalance.findUnique({
+      where: { storeId_date: { storeId, date: dayStart } }
+    });
+    if (existingBalance?.isLocked) {
+      throw new Error("This day is already locked and cannot be modified");
+    }
 
     const prevDate = new Date(dayStart.getTime() - 86400000);
 
@@ -258,7 +267,7 @@ export class DailyActivityService {
     const openingCash = prevBalance?.closingCash ? Number(prevBalance.closingCash) : 0;
     const expectedCash = todaysSheet.cashPosition.expectedCash;
 
-    return prisma.dailyBalance.upsert({
+    const result = await prisma.dailyBalance.upsert({
       where: { storeId_date: { storeId, date: dayStart } },
       create: {
         storeId,
@@ -278,6 +287,17 @@ export class DailyActivityService {
         lockedAt: new Date(),
       },
     });
+
+    await eventStore.append({
+      aggregateType: "DailyBalance",
+      aggregateId: result.id,
+      type: "UPDATED",
+      payload: { date: dateStr, openingCash, closingCash, expectedCash, notes: notes || "" },
+      userId,
+      storeId,
+    });
+
+    return result;
   }
 
   async exportExcel(storeId: string, dateStr: string): Promise<Buffer> {
@@ -318,25 +338,29 @@ export class DailyActivityService {
     return Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }));
   }
 
-  async exportAllTransactions(storeId: string): Promise<Buffer> {
+  async exportAllTransactions(storeId: string, startDate?: Date, endDate?: Date): Promise<Buffer> {
+    const dateFilter = startDate && endDate ? { gte: startDate, lte: endDate } : undefined;
     const [sales, transactions, loans, payments] = await Promise.all([
       prisma.sale.findMany({
-        where: { storeId },
+        where: { storeId, ...(dateFilter ? { createdAt: dateFilter } : {}) },
         include: {
           customer: { select: { name: true, phone: true } },
           items: { include: { product: { select: { name: true, model: true } } } },
           payments: { select: { method: true, amount: true, date: true } },
         },
         orderBy: { createdAt: "desc" },
+        take: 1000,
       }),
       prisma.transaction.findMany({
-        where: { storeId },
+        where: { storeId, ...(dateFilter ? { createdAt: dateFilter } : {}) },
         include: { supplier: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
+        take: 1000,
       }),
       prisma.loan.findMany({
-        where: { storeId },
+        where: { storeId, ...(dateFilter ? { date: dateFilter } : {}) },
         orderBy: { date: "desc" },
+        take: 1000,
       }),
       prisma.payment.findMany({
         where: { storeId },
@@ -444,8 +468,8 @@ export class DailyActivityService {
   }
 
   async exportDailySheetDetailed(storeId: string, dateStr: string): Promise<Buffer> {
-    const dayStart = new Date(dateStr + "T00:00:00");
-    const dayEnd = new Date(dateStr + "T23:59:59");
+    const dayStart = new Date(dateStr + "T00:00:00.000Z");
+    const dayEnd = new Date(dateStr + "T23:59:59.999Z");
 
     const [sales, transactions, loans, payments] = await Promise.all([
       prisma.sale.findMany({

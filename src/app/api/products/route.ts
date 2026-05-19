@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { hasPermission } from "@/lib/services";
+import { hasPermission, eventStore, EventStoreData, logger } from "@/lib/services";
 import { generateBarcode } from "@/lib/barcode";
 import { z } from "zod";
 import type { Role } from "@prisma/client";
@@ -121,9 +121,24 @@ export async function POST(req: Request) {
       }
     });
 
+    await eventStore.append({
+      aggregateType: "Product",
+      aggregateId: product.id,
+      type: "CREATED",
+      payload: {
+        name: product.name,
+        brand: product.brand,
+        price: product.price,
+        cost: product.cost,
+        stock: product.stock,
+      },
+      userId: session.user.id,
+      storeId: session.user.storeId,
+    });
+
     return NextResponse.json(product);
-  } catch (error) {
-    console.error("Product creation error:", error);
+  } catch (error: any) {
+    logger.error("Failed to create product", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
     return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
   }
 }

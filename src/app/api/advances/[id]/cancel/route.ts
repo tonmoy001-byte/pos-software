@@ -2,10 +2,15 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { hasPermission, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasPermission(session.user.role as Role, "sale:cancel")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
     const { id: saleId } = await params;
@@ -43,7 +48,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     return NextResponse.json(updatedSale);
   } catch (error: any) {
-    console.error("Failed to cancel advance order:", error);
+    logger.error("Failed to cancel advance order", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
     return NextResponse.json({ error: error.message || "Failed to cancel advance order" }, { status: 500 });
   }
 }

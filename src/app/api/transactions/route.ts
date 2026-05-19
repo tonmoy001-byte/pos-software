@@ -1,8 +1,9 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { TransactionService } from "@/lib/services";
+import { TransactionService, hasPermission, logger } from "@/lib/services";
 import { z } from "zod";
+import type { Role } from "@prisma/client";
 
 const transactionService = new TransactionService();
 
@@ -30,6 +31,9 @@ export async function GET(req: Request) {
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (!hasPermission(session.user.role as Role, "transaction:view")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type");
@@ -52,8 +56,8 @@ export async function GET(req: Request) {
     );
 
     return NextResponse.json(transactions);
-  } catch (error) {
-    console.error("Transactions fetch error:", error);
+  } catch (error: any) {
+    logger.error("Transactions fetch error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json({ error: "Failed to fetch transactions" }, { status: 500 });
   }
 }
@@ -62,6 +66,9 @@ export async function POST(req: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasPermission(session.user.role as Role, "transaction:create")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -97,8 +104,8 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json(transaction);
-  } catch (error) {
-    console.error("Transaction creation error:", error);
+  } catch (error: any) {
+    logger.error("Transaction creation error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json({ error: "Failed to create transaction" }, { status: 500 });
   }
 }

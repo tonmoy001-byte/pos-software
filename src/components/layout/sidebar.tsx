@@ -21,42 +21,56 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const ALL_ROLES: string[] = ["ADMIN", "MANAGER", "CASHIER"];
+const ADMIN_MANAGER: string[] = ["ADMIN", "MANAGER"];
+const ADMIN_ONLY: string[] = ["ADMIN"];
+
 const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", roles: ["ADMIN", "STAFF"] },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", roles: ALL_ROLES },
   { 
     icon: ShoppingCart, 
     label: "Sales", 
     href: "/sales", 
-    roles: ["ADMIN", "STAFF"],
+    roles: ALL_ROLES,
     submenu: [
-      { label: "POS", href: "/sales/pos", roles: ["ADMIN", "STAFF"] },
-      { label: "All Sale", href: "/sales/regular", roles: ["ADMIN", "STAFF"] },
-      { label: "Advance Order", href: "/sales/advance", roles: ["ADMIN", "STAFF"] },
-      { label: "Due Sale", href: "/sales/due", roles: ["ADMIN", "STAFF"] },
-      { label: "EMI Sale", href: "/sales/emi", roles: ["ADMIN", "STAFF"] },
-      { label: "Exchange Sale", href: "/sales/exchange", roles: ["ADMIN", "STAFF"] },
-      { label: "Repair Sale", href: "/sales/repair", roles: ["ADMIN", "STAFF"] },
-      { label: "Online Sale", href: "/sales/online", roles: ["ADMIN", "STAFF"] },
-      { label: "Wholesale Sale", href: "/sales/wholesale", roles: ["ADMIN", "STAFF"] },
-      { label: "Return & Refund", href: "/sales/return", roles: ["ADMIN", "STAFF"] },
+      { label: "POS", href: "/sales/pos", roles: ALL_ROLES },
+      { label: "All Sale", href: "/sales/regular", roles: ALL_ROLES },
+      { label: "Advance Order", href: "/sales/advance", roles: ALL_ROLES },
+      { label: "Due Sale", href: "/sales/due", roles: ADMIN_MANAGER },
+      { label: "EMI Sale", href: "/sales/emi", roles: ADMIN_MANAGER },
+      { label: "Exchange Sale", href: "/sales/exchange", roles: ADMIN_MANAGER },
+      { label: "Repair Sale", href: "/sales/repair", roles: ADMIN_MANAGER },
+      { label: "Online Sale", href: "/sales/online", roles: ADMIN_MANAGER },
+      { label: "Wholesale Sale", href: "/sales/wholesale", roles: ADMIN_MANAGER },
+      { label: "Return & Refund", href: "/sales/return", roles: ADMIN_MANAGER },
     ]
   },
-  { icon: Package, label: "Inventory", href: "/inventory", roles: ["ADMIN", "STAFF"] },
-  { icon: Users, label: "Customers", href: "/customers", roles: ["ADMIN", "STAFF"] },
-  { icon: Wallet, label: "Hawlat", href: "/loans", roles: ["ADMIN", "STAFF"] },
-  { icon: Calculator, label: "Suppliers", href: "/suppliers", roles: ["ADMIN"] },
-  { icon: Smartphone, label: "Second Hand", href: "/second-hand", roles: ["ADMIN", "STAFF"] },
-  { icon: FileText, label: "Reports", href: "/reports", roles: ["ADMIN"] },
-  { icon: UserPlus, label: "Users", href: "/users", roles: ["ADMIN"] },
+  { icon: Package, label: "Inventory", href: "/inventory", roles: ALL_ROLES },
+  { icon: Users, label: "Customers", href: "/customers", roles: ALL_ROLES },
+  { icon: Wallet, label: "Hawlat", href: "/loans", roles: ADMIN_MANAGER },
+  { icon: Calculator, label: "Suppliers", href: "/suppliers", roles: ADMIN_MANAGER },
+  { icon: Smartphone, label: "Second Hand", href: "/second-hand", roles: ALL_ROLES },
+  {
+    icon: Smartphone,
+    label: "Mobile Shop",
+    href: "/mobile-pos",
+    roles: ALL_ROLES,
+    submenu: [
+      { label: "Quick POS", href: "/mobile-pos", roles: ALL_ROLES },
+      { label: "Barcode Scan", href: "/scan", roles: ALL_ROLES },
+    ]
+  },
+  { icon: FileText, label: "Reports", href: "/reports", roles: ADMIN_MANAGER },
+  { icon: UserPlus, label: "Users", href: "/users", roles: ADMIN_ONLY },
   { 
     icon: Settings, 
     label: "Settings", 
     href: "/settings", 
-    roles: ["ADMIN"],
+    roles: ADMIN_ONLY,
     submenu: [
-      { label: "Store Settings", href: "/settings/store", roles: ["ADMIN"] },
-      { label: "Invoice Settings", href: "/settings/invoice", roles: ["ADMIN"] },
-      { label: "Barcode Settings", href: "/settings/barcode", roles: ["ADMIN"] },
+      { label: "Store Settings", href: "/settings/store", roles: ADMIN_ONLY },
+      { label: "Invoice Settings", href: "/settings/invoice", roles: ADMIN_ONLY },
+      { label: "Barcode Settings", href: "/settings/barcode", roles: ADMIN_ONLY },
     ]
   },
 ];

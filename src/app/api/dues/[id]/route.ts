@@ -1,7 +1,8 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { SaleService } from "@/lib/services";
+import { SaleService, hasPermission, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 
 const saleService = new SaleService();
 
@@ -28,8 +29,8 @@ export async function GET(
     }
     
     return NextResponse.json(sale);
-  } catch (error) {
-    console.error("Sale fetch error:", error);
+  } catch (error: any) {
+    logger.error("Sale fetch error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json({ error: "Failed to fetch sale" }, { status: 500 });
   }
 }
@@ -42,11 +43,25 @@ export async function POST(
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (!hasPermission(session.user.role as Role, "sale:create")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { id } = await params;
   const data = await req.json();
 
   try {
+    const rawAmount = data.amount;
+
+    // ── Guard: amount must be a real positive number ──────────────────────
+    const amount = parseFloat(rawAmount);
+    if (isNaN(amount) || amount <= 0) {
+      return NextResponse.json(
+        { error: "Amount is required and must be a positive number." },
+        { status: 400 }
+      );
+    }
+
     // Security: Validate storeId matches session before payment
     const sale = await saleService.findById(id);
     if (!sale) {
@@ -56,17 +71,24 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    if (amount > Number(sale.dueAmount)) {
+      return NextResponse.json(
+        { error: `Amount exceeds due. Max: ${Number(sale.dueAmount).toFixed(2)}` },
+        { status: 400 }
+      );
+    }
+
     const result = await saleService.collectPayment(
       id,
-      parseFloat(data.amount),
+      amount,
       data.method || "CASH",
       session.user.id,
       session.user.storeId
     );
 
     return NextResponse.json(result);
-  } catch (error) {
-    console.error("Payment collection error:", error);
+  } catch (error: any) {
+    logger.error("Payment collection error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to collect payment" },
       { status: 400 }

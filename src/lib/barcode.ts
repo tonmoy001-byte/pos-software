@@ -1,14 +1,14 @@
 export function generateBarcode(): string {
   const prefix = "DNX";
   const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const random = crypto.randomUUID().replace(/-/g, "").substring(0, 8).toUpperCase();
   return `${prefix}${timestamp}${random}`;
 }
 
 export function generateProductBarcode(productId: string): string {
   const prefix = "PRD";
   const shortId = productId.substring(0, 8).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+  const random = crypto.randomUUID().replace(/-/g, "").substring(0, 6).toUpperCase();
   return `${prefix}${shortId}${random}`;
 }
 

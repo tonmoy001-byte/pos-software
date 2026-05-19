@@ -2,8 +2,8 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-import { TransactionService, CapitalService } from "@/lib/services";
+import { hasPermission, TransactionService, CapitalService, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 
 const transactionService = new TransactionService();
 const capitalService = new CapitalService();
@@ -12,6 +12,9 @@ export async function GET(req: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasPermission(session.user.role as Role, "report:view")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const storeId = session.user.storeId;
@@ -158,8 +161,8 @@ export async function GET(req: Request) {
         minStock: p.minStock,
       })),
     });
-  } catch (error) {
-    console.error("Dashboard stats error:", error);
+  } catch (error: any) {
+    logger.error("Dashboard stats error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

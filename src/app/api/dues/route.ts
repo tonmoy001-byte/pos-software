@@ -1,7 +1,8 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { SaleService } from "@/lib/services";
+import { SaleService, hasPermission, logger } from "@/lib/services";
+import type { Role } from "@prisma/client";
 
 const saleService = new SaleService();
 
@@ -9,6 +10,9 @@ export async function GET(req: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!hasPermission(session.user.role as Role, "sale:view")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { searchParams } = new URL(req.url);
@@ -26,8 +30,8 @@ export async function GET(req: Request) {
 
     const result = await saleService.getDueSales(session.user.storeId, { page, limit, search, status });
     return NextResponse.json(result);
-  } catch (error) {
-    console.error("Dues fetch error:", error);
+  } catch (error: any) {
+    logger.error("Dues fetch error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json({ error: "Failed to fetch dues" }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { eventStore, EventStoreData } from "./eventStore";
+import { encryptStr } from "@/lib/encryption";
 
 export interface SecondHandSaleInput {
   sellerName: string;
@@ -22,11 +23,13 @@ export class SecureDocumentService {
     userId: string,
     storeId: string
   ): Promise<void> {
+    const encrypted = encryptStr(photoBase64);
+
     await prisma.secondHandRecord.update({
       where: { id: recordId },
       data: {
-        nidPhotoData: Buffer.from(photoBase64, "base64"),
-        encryptionIv: "inline",
+        nidPhotoData: Buffer.from(encrypted.ciphertext, "base64"),
+        encryptionIv: encrypted.iv,
       },
     });
 
@@ -79,7 +82,7 @@ export class SecondHandService {
         },
         userId,
         storeId,
-      } as EventStoreData);
+      } as EventStoreData, tx);
 
       return record;
     });

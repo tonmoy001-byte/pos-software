@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { eventStore, EventStoreData } from "./eventStore";
 import { generateInvoiceNumber } from "@/lib/server/invoice";
+import { recordStockMovement } from "./stockMovement";
+import { postSaleEntry, postRefundEntry, postDueCollectionEntry } from "./posting";
+import Decimal from "decimal.js";
 
 interface SaleItem {
   productId: string;
@@ -49,6 +52,17 @@ export class SaleService {
         }
       }
 
+      // 2.5. Validate totalAmount matches item sum
+      const calculatedTotal = new Decimal(items.reduce((sum, item) => sum + item.price * item.quantity, 0)).toNumber();
+      if (Math.abs(calculatedTotal - totalAmount) > 0.01) {
+        throw new Error(`Total amount (${totalAmount}) does not match item sum (${calculatedTotal})`);
+      }
+
+      // 2.6. Validate paidAmount + dueAmount === totalAmount
+      if (Math.abs((paidAmount + dueAmount) - totalAmount) > 0.01) {
+        throw new Error("Paid amount + Due amount must equal Total Amount");
+      }
+
       // 3. Resolve customer name (snapshot)
       let resolvedCustomerName = customerName || "Walking Customer";
       if (customerId) {
@@ -58,13 +72,31 @@ export class SaleService {
         }
       }
 
-      // 4. Generate atomic invoice number
-      const invoiceId = await generateInvoiceNumber(storeId, tx);
-
+      // 5. Calculate cost and profit before creating sale (avoids double-write)
       let totalCost = 0;
       let totalProfit = 0;
+      const saleItemsData = items.map((item) => {
+        const product = products.find(p => p.id === item.productId);
+        const itemCost = item.cost ?? Number(product?.cost || 0);
+        const itemProfit = new Decimal(item.price).minus(itemCost).times(item.quantity).toNumber();
 
-      // 5. Calculate due date
+        totalCost = new Decimal(totalCost).plus(new Decimal(itemCost).times(item.quantity)).toNumber();
+        totalProfit = new Decimal(totalProfit).plus(itemProfit).toNumber();
+
+        return {
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+          cost: itemCost,
+          profit: itemProfit,
+          imeis: item.imeis ? JSON.stringify(item.imeis) : null,
+        };
+      });
+
+      // 6. Generate atomic invoice number
+      const invoiceId = await generateInvoiceNumber(storeId, tx);
+
+      // 7. Calculate due date
       let calculatedDueDate: Date | null = null;
       if (dueDate) {
         calculatedDueDate = new Date(dueDate);
@@ -78,7 +110,7 @@ export class SaleService {
         calculatedDueDate = defaultDueDate;
       }
 
-      // 6. Create Sale record
+      // 8. Create Sale record
       const sale = await tx.sale.create({
         data: {
           invoiceId,
@@ -87,8 +119,8 @@ export class SaleService {
           paidAmount,
           dueAmount,
           discount: discount || 0,
-          costAmount: 0,
-          profit: 0,
+          costAmount: totalCost,
+          profit: totalProfit,
           status: dueAmount > 0 ? (paidAmount > 0 ? "PARTIAL" : "DUE") : "PAID",
           customerId: customerId || null,
           customerName: resolvedCustomerName,
@@ -107,51 +139,30 @@ export class SaleService {
         },
       });
 
-      // 7. Prepare sale items data with cost/profit calculations
-      const saleItemsData = items.map((item) => {
-        const product = products.find(p => p.id === item.productId);
-        const itemCost = item.cost ?? Number(product?.cost || 0);
-        const itemProfit = (item.price - itemCost) * item.quantity;
-        
-        totalCost += itemCost * item.quantity;
-        totalProfit += itemProfit;
-
-        return {
-          saleId: sale.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
-          cost: itemCost,
-          profit: itemProfit,
-          imeis: item.imeis ? JSON.stringify(item.imeis) : null,
-        };
-      });
-
-      // Bulk create all sale items
+      // 9. Bulk create all sale items
       await tx.saleItem.createMany({
-        data: saleItemsData,
+        data: saleItemsData.map(item => ({ saleId: sale.id, ...item })),
       });
 
       // Update stock for non-advance orders
       if (saleType !== "ADVANCE_ORDER") {
-        for (const item of items) {
+        await Promise.all(items.map(async (item) => {
+          const product = products.find(p => p.id === item.productId);
+          const currentStock = product ? Number(product.stock) : 0;
           await tx.product.update({
             where: { id: item.productId },
             data: { stock: { decrement: item.quantity } }
           });
-        }
+          await recordStockMovement(item.productId, -item.quantity, "SALE", storeId, {
+            referenceId: sale.id,
+            referenceType: "Sale",
+            tx,
+            stockBefore: currentStock,
+          });
+        }));
       }
 
-      // 8. Update Sale record with final financials
-      await tx.sale.update({
-        where: { id: sale.id },
-        data: {
-          costAmount: totalCost,
-          profit: totalProfit,
-        }
-      });
-
-      // 9. Create financial transaction
+      // 10. Create financial transaction
       if (paidAmount > 0) {
         await tx.transaction.create({
           data: {
@@ -173,23 +184,19 @@ export class SaleService {
 
       // 10. Update customer due
       if (customerId && dueAmount > 0) {
-        const customer = await tx.customer.findUnique({ where: { id: customerId } });
-        if (customer) {
-          const newDueAmount = Number(customer.dueAmount || 0) + dueAmount;
-          await tx.customer.update({
-            where: { id: customerId },
-            data: { dueAmount: newDueAmount },
-          });
+        await tx.customer.update({
+          where: { id: customerId },
+          data: { dueAmount: { increment: dueAmount } },
+        });
 
-          await eventStore.append({
-            aggregateType: "Customer",
-            aggregateId: customerId,
-            type: "UPDATED",
-            payload: { dueAmount: newDueAmount },
-            userId,
-            storeId,
-          } as EventStoreData);
-        }
+        await eventStore.append({
+          aggregateType: "Customer",
+          aggregateId: customerId,
+          type: "UPDATED",
+          payload: { dueAmountIncrement: dueAmount },
+          userId,
+          storeId,
+        } as EventStoreData, tx);
       }
 
       // 11. Audit event
@@ -215,7 +222,20 @@ export class SaleService {
         },
         userId,
         storeId,
-      } as EventStoreData);
+      } as EventStoreData, tx);
+
+      // 12. Post journal entry
+      if (saleType !== "ADVANCE_ORDER") {
+        await postSaleEntry(
+          sale.id,
+          totalAmount,
+          totalCost,
+          paidAmount,
+          paymentMethod || "CASH",
+          storeId,
+          tx
+        );
+      }
 
       return tx.sale.findUnique({
         where: { id: sale.id },
@@ -362,18 +382,24 @@ export class SaleService {
   }
 
   async collectPayment(saleId: string, amount: number, method: string, userId: string, storeId: string) {
-    const sale = await prisma.sale.findUnique({ where: { id: saleId } });
-    if (!sale) throw new Error("Sale not found");
-    if (amount > Number(sale.dueAmount)) throw new Error("Amount exceeds due");
-
-    const newDue = Number(sale.dueAmount) - amount;
-    const newPaid = Number(sale.paidAmount) + amount;
-    const newStatus = newDue <= 0 ? "PAID" : "PARTIAL";
+    // ── Paranoid guard: amount must be a real, finite positive number ─────────
+    if (!isFinite(Number(amount)) || Number(amount) <= 0) {
+      throw new Error(`Invalid payment amount: ${amount}`);
+    }
+    const amountNum = Number(amount);
 
     return prisma.$transaction(async (tx) => {
+      const sale = await tx.sale.findUnique({ where: { id: saleId, storeId } });
+      if (!sale) throw new Error("Sale not found");
+
+      if (amountNum > Number(sale.dueAmount)) throw new Error("Amount exceeds due");
+
+      const newDue = Number(sale.dueAmount) - amountNum;
+      const newPaid = Number(sale.paidAmount) + amountNum;
+      const newStatus = newDue <= 0 ? "PAID" : "PARTIAL";
       await tx.payment.create({
         data: {
-          amount,
+          amount: amountNum,
           method,
           saleId,
           storeId,
@@ -394,7 +420,7 @@ export class SaleService {
         aggregateId: saleId,
         type: "PAYMENT_RECEIVED",
         payload: {
-          amount,
+          amount: amountNum,
           method,
           paidAmount: newPaid,
           dueAmount: newDue,
@@ -402,12 +428,12 @@ export class SaleService {
         },
         userId,
         storeId,
-      } as EventStoreData);
+      } as EventStoreData, tx);
 
       if (sale.customerId) {
         const customer = await tx.customer.findUnique({ where: { id: sale.customerId } });
         if (customer) {
-          const newCustomerDue = Math.max(0, Number(customer.dueAmount) - amount);
+          const newCustomerDue = Math.max(0, Number(customer.dueAmount) - amountNum);
           await tx.customer.update({
             where: { id: sale.customerId },
             data: { dueAmount: newCustomerDue },
@@ -415,11 +441,12 @@ export class SaleService {
         }
       }
 
+      let paymentRecord: any = null;
       if (method !== "DUE") {
-        await tx.transaction.create({
+        paymentRecord = await tx.transaction.create({
           data: {
             type: "DUE_PAYMENT",
-            amount,
+            amount: amountNum,
             mode: method as "CASH" | "BANK" | "BKASH" | "NAGAD" | "CARD" | "DUE",
             description: `Payment for ${sale.invoiceId}`,
             customerId: sale.customerId,
@@ -431,53 +458,136 @@ export class SaleService {
         });
       }
 
+      if (paymentRecord) {
+        await postDueCollectionEntry(paymentRecord.id, amountNum, method, storeId, tx);
+      }
+
       return { success: true };
     });
   }
 
-  async refund(saleId: string, reason: string, userId: string, storeId: string) {
-    const sale = await prisma.sale.findFirst({
-      where: { id: saleId, storeId },
-      include: { items: { include: { product: true } } },
-    });
-    if (!sale) throw new Error("Sale not found");
-    if (sale.status === "CANCELLED") throw new Error("Sale already cancelled");
-
+  async refund(saleId: string, reason: string, userId: string, storeId: string, refundAmount?: number) {
     return prisma.$transaction(async (tx) => {
-      // Restore stock for all items
-      for (const item of sale.items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { increment: item.quantity } }
+      const sale = await tx.sale.findFirst({
+        where: { id: saleId, storeId },
+        include: { items: { include: { product: true } }, payments: true },
+      });
+      if (!sale) throw new Error("Sale not found");
+      if (sale.status === "CANCELLED") throw new Error("Sale already cancelled");
+
+      const totalAmount = Number(sale.totalAmount);
+      const paidAmount = Number(sale.paidAmount);
+      const dueAmount = Number(sale.dueAmount);
+
+      const refundAmountNum = refundAmount ?? totalAmount;
+
+      if (!isFinite(refundAmountNum) || isNaN(refundAmountNum) || refundAmountNum <= 0) {
+        throw new Error("Invalid refund amount");
+      }
+
+      if (refundAmountNum > totalAmount) {
+        throw new Error(`Refund amount (${refundAmountNum}) exceeds sale total (${totalAmount})`);
+      }
+
+      const isFullRefund = refundAmountNum >= totalAmount;
+
+      if (isFullRefund && sale.saleType !== "ADVANCE_ORDER") {
+        for (const item of sale.items) {
+          const currentStock = Number((await tx.product.findUnique({ where: { id: item.productId } }))?.stock || 0);
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { increment: item.quantity } }
+          });
+          await recordStockMovement(item.productId, item.quantity, "REFUND", storeId, {
+            referenceId: saleId,
+            referenceType: "Sale",
+            tx,
+            stockBefore: currentStock,
+          });
+        }
+      }
+
+      // Only mark payments as refunded for full refunds
+      if (isFullRefund && sale.payments.length > 0) {
+        await tx.payment.updateMany({
+          where: { saleId, status: "ACTIVE" },
+          data: { status: "REFUNDED" },
         });
+      }
+
+      // Determine original payment mode from first payment
+      const originalMode = sale.payments.length > 0
+        ? (sale.payments[0].method as "CASH" | "BANK" | "BKASH" | "NAGAD" | "CARD" | "DUE")
+        : "CASH";
+
+      const refunded = isFullRefund ? totalAmount : refundAmountNum;
+
+      if (!isFullRefund) {
+        if (refunded > paidAmount) {
+          throw new Error(`Refund amount (${refunded}) exceeds paid amount (${paidAmount})`);
+        }
+        if (refunded > (totalAmount - dueAmount)) {
+          throw new Error("Refund amount exceeds paid portion of sale");
+        }
       }
 
       await tx.sale.update({
         where: { id: saleId },
-        data: {
+        data: isFullRefund ? {
           status: "CANCELLED",
+          dueAmount: 0,
+          paidAmount: 0,
           profit: 0,
+          refundedAmount: { increment: refunded },
+        } : {
+          refundedAmount: { increment: refunded },
+          paidAmount: { decrement: refunded },
+          dueAmount: dueAmount,
         },
       });
+
+      // Adjust customer due if applicable
+      if (sale.customerId) {
+        const remainingDues = await tx.sale.aggregate({
+          where: { customerId: sale.customerId, dueAmount: { gt: 0 }, id: { not: saleId } },
+          _sum: { dueAmount: true },
+        });
+        await tx.customer.update({
+          where: { id: sale.customerId },
+          data: { dueAmount: Number(remainingDues._sum.dueAmount || 0) },
+        });
+      }
 
       await eventStore.append({
         aggregateType: "Sale",
         aggregateId: saleId,
         type: "REFUND_PROCESSED",
         payload: {
-          amount: sale.totalAmount,
+          amount: refunded,
+          totalAmount: sale.totalAmount,
           reason,
+          isFullRefund,
         },
         metadata: { previousState: { status: sale.status, profit: sale.profit } },
         userId,
         storeId,
-      } as EventStoreData);
+      } as EventStoreData, tx);
+
+      await postRefundEntry(
+        saleId,
+        refundAmountNum,
+        Number(sale.costAmount),
+        originalMode,
+        isFullRefund,
+        storeId,
+        tx
+      );
 
       await tx.transaction.create({
         data: {
           type: "SALE_REFUND",
-          amount: Number(sale.totalAmount),
-          mode: "CASH",
+          amount: refunded,
+          mode: originalMode,
           description: `Refund for ${sale.invoiceId}: ${reason}`,
           referenceId: saleId,
           referenceType: "SALE",

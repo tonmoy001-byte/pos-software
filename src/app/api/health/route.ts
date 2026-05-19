@@ -1,0 +1,28 @@
+export const dynamic = "force-dynamic";
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export async function GET() {
+  const checks: Record<string, string> = {};
+
+  checks.server = "ok";
+
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    checks.database = "ok";
+  } catch {
+    checks.database = "error";
+  }
+
+  const healthy = Object.values(checks).every(v => v === "ok");
+
+  return NextResponse.json(
+    {
+      status: healthy ? "healthy" : "unhealthy",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      checks,
+    },
+    { status: healthy ? 200 : 503 }
+  );
+}

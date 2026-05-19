@@ -226,7 +226,7 @@ export default function UsersPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-secondary uppercase ml-1">Password</label>
-                  <input required value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} type="password" placeholder="••••••••" className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary bg-background/50" />
+                  <input required minLength={8} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} type="password" placeholder="Min 8 characters" className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary bg-background/50" />
                 </div>
               </div>
               <div className="space-y-1">
@@ -234,11 +234,11 @@ export default function UsersPage() {
                 <div className="flex p-1 bg-background rounded-xl border border-border">
                   <button 
                     type="button"
-                    onClick={() => setForm({ ...form, role: "STAFF" })}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${form.role === "STAFF" ? "bg-white text-primary shadow-sm" : "text-secondary"}`}
+                    onClick={() => setForm({ ...form, role: "CASHIER" })}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${form.role === "CASHIER" ? "bg-white text-primary shadow-sm" : "text-secondary"}`}
                   >
                     <UserIcon className="w-3 h-3" />
-                    Staff
+                    Cashier
                   </button>
                   <button 
                     type="button"

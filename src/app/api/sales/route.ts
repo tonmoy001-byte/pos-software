@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { SaleService, hasPermission } from "@/lib/services";
+import { SaleService, hasPermission, checkIdempotency, markIdempotent, createIdempotencyKey, completeIdempotencyKey, extractIdempotencyKey, checkRateLimit, logger } from "@/lib/services";
 import { z } from "zod";
 import type { Role } from "@prisma/client";
 
@@ -15,6 +15,11 @@ const saleItemSchema = z.object({
   imeis: z.array(z.string()).optional(),
 });
 
+const exchangeItemSchema = z.object({
+  imei: z.string().optional(),
+  value: z.coerce.number().nonnegative(),
+});
+
 const saleCreateSchema = z.object({
   items: z.array(saleItemSchema).min(1, "At least one item is required"),
   customerId: z.string().nullable().optional(),
@@ -26,6 +31,7 @@ const saleCreateSchema = z.object({
   saleType: z.string().optional().default("REGULAR"),
   deliveryDate: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),
+  exchangeItems: z.array(exchangeItemSchema).optional().default([]),
 });
 
 export async function GET(req: Request) {
@@ -62,8 +68,8 @@ export async function GET(req: Request) {
     }));
 
     return NextResponse.json(formattedSales);
-  } catch (error) {
-    console.error("GET /api/sales error:", error);
+  } catch (error: any) {
+    logger.error("Failed to fetch sales", { error: error.message });
     return NextResponse.json({ error: "Failed to fetch sales" }, { status: 500 });
   }
 }
@@ -74,6 +80,24 @@ export async function POST(req: Request) {
 
   if (!hasPermission(session.user.role as Role, "sale:create")) {
     return NextResponse.json({ error: "Forbidden: Missing sale:create permission" }, { status: 403 });
+  }
+
+  const { allowed, remaining, resetAt } = checkRateLimit(session.user.id, "default");
+  if (!allowed) {
+    logger.warn("Rate limit hit", { userId: session.user.id, action: "create_sale" });
+    return NextResponse.json(
+      { error: "Too many requests. Try again later." },
+      { status: 429, headers: { "X-RateLimit-Remaining": String(remaining), "X-RateLimit-Reset": String(resetAt) } }
+    );
+  }
+
+  const idempotencyKey = extractIdempotencyKey(req);
+  if (idempotencyKey) {
+    const { isDuplicate, existingResponse } = await checkIdempotency(idempotencyKey, session.user.storeId);
+    if (isDuplicate) {
+      return NextResponse.json(existingResponse);
+    }
+    await createIdempotencyKey(idempotencyKey, session.user.storeId);
   }
 
   try {
@@ -102,9 +126,18 @@ export async function POST(req: Request) {
       dueDate: data.dueDate || null,
     }, session.user.storeId, session.user.id);
 
-    return NextResponse.json(sale);
+    const response = NextResponse.json(sale, {
+      headers: { "X-RateLimit-Remaining": String(remaining), "X-RateLimit-Reset": String(resetAt) },
+    });
+
+    if (idempotencyKey) {
+      await completeIdempotencyKey(idempotencyKey, session.user.storeId, sale);
+    }
+
+    logger.info("Sale created", { storeId: session.user.storeId, userId: session.user.id, saleId: sale?.id });
+    return response;
   } catch (error: any) {
-    console.error("Sale error:", error);
+    logger.error("Sale creation failed", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
     return NextResponse.json({ error: error.message || "Failed to process sale" }, { status: 500 });
   }
 }
