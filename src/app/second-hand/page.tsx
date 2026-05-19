@@ -38,10 +38,21 @@ export default function SecondHandPage() {
 
     setSubmitting(true);
     try {
+      const fd = new FormData();
+      fd.append("sellerName", formData.sellerName);
+      fd.append("fatherName", formData.fatherName);
+      fd.append("nidNumber", formData.nidNumber);
+      fd.append("phone", formData.phone);
+      fd.append("model", formData.model);
+      fd.append("imei", formData.imei);
+      fd.append("purchasePrice", formData.purchasePrice);
+      if (nidFile) {
+        fd.append("nidPhoto", nidFile);
+      }
+
       const res = await fetch("/api/second-hand", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: fd
       });
       const data = await res.json();
       if (res.ok) {

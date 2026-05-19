@@ -32,7 +32,7 @@ export async function GET(req: Request) {
   const cfg = buildAlertConfig();
   if (!cfg.enabled || cfg.provider === "none") {
     return NextResponse.json(
-      { ok: false, error: "Alerts disabled or no provider configured.", provider: cfg.provider },
+      { error: "Alerts disabled or no provider configured.", provider: cfg.provider },
       { status: 503 }
     );
   }
@@ -40,28 +40,28 @@ export async function GET(req: Request) {
   // Verify store exists
   const store = await prisma.store.findUnique({ where: { id: storeId }, select: { id: true } });
   if (!store) {
-    return NextResponse.json({ ok: false, error: "Store not found." }, { status: 404 });
+    return NextResponse.json({ error: "Store not found." }, { status: 404 });
   }
 
   try {
     if (run === "all") {
       const result = await runAllAlerts(storeId);
-      return NextResponse.json({ ok: true, run: "all", ...result });
+      return NextResponse.json({ success: true, run: "all", ...result });
     }
 
     if (run === "stock") {
       const result = await sendLowStockAlert(storeId);
-      return NextResponse.json({ ok: true, run: "stock", ...result });
+      return NextResponse.json({ success: true, run: "stock", ...result });
     }
 
     if (run === "dues") {
       const result = await sendDueReminders(storeId);
-      return NextResponse.json({ ok: true, run: "dues", ...result });
+      return NextResponse.json({ success: true, run: "dues", ...result });
     }
 
-    return NextResponse.json({ ok: false, error: `Unknown run type: ${run}` }, { status: 400 });
+    return NextResponse.json({ error: `Unknown run type: ${run}` }, { status: 400 });
   } catch (err) {
     console.error("[alerts] error:", err);
-    return NextResponse.json({ ok: false, error: "Internal error." }, { status: 500 });
+    return NextResponse.json({ error: "Internal error." }, { status: 500 });
   }
 }

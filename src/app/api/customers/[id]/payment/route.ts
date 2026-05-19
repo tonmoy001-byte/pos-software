@@ -43,16 +43,21 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "No due to pay" }, { status: 400 });
     }
 
+    // Pre-check: verify there are due sales before starting transaction
+    const dueSalesCheck = await prisma.sale.findMany({
+      where: { customerId: id, dueAmount: { gt: 0 } },
+      select: { id: true },
+    });
+    if (dueSalesCheck.length === 0) {
+      return NextResponse.json({ error: "No due sales found for this customer" }, { status: 400 });
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       // 1. Find all due sales for this customer (oldest first)
       const dueSales = await tx.sale.findMany({
         where: { customerId: id, dueAmount: { gt: 0 } },
         orderBy: { createdAt: "asc" },
       });
-
-      if (dueSales.length === 0) {
-        throw new Error("No due sales found for this customer");
-      }
 
       // 2. Distribute payment across sales (FIFO)
       let remaining = paymentAmount;

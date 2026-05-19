@@ -175,18 +175,27 @@ if (found) {
   };
 
   const confirmIMEIs = (product: any, selectedImeis: string[]) => {
+    const duplicates = selectedImeis.filter(imei =>
+      cart.some(item => item.productId !== product.id && item.imeis?.includes(imei))
+    );
+    if (duplicates.length > 0) {
+      setError(`Duplicate IMEI(s) already in cart: ${duplicates.join(", ")}`);
+      setTimeout(() => setError(null), 5000);
+      return;
+    }
+
     const existing = cart.find(item => item.productId === product.id);
     if (existing) {
-      setCart(cart.map(item => 
+      setCart(cart.map(item =>
         item.productId === product.id ? { ...item, quantity: selectedImeis.length, imeis: selectedImeis } : item
       ));
     } else {
-      setCart([...cart, { 
-        productId: product.id, 
-        name: product.name, 
-        price: product.price, 
-        quantity: selectedImeis.length, 
-        imeis: selectedImeis 
+      setCart([...cart, {
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: selectedImeis.length,
+        imeis: selectedImeis
       }]);
     }
     setIsIMEIOpen(false);
@@ -231,6 +240,13 @@ if (found) {
       if (item.imeis.length !== item.quantity) {
         return setError(`Please select ${item.quantity} IMEIs for ${item.name}`);
       }
+    }
+
+    // Validate no duplicate IMEIs across cart items
+    const allImeis = cart.flatMap(item => item.imeis || []);
+    const uniqueImeis = new Set(allImeis);
+    if (uniqueImeis.size !== allImeis.length) {
+      return setError("Duplicate IMEI detected in cart. Please remove duplicates.");
     }
 
     setSubmitting(true);

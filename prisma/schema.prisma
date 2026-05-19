@@ -399,6 +399,8 @@ model SecondHandRecord {
   sellerName    String
   fatherName    String?
   nidNumber     String
+  phone         String?
+  imei          String?
   nidPhotoData  Bytes?
   nidPhotoHash  String?
   model         String

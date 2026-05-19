@@ -3,7 +3,14 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { dailyActivityService, hasPermission, logger } from "@/lib/services";
+import { z } from "zod";
 import type { Role } from "@prisma/client";
+
+const dailyActivitySchema = z.object({
+  type: z.enum(["SALE", "PURCHASE", "EXPENSE", "HAWLAT", "ADVANCE", "DUE", "CLOSING"]),
+  date: z.string().optional(),
+  data: z.unknown().optional(),
+});
 
 export async function GET(req: Request) {
   const session = await getSession();
@@ -31,11 +38,16 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
+    const parsed = dailyActivitySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+    }
+
     const storeId = session.user.storeId;
     const userId = session.user.id;
 
     // Check permissions based on transaction type
-    switch (body.type) {
+    switch (parsed.data.type) {
       case "SALE":
         if (!hasPermission(session.user.role as Role, "sale:create")) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -65,9 +77,9 @@ export async function POST(req: Request) {
     }
 
     // Check if day is locked (skip for CLOSING type which is the locking action itself)
-    if (body.type !== "CLOSING") {
+    if (parsed.data.type !== "CLOSING") {
       const today = new Date();
-      const dateStr = body.date || today.toISOString().split("T")[0];
+      const dateStr = parsed.data.date || today.toISOString().split("T")[0];
       const dayStart = new Date(dateStr + "T00:00:00");
       const balance = await prisma.dailyBalance.findUnique({
         where: { storeId_date: { storeId, date: dayStart } },
@@ -82,27 +94,28 @@ export async function POST(req: Request) {
     }
 
     let result;
-    switch (body.type) {
+    switch (parsed.data.type) {
       case "SALE":
-        result = await dailyActivityService.recordSale(storeId, userId, body.data);
+        result = await dailyActivityService.recordSale(storeId, userId, parsed.data.data as any);
         break;
       case "PURCHASE":
-        result = await dailyActivityService.recordPurchase(storeId, userId, body.data);
+        result = await dailyActivityService.recordPurchase(storeId, userId, parsed.data.data as any);
         break;
       case "EXPENSE":
-        result = await dailyActivityService.recordExpense(storeId, userId, body.data);
+        result = await dailyActivityService.recordExpense(storeId, userId, parsed.data.data as any);
         break;
       case "HAWLAT":
-        result = await dailyActivityService.recordHawlat(storeId, userId, body.data);
+        result = await dailyActivityService.recordHawlat(storeId, userId, parsed.data.data as any);
         break;
       case "ADVANCE":
-        result = await dailyActivityService.recordAdvance(storeId, userId, body.data);
+        result = await dailyActivityService.recordAdvance(storeId, userId, parsed.data.data as any);
         break;
       case "DUE":
-        result = await dailyActivityService.recordDueCollection(storeId, userId, body.data);
+        result = await dailyActivityService.recordDueCollection(storeId, userId, parsed.data.data as any);
         break;
       case "CLOSING":
-        result = await dailyActivityService.saveClosing(storeId, userId, body.date, body.data.closingCash, body.data.notes);
+        const closingData = parsed.data.data as any;
+        result = await dailyActivityService.saveClosing(storeId, userId, parsed.data.date || new Date().toISOString().split("T")[0], closingData?.closingCash, closingData?.notes);
         break;
       default:
         return NextResponse.json({ error: "Invalid transaction type" }, { status: 400 });

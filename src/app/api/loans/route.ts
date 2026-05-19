@@ -2,9 +2,21 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { LoanService, hasPermission, logger } from "@/lib/services";
+import { z } from "zod";
 import type { Role } from "@prisma/client";
 
 const loanService = new LoanService();
+
+const createLoanSchema = z.object({
+  personName: z.string().min(1, "Person name is required").max(100),
+  type: z.enum(["GIVE", "TAKE"]),
+  amount: z.string().or(z.number()).refine((val) => {
+    const num = typeof val === "string" ? parseFloat(val) : val;
+    return !isNaN(num) && num > 0;
+  }, { message: "Amount must be a positive number" }),
+  mode: z.enum(["CASH", "BANK", "BKASH", "NAGAD", "CARD"]).default("CASH"),
+  description: z.string().max(500).optional(),
+});
 
 export async function GET(req: Request) {
   const session = await getSession();
@@ -37,15 +49,22 @@ export async function POST(req: Request) {
   }
 
   try {
-    const data = await req.json();
+    const body = await req.json();
+    const parsed = createLoanSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+    }
+
+    const { personName, type, amount, mode, description } = parsed.data;
+    const amountNum = typeof amount === "string" ? parseFloat(amount) : amount;
 
     const loan = await loanService.create(
       {
-        personName: data.personName,
-        type: data.type,
-        amount: parseFloat(data.amount),
-        mode: data.mode,
-        description: data.description,
+        personName,
+        type,
+        amount: amountNum,
+        mode,
+        description,
       },
       session.user.storeId,
       session.user.id
