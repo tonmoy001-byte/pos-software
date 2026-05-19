@@ -122,6 +122,8 @@ model Product {
   @@index([storeId])
   @@index([storeId, category])
   @@index([barcode])
+  @@index([storeId, stock])
+  @@index([storeId, minStock])
 }
 
 model Customer {
@@ -288,7 +290,7 @@ model DailyBalance {
   store         Store    @relation(fields: [storeId], references: [id])
 
   @@unique([storeId, date])
-  @@index([storeId, date])
+  @@index([storeId, isLocked])
 }
 
 model Event {
@@ -414,6 +416,9 @@ model SecondHandRecord {
   store     Store    @relation(fields: [storeId], references: [id])
   branchId  String?
   branch    Branch?  @relation(fields: [branchId], references: [id])
+
+  @@unique([storeId, nidNumber])
+  @@index([storeId, createdAt])
 }
 
 model StockMovement {

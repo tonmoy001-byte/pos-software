@@ -248,17 +248,29 @@ export class SaleService {
     });
   }
 
-  async findAll(storeId?: string) {
-    return prisma.sale.findMany({
-      where: { storeId },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      include: {
-        customer: { select: { name: true, phone: true } },
-        items: { include: { product: true } },
-        payments: true
-      },
-    });
+  async findAll(storeId?: string, options?: { page?: number; limit?: number; status?: string }) {
+    const { page = 1, limit = 20, status } = options || {};
+    const skip = (page - 1) * limit;
+
+    const where: any = { storeId };
+    if (status) where.status = status;
+
+    const [sales, total] = await Promise.all([
+      prisma.sale.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip,
+        include: {
+          customer: { select: { name: true, phone: true } },
+          items: { include: { product: true } },
+          payments: true
+        },
+      }),
+      prisma.sale.count({ where }),
+    ]);
+
+    return { sales, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async findById(id: string) {

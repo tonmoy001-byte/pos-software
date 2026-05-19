@@ -34,6 +34,9 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search");
   const category = searchParams.get("category");
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200);
+  const skip = (page - 1) * limit;
 
   const where: any = { storeId: session.user.storeId };
   
@@ -46,11 +49,15 @@ export async function GET(req: Request) {
   }
   if (category) where.category = category;
 
-  const products = await prisma.product.findMany({
-    where,
-    orderBy: { name: "asc" },
-    take: 200,
-  });
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      orderBy: { name: "asc" },
+      take: limit,
+      skip,
+    }),
+    prisma.product.count({ where }),
+  ]);
 
   // Optimize: Calculate advanceOrderQuantity using an aggregated query
   const advanceOrderStats = await prisma.saleItem.groupBy({
@@ -77,7 +84,15 @@ export async function GET(req: Request) {
     advanceOrderQuantity: advanceOrderMap.get(p.id) || 0
   }));
 
-  return NextResponse.json(productsWithAdvanceInfo);
+  return NextResponse.json({
+    products: productsWithAdvanceInfo,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    }
+  });
 }
 
 export async function POST(req: Request) {

@@ -44,7 +44,12 @@ export async function GET(req: Request) {
 
   try {
     const storeId = session.user.storeId;
-    const sales = await saleService.findAll(storeId);
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
+    const status = searchParams.get("status") || undefined;
+
+    const { sales, total, totalPages } = await saleService.findAll(storeId, { page, limit, status });
     
     const formattedSales = sales.map((sale: any) => ({
       id: sale.id,
@@ -67,7 +72,15 @@ export async function GET(req: Request) {
       createdAt: sale.createdAt?.toISOString(),
     }));
 
-    return NextResponse.json(formattedSales);
+    return NextResponse.json({
+      sales: formattedSales,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      }
+    });
   } catch (error: any) {
     logger.error("Failed to fetch sales", { error: error.message });
     return NextResponse.json({ error: "Failed to fetch sales" }, { status: 500 });
