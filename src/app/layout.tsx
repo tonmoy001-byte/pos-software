@@ -4,6 +4,7 @@ import "./globals.css";
 import { SidebarWrapper } from "@/components/layout/SidebarWrapper";
 import SWRegister from "@/components/sw-register";
 import { SessionProvider } from "next-auth/react";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const hindSiliguri = Hind_Siliguri({ 
@@ -48,7 +49,9 @@ export default function RootLayout({
           <SWRegister />
           <SidebarWrapper />
           <main className="flex-1 overflow-y-auto">
-            {children}
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
           </main>
         </SessionProvider>
       </body>
