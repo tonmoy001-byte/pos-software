@@ -29,20 +29,14 @@ export async function GET(req: Request) {
     return NextResponse.json(suppliers || []);
   } catch (error: any) {
     logger.error("Suppliers fetch error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
-    return NextResponse.json([]);
+    return NextResponse.json({ error: "Failed to fetch suppliers" }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
-  let session;
-  try {
-    session = await getSession();
-  } catch (e) {
-    session = null;
-  }
-  
+  const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "No session" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (!hasPermission(session.user.role as Role, "supplier:create")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

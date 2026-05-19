@@ -180,6 +180,10 @@ export async function postTransactionEntry(
       lines.push({ accountId: cashId, debit: amount, credit: 0 });
       lines.push({ accountId: accountMap.get("2100")!, debit: 0, credit: amount });
       break;
+    case "DUE_PAYMENT":
+      lines.push({ accountId: accountMap.get("2000")!, debit: amount, credit: 0 });
+      lines.push({ accountId: cashId, debit: 0, credit: amount });
+      break;
     default:
       return;
   }

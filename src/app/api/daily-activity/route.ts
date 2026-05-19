@@ -69,6 +69,11 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
         break;
+      case "ADVANCE":
+        if (!hasPermission(session.user.role as Role, "sale:create")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+        break;
       case "CLOSING":
         if (!hasPermission(session.user.role as Role, "cash:closing")) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });

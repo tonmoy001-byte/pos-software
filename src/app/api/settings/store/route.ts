@@ -10,6 +10,9 @@ export async function GET(req: Request) {
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (!hasPermission(session.user.role as Role, "store:settings")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
     const store = await prisma.store.findUnique({

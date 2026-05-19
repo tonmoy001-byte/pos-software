@@ -3,6 +3,16 @@ import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { compare } from "bcryptjs";
+import { checkRateLimit } from "@/lib/services/rateLimiter";
+import { NextResponse } from "next/server";
+
+function getIpFromRequest(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0].trim();
+  }
+  return req.headers.get("x-real-ip") || "unknown";
+}
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -74,7 +84,30 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-const handler = NextAuth(authOptions);
+const originalHandler = NextAuth(authOptions);
+
+async function handler(req: Request, context: any) {
+  // Only rate limit POST requests (login attempts)
+  if (req.method === "POST") {
+    const ip = getIpFromRequest(req);
+    const { allowed, remaining, resetAt } = checkRateLimit(ip, "auth");
+    
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please try again later." },
+        { 
+          status: 429,
+          headers: {
+            "X-RateLimit-Remaining": String(remaining),
+            "X-RateLimit-Reset": String(resetAt),
+          }
+        }
+      );
+    }
+  }
+
+  return originalHandler(req, context);
+}
 
 export { handler as GET, handler as POST };
 
