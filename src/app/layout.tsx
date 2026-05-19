@@ -3,6 +3,7 @@ import { Inter, Hind_Siliguri } from "next/font/google";
 import "./globals.css";
 import { SidebarWrapper } from "@/components/layout/SidebarWrapper";
 import SWRegister from "@/components/sw-register";
+import { SessionProvider } from "next-auth/react";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const hindSiliguri = Hind_Siliguri({ 
@@ -43,11 +44,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable}`}>
       <body className="flex bg-background min-h-screen" suppressHydrationWarning>
-        <SWRegister />
-        <SidebarWrapper />
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
+        <SessionProvider>
+          <SWRegister />
+          <SidebarWrapper />
+          <main className="flex-1 overflow-y-auto">
+            {children}
+          </main>
+        </SessionProvider>
       </body>
     </html>
   );
