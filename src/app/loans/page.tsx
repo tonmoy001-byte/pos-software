@@ -64,6 +64,18 @@ export default function LoansPage() {
 
   const handlePayLoan = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const paymentAmount = Number(payAmount);
+    const remaining = Number(selectedLoan?.remaining || 0);
+    
+    if (!paymentAmount || paymentAmount <= 0) {
+      return alert("Please enter a valid payment amount");
+    }
+    
+    if (paymentAmount > remaining) {
+      return alert(`Payment amount (${formatCurrency(paymentAmount)}) exceeds remaining balance (${formatCurrency(remaining)})`);
+    }
+    
     setSubmitting(true);
     try {
       const res = await fetch(`/api/loans/${selectedLoan.id}/payment`, {
@@ -74,6 +86,9 @@ export default function LoansPage() {
         setIsPayOpen(false);
         setPayAmount("");
         fetchLoans();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Payment failed");
       }
     } finally {
       setSubmitting(false);

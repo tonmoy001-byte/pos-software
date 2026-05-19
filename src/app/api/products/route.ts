@@ -120,8 +120,8 @@ export async function POST(req: Request) {
     const product = await prisma.product.create({
       data: {
         name: data.name,
-        model: data.model || data.name,
-        brand: data.brand || "",
+        model: data.model && data.model.trim() ? data.model.trim() : data.name,
+        brand: data.brand && data.brand.trim() ? data.brand.trim() : "Generic",
         category: (data.category || "SMARTPHONE").toUpperCase(),
         price: data.price,
         cost: data.cost,

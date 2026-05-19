@@ -65,18 +65,28 @@ export async function postSaleEntry(
   const accountMap = await getAccountMap(storeId, tx);
 
   const lines: { accountId: string; debit: number; credit: number }[] = [];
-  const cashAccountCode = getAccountCode(mode);
-  const cashId = accountMap.get(cashAccountCode)!;
-
-  // Dr Cash/Receivable, Cr Sales Revenue
-  lines.push({ accountId: cashId, debit: paidAmount, credit: 0 });
-  lines.push({ accountId: accountMap.get("4000")!, debit: 0, credit: totalAmount });
-
-  // If due, also Dr Accounts Receivable for the due portion
   const dueAmount = totalAmount - paidAmount;
-  if (dueAmount > 0) {
+
+  // For due sales, debit AR for the full amount
+  // For cash/partial sales, debit cash for paid portion and AR for due portion
+  if (mode === "DUE" || paidAmount === 0) {
+    // Pure credit sale: Dr AR, Cr Revenue
+    lines.push({ accountId: accountMap.get("1200")!, debit: totalAmount, credit: 0 });
+  } else if (dueAmount > 0) {
+    // Partial payment: Dr Cash for paid, Dr AR for due
+    const cashAccountCode = getAccountCode(mode);
+    const cashId = accountMap.get(cashAccountCode)!;
+    lines.push({ accountId: cashId, debit: paidAmount, credit: 0 });
     lines.push({ accountId: accountMap.get("1200")!, debit: dueAmount, credit: 0 });
+  } else {
+    // Full cash payment: Dr Cash, Cr Revenue
+    const cashAccountCode = getAccountCode(mode);
+    const cashId = accountMap.get(cashAccountCode)!;
+    lines.push({ accountId: cashId, debit: totalAmount, credit: 0 });
   }
+
+  // Cr Sales Revenue for full amount
+  lines.push({ accountId: accountMap.get("4000")!, debit: 0, credit: totalAmount });
 
   // Dr COGS, Cr Inventory
   if (costAmount > 0) {

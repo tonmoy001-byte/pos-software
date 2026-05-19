@@ -44,6 +44,7 @@ export interface QuickHawlatInput {
 
 export interface QuickAdvanceInput {
   customerId: string;
+  items: { productId: string; quantity: number; price: number; imeis?: string[] }[];
   amount: number;
   deliveryDate?: string;
   paymentMethod?: string;
@@ -221,8 +222,12 @@ export class DailyActivityService {
   }
 
   async recordAdvance(storeId: string, userId: string, data: QuickAdvanceInput) {
+    if (!data.items || data.items.length === 0) {
+      throw new Error("Advance orders must include at least one item");
+    }
+
     return saleService.create({
-      items: [],
+      items: data.items,
       customerId: data.customerId,
       totalAmount: data.amount,
       paidAmount: data.amount,

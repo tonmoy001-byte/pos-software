@@ -181,6 +181,8 @@ export default function ExchangeSalePage() {
               <input
                 placeholder="Trade-in value (৳)"
                 type="number"
+                min="0"
+                step="0.01"
                 value={item.value || ""}
                 onChange={e => updateExchangeItem(idx, "value", e.target.value)}
                 className="flex-1 p-2 rounded border border-border text-sm"

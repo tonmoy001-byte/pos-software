@@ -52,6 +52,11 @@ export default function POSPage() {
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const [currentStore, setCurrentStore] = useState<any>(null);
   const [invoiceConfig, setInvoiceConfig] = useState<any>(null);
+  
+  // Price Override Modal State
+  const [isPriceOverrideOpen, setIsPriceOverrideOpen] = useState(false);
+  const [priceOverrideItem, setPriceOverrideItem] = useState<any>(null);
+  const [newPrice, setNewPrice] = useState("");
 
   useEffect(() => {
     if (isIMEIOpen && selectedProduct) {
@@ -251,6 +256,9 @@ if (found) {
 
     setSubmitting(true);
     
+    // Generate idempotency key to prevent duplicate sales on network failure
+    const idempotencyKey = `pos-${Date.now()}-${crypto.randomUUID().substring(0, 8)}`;
+    
     const payload = {
       customerId: selectedCustomer?.id || null,
       items: cart,
@@ -264,7 +272,10 @@ if (found) {
     try {
       const res = await fetch("/api/sales", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey
+        },
         body: JSON.stringify(payload)
       });
       const data = await res.json();
@@ -286,7 +297,9 @@ if (found) {
         console.error("Checkout error:", data.error);
       }
     } catch (err) {
-      setError("Checkout failed - connection error");
+      // Network error - sale may have been created but response lost
+      // Check if sale was created by looking for recent sales with same total
+      setError("Network error - please check recent sales before retrying");
       console.error("Checkout connection error:", err);
     } finally {
       setSubmitting(false);
@@ -566,6 +579,89 @@ setPaidAmount(String(total));
         </div>
       )}
 
+      {/* Price Override Modal */}
+      {isPriceOverrideOpen && priceOverrideItem && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="bg-surface w-full max-w-sm rounded-3xl p-8 card-shadow space-y-6 relative animate-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => { setIsPriceOverrideOpen(false); setPriceOverrideItem(null); setNewPrice(""); }}
+              className="absolute top-6 right-6 text-secondary hover:text-foreground"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto">
+                <Percent className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-bold">Override Price</h2>
+              <p className="text-sm text-secondary">{priceOverrideItem.name}</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-background p-4 rounded-xl space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-secondary">Original Price</span>
+                  <span className="font-bold">{formatCurrency(priceOverrideItem.price)}</span>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-xs font-black text-secondary uppercase tracking-widest">New Unit Price</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-primary text-xl">৳</div>
+                  <input 
+                    type="number" 
+                    value={newPrice}
+                    onChange={(e) => setNewPrice(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full pl-10 pr-4 py-4 bg-background rounded-2xl border-2 border-primary/20 text-2xl font-black text-primary outline-none focus:border-primary transition-all"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newPrice && !isNaN(Number(newPrice)) && Number(newPrice) > 0) {
+                        setCart(cart.map(c => 
+                          c.productId === priceOverrideItem.productId 
+                            ? { ...c, price: Number(newPrice) } 
+                            : c
+                        ));
+                        setIsPriceOverrideOpen(false);
+                        setPriceOverrideItem(null);
+                        setNewPrice("");
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <button 
+                onClick={() => { setIsPriceOverrideOpen(false); setPriceOverrideItem(null); setNewPrice(""); }}
+                className="flex-1 py-4 bg-background border border-border rounded-2xl font-bold text-secondary hover:bg-surface transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                disabled={!newPrice || isNaN(Number(newPrice)) || Number(newPrice) <= 0}
+                onClick={() => {
+                  setCart(cart.map(c => 
+                    c.productId === priceOverrideItem.productId 
+                      ? { ...c, price: Number(newPrice) } 
+                      : c
+                  ));
+                  setIsPriceOverrideOpen(false);
+                  setPriceOverrideItem(null);
+                  setNewPrice("");
+                }}
+                className="flex-1 py-4 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hidden Thermal Receipt for Printing */}
       {lastSale && (
         <ThermalReceipt
@@ -802,14 +898,9 @@ setPaidAmount(String(total));
                   <p className="font-black text-sm">{item.name}</p>
                   <button 
                     onClick={() => {
-                      const newPrice = prompt("Enter new price:", item.price.toString());
-                      if (newPrice && !isNaN(Number(newPrice))) {
-                        setCart(cart.map(c => 
-                          c.productId === item.productId 
-                            ? { ...c, price: Number(newPrice) } 
-                            : c
-                        ));
-                      }
+                      setPriceOverrideItem(item);
+                      setNewPrice(item.price.toString());
+                      setIsPriceOverrideOpen(true);
                     }}
                     className="text-[10px] text-primary hover:underline"
                   >
