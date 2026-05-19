@@ -1,9 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Standalone output for Docker/production deployments
+  output: "standalone",
+
   // Cache static assets (including service worker) so they work offline.
-  // sw.js and manifest.json are never revalidated — a versioned filename
-  // (e.g. sw-v2.js) plus a page reload are both required for updates.
+  // Reduced cache time to 1 hour to allow faster SW updates (was 24h).
   async headers() {
     return [
       {
@@ -11,7 +13,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=86400, stale-while-revalidate=3600",
+            value: "public, max-age=3600, stale-while-revalidate=300",
           },
           {
             key: "Service-Worker-Allowed",
@@ -24,7 +26,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=86400, stale-while-revalidate=3600",
+            value: "public, max-age=3600, stale-while-revalidate=300",
           },
         ],
       },

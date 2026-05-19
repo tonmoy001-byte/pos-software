@@ -9,6 +9,14 @@ function generateId(): string {
 export async function proxy(req: NextRequest) {
   const requestId = generateId();
 
+  // Skip auth for public endpoints to avoid unnecessary token checks
+  const publicPaths = ["/api/health"];
+  if (publicPaths.some(path => req.nextUrl.pathname.startsWith(path))) {
+    const response = NextResponse.next();
+    response.headers.set("X-Request-ID", requestId);
+    return response;
+  }
+
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const isAuth = !!token;
   const isAuthPage = req.nextUrl.pathname.startsWith("/auth");

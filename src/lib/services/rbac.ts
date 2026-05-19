@@ -62,8 +62,8 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "store:settings", "store:view_all"
   ],
   MANAGER: [
-    "sale:create", "sale:view", "sale:refund", "sale:cancel",
-    "product:create", "product:update", "product:view",
+    "sale:create", "sale:view", "sale:refund", "sale:cancel", "sale:view_all",
+    "product:create", "product:update", "product:delete", "product:view",
     "customer:create", "customer:update", "customer:view",
     "supplier:create", "supplier:update", "supplier:delete", "supplier:view", "supplier:due_adjust",
     "loan:create", "loan:update", "loan:view",

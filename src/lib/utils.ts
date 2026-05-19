@@ -11,19 +11,19 @@ export function formatCurrency(amount: number | string | null | undefined): stri
   return new Intl.NumberFormat("en-BD", { style: "currency", currency: "BDT" }).format(num);
 }
 
-export function formatDate(date: string | Date | any): string {
+export function formatDate(date: string | Date | null | undefined): string {
   if (!date) return '-';
   const d = new Date(date);
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-export function formatTime(date: string | Date | any): string {
+export function formatTime(date: string | Date | null | undefined): string {
   if (!date) return '-';
   const d = new Date(date);
   return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
-export function formatDateTime(date: string | Date | any): string {
+export function formatDateTime(date: string | Date | null | undefined): string {
   if (!date) return '-';
   const d = new Date(date);
   return d.toLocaleString('en-GB', { 
