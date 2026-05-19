@@ -112,6 +112,7 @@ model Product {
   storeId   String
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
+  deletedAt DateTime?
   store     Store            @relation(fields: [storeId], references: [id])
   branchId  String?
   branch    Branch?  @relation(fields: [branchId], references: [id])
@@ -124,6 +125,7 @@ model Product {
   @@index([barcode])
   @@index([storeId, stock])
   @@index([storeId, minStock])
+  @@index([deletedAt])
 }
 
 model Customer {
@@ -135,6 +137,7 @@ model Customer {
   storeId   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
   store     Store    @relation(fields: [storeId], references: [id])
   branchId  String?
   branch    Branch?  @relation(fields: [branchId], references: [id])
@@ -142,6 +145,7 @@ model Customer {
 
   @@unique([phone, storeId])
   @@index([storeId])
+  @@index([deletedAt])
 }
 
 model Sale {
@@ -252,12 +256,14 @@ model Supplier {
   storeId      String
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
+  deletedAt    DateTime?
   store        Store               @relation(fields: [storeId], references: [id])
   transactions Transaction[]
   products     SupplierProduct[]
 
   @@index([storeId])
   @@index([phone])
+  @@index([deletedAt])
 }
 
 model SupplierProduct {

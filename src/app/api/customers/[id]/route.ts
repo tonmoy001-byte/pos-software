@@ -100,7 +100,12 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     );
   }
 
-  await prisma.customer.delete({ where: { id, storeId: session.user.storeId } });
+  // Soft delete: Update deletedAt instead of hard delete
+  // This preserves sales history and audit trail
+  await prisma.customer.update({
+    where: { id, storeId: session.user.storeId },
+    data: { deletedAt: new Date() }
+  });
 
   await eventStore.append({
     aggregateType: "Customer",

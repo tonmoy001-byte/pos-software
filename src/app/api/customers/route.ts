@@ -29,7 +29,7 @@ export async function GET(req: Request) {
 
   const skip = (page - 1) * limit;
 
-  const where: any = { storeId: session.user.storeId };
+  const where: any = { storeId: session.user.storeId, deletedAt: null };
 
   if (query) {
     where.OR = [
@@ -47,10 +47,10 @@ export async function GET(req: Request) {
   try {
     if (statsOnly) {
       const [total, withDue, totalDueAgg] = await Promise.all([
-        prisma.customer.count({ where: { storeId: session.user.storeId } }),
-        prisma.customer.count({ where: { storeId: session.user.storeId, dueAmount: { gt: 0 } } }),
+        prisma.customer.count({ where: { storeId: session.user.storeId, deletedAt: null } }),
+        prisma.customer.count({ where: { storeId: session.user.storeId, deletedAt: null, dueAmount: { gt: 0 } } }),
         prisma.customer.aggregate({
-          where: { storeId: session.user.storeId },
+          where: { storeId: session.user.storeId, deletedAt: null },
           _sum: { dueAmount: true }
         }),
       ]);

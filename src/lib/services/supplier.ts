@@ -26,7 +26,7 @@ export class SupplierService {
 
   async findAll(storeId?: string) {
     return prisma.supplier.findMany({
-      where: { storeId },
+      where: { storeId, deletedAt: null },
       orderBy: { name: "asc" },
       take: 100,
       include: {
@@ -37,7 +37,7 @@ export class SupplierService {
 
   async findById(id: string, storeId: string) {
     return prisma.supplier.findFirst({
-      where: { id, storeId },
+      where: { id, storeId, deletedAt: null },
       include: {
         transactions: {
           orderBy: { createdAt: "desc" },
@@ -206,8 +206,12 @@ export class SupplierService {
     if (!supplier) throw new Error("Supplier not found");
 
     return prisma.$transaction(async (tx) => {
-      await tx.supplierProduct.deleteMany({ where: { supplierId: id } });
-      const result = await tx.supplier.delete({ where: { id } });
+      // Soft delete: Update deletedAt instead of hard delete
+      // This preserves transaction history and audit trail
+      const result = await tx.supplier.update({
+        where: { id },
+        data: { deletedAt: new Date() }
+      });
 
       await eventStore.append({
         aggregateType: "Supplier",

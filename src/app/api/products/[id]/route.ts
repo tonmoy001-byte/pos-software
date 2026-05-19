@@ -29,9 +29,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
     
-    await prisma.product.delete({
+    // Soft delete: Update deletedAt instead of hard delete
+    // This preserves sales history and audit trail
+    await prisma.product.update({
       where: { id },
-      include: { saleItems: true }
+      data: { deletedAt: new Date() }
     });
 
     await eventStore.append({

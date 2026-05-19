@@ -38,7 +38,7 @@ export async function GET(req: Request) {
   const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200);
   const skip = (page - 1) * limit;
 
-  const where: any = { storeId: session.user.storeId };
+  const where: any = { storeId: session.user.storeId, deletedAt: null };
   
   if (search) {
     where.OR = [
