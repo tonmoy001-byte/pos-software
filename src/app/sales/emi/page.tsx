@@ -216,6 +216,20 @@ export default function EMISalePage() {
                 </div>
               </div>
             ))}
+            {products.length === 0 && (
+              <div className="col-span-full py-12 text-center text-secondary">
+                <Smartphone className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p className="font-bold">No products available</p>
+                <p className="text-sm">Add products in inventory to start creating EMI sales</p>
+              </div>
+            )}
+            {products.length > 0 && filteredProducts.length === 0 && (
+              <div className="col-span-full py-12 text-center text-secondary">
+                <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p className="font-bold">No products match your search</p>
+                <p className="text-sm">Try a different search term</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

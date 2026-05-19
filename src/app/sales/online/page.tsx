@@ -164,6 +164,20 @@ export default function OnlineSalePage() {
                 </div>
               </div>
             ))}
+            {products.length === 0 && (
+              <div className="col-span-full py-12 text-center text-secondary">
+                <Smartphone className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p className="font-bold">No products available</p>
+                <p className="text-sm">Add products in inventory to start creating online sales</p>
+              </div>
+            )}
+            {products.length > 0 && products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+              <div className="col-span-full py-12 text-center text-secondary">
+                <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p className="font-bold">No products match your search</p>
+                <p className="text-sm">Try a different search term</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
