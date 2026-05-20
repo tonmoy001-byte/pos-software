@@ -103,13 +103,10 @@ export class EventStore {
     aggregateType: EventAggregateType,
     aggregateId: string
   ): Promise<any | null> {
-    const events = await prisma.event.findMany({
+    return prisma.event.findFirst({
       where: { aggregateType, aggregateId },
       orderBy: { createdAt: "desc" },
-      take: 1,
     });
-
-    return events[0] ?? null;
   }
 }
 

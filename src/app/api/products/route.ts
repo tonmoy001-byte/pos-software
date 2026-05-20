@@ -42,9 +42,9 @@ export async function GET(req: Request) {
   
   if (search) {
     where.OR = [
-      { name: { contains: search } },
+      { name: { contains: search, mode: "insensitive" } },
       { barcode: { contains: search } },
-      { model: { contains: search } },
+      { model: { contains: search, mode: "insensitive" } },
     ];
   }
   if (category) where.category = category;
@@ -115,6 +115,9 @@ export async function POST(req: Request) {
     }
     
     const data = result.data;
+    if (data.cost && data.price <= data.cost) {
+      return NextResponse.json({ error: "Price must be greater than cost" }, { status: 400 });
+    }
     const productBarcode = data.barcode || generateBarcode();
     
     const product = await prisma.product.create({

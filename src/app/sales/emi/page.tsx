@@ -39,7 +39,8 @@ export default function EMISalePage() {
           fetch("/api/settings/store"),
           fetch("/api/invoice-settings")
         ]);
-        setProducts(await productsRes.json());
+        const productsData = await productsRes.json();
+        setProducts(Array.isArray(productsData) ? productsData : (productsData.products || []));
         setCurrentStore(await storeRes.json());
         setInvoiceSettings(await invoiceRes.json());
       } catch (err) { console.error(err); }

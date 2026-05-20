@@ -51,18 +51,19 @@ export async function PUT(req: Request) {
 
   try {
     const data = await req.json();
-    logger.info("Saving store settings", { storeId: session.user.storeId, userId: session.user.id, data });
+    const sanitized = {
+      name: data.name?.trim().slice(0, 100),
+      address: data.address?.trim().slice(0, 300),
+      phone: data.phone?.trim().slice(0, 20),
+      email: data.email?.trim().toLowerCase().slice(0, 100),
+      description: data.description?.trim().slice(0, 500),
+      taxId: data.taxId?.trim().slice(0, 50),
+    };
+    logger.info("Saving store settings", { storeId: session.user.storeId, userId: session.user.id, data: sanitized });
     
     const store = await prisma.store.update({
       where: { id: session.user.storeId },
-      data: {
-        name: data.name,
-        address: data.address,
-        phone: data.phone,
-        email: data.email,
-        description: data.description,
-        taxId: data.taxId,
-      },
+      data: sanitized,
     });
 
     return NextResponse.json(store);

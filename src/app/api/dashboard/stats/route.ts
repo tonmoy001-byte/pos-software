@@ -1,8 +1,9 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { hasPermission, TransactionService, CapitalService, logger } from "@/lib/services";
+import { getSession } from "@/lib/auth";
+import { hasPermission, logger, isSuperAdmin } from "@/lib/services";
+import { SaleService, CapitalService, TransactionService } from "@/lib/services";
 import type { Role } from "@prisma/client";
 
 const transactionService = new TransactionService();
@@ -18,7 +19,7 @@ export async function GET(req: Request) {
   }
 
   const storeId = session.user.storeId;
-  const isAdmin = session.user.role === "ADMIN";
+  const isCrossStoreAdmin = isSuperAdmin(session.user.id);
 
   const { searchParams } = new URL(req.url);
   const chartStartParam = searchParams.get("start");
@@ -43,9 +44,9 @@ export async function GET(req: Request) {
 
     // Get financial summaries
     const [summary, capital, yesterdaySummary] = await Promise.all([
-      transactionService.getFinancialSummary(storeId, startOfToday, endOfToday, isAdmin),
-      capitalService.getCapitalSummary(storeId, isAdmin),
-      transactionService.getFinancialSummary(storeId, startOfYesterday, endOfYesterday, isAdmin),
+      transactionService.getFinancialSummary(storeId, startOfToday, endOfToday, isCrossStoreAdmin),
+      capitalService.getCapitalSummary(storeId, isCrossStoreAdmin),
+      transactionService.getFinancialSummary(storeId, startOfYesterday, endOfYesterday, isCrossStoreAdmin),
     ]);
 
     // Get today's recent activities (sales + transactions)
@@ -88,28 +89,33 @@ export async function GET(req: Request) {
       }),
     ]);
 
-    // Build chart data from live records
+    // Build chart data from live records using single-pass aggregation
+    const salesByDate = new Map<string, { revenue: number; profit: number }>();
+    for (const s of allSales) {
+      const dateStr = localDateStr(new Date(s.createdAt));
+      const existing = salesByDate.get(dateStr) || { revenue: 0, profit: 0 };
+      existing.revenue += Number(s.totalAmount);
+      existing.profit += Number(s.profit);
+      salesByDate.set(dateStr, existing);
+    }
+
+    const expensesByDate = new Map<string, number>();
+    for (const e of allExpenses) {
+      const dateStr = localDateStr(new Date(e.createdAt));
+      expensesByDate.set(dateStr, (expensesByDate.get(dateStr) || 0) + Number(e.amount));
+    }
+
     const dailyChartData: { date: string; revenue: number; profit: number; expenses: number }[] = [];
     const d = new Date(chartStartDate);
     while (d <= chartEndDate) {
       const dateStr = localDateStr(d);
-
-      const daySales = allSales.filter(s => {
-        const sDate = localDateStr(new Date(s.createdAt));
-        return sDate === dateStr;
-      });
-      const dayExpenses = allExpenses.filter(e => {
-        const eDate = localDateStr(new Date(e.createdAt));
-        return eDate === dateStr;
-      });
-
+      const daySales = salesByDate.get(dateStr) || { revenue: 0, profit: 0 };
       dailyChartData.push({
         date: dateStr,
-        revenue: daySales.reduce((sum, s) => sum + Number(s.totalAmount), 0),
-        profit: daySales.reduce((sum, s) => sum + Number(s.profit), 0),
-        expenses: dayExpenses.reduce((sum, e) => sum + Number(e.amount), 0),
+        revenue: daySales.revenue,
+        profit: daySales.profit,
+        expenses: expensesByDate.get(dateStr) || 0,
       });
-
       d.setDate(d.getDate() + 1);
     }
 

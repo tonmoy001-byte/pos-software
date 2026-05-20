@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { eventStore, EventStoreData, hasPermission, checkIdempotency, markIdempotent, createIdempotencyKey, completeIdempotencyKey, extractIdempotencyKey, logger } from "@/lib/services";
+import { eventStore, EventStoreData, hasPermission, checkIdempotency, markIdempotent, createIdempotencyKey, completeIdempotencyKey, extractIdempotencyKey, logger, postDueCollectionEntry } from "@/lib/services";
 import type { Role } from "@prisma/client";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -103,13 +103,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           amount: paymentAmount,
           method,
           customerId: id,
+          saleId: appliedPayments.length > 0 ? appliedPayments[0].saleId : null,
           storeId: session.user.storeId,
         },
       });
 
       // 5. Create transaction
       const invoiceRefs = appliedPayments.map(p => p.invoiceId).join(", ");
-      await tx.transaction.create({
+      const transaction = await tx.transaction.create({
         data: {
           type: "DUE_PAYMENT",
           amount: paymentAmount,
@@ -120,6 +121,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           storeId: session.user.storeId,
         },
       });
+
+      // 5.5. Journal entry for due collection
+      await postDueCollectionEntry(transaction.id, paymentAmount, method, session.user.storeId, tx);
 
       // 6. Append event
       await eventStore.append({

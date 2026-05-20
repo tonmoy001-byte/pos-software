@@ -36,7 +36,7 @@ export default function SuppliersPage() {
       try {
         const res = await fetch("/api/suppliers");
         const json = await res.json();
-        setSuppliers(json);
+        setSuppliers(Array.isArray(json) ? json : (json.suppliers || []));
       } catch (err) {
         console.error("Failed to fetch suppliers", err);
       } finally {
@@ -47,7 +47,7 @@ export default function SuppliersPage() {
       try {
         const res = await fetch("/api/products");
         const json = await res.json();
-        setProducts(json);
+        setProducts(Array.isArray(json) ? json : (json.products || []));
       } catch (err) {
         console.error("Failed to fetch products", err);
       }
@@ -84,7 +84,8 @@ export default function SuppliersPage() {
         setSelectedProducts([]);
         setNewProductInput("");
         const res = await fetch("/api/suppliers");
-        setSuppliers(await res.json());
+        const json = await res.json();
+        setSuppliers(Array.isArray(json) ? json : (json.suppliers || []));
       } else {
         setMessage({ type: "error", text: json.error || "Failed to add supplier" });
       }
@@ -116,7 +117,8 @@ export default function SuppliersPage() {
         setSelectedSupplier(null);
         setAdjustAmount("");
         const res = await fetch("/api/suppliers");
-        setSuppliers(await res.json());
+        const json = await res.json();
+        setSuppliers(Array.isArray(json) ? json : (json.suppliers || []));
       } else {
         setMessage({ type: "error", text: "Failed" });
       }

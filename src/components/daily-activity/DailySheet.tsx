@@ -76,9 +76,12 @@ export default function DailySheet({ date, onDateChange }: DailySheetProps) {
         fetch("/api/customers"),
         fetch("/api/dues?limit=50"),
       ]);
-      setProducts(await pRes.json());
-      setSuppliers(await sRes.json());
-      setCustomers(await cRes.json());
+      const productsData = await pRes.json();
+      setProducts(Array.isArray(productsData) ? productsData : (productsData.products || []));
+      const suppliersData = await sRes.json();
+      setSuppliers(Array.isArray(suppliersData) ? suppliersData : (suppliersData.suppliers || []));
+      const customersData = await cRes.json();
+      setCustomers(Array.isArray(customersData) ? customersData : (customersData.customers || []));
       const duesJson = await dRes.json();
       setDueSales(duesJson.data || duesJson || []);
     } catch (err) {

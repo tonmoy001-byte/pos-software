@@ -29,7 +29,8 @@ export default function RepairSalePage() {
           fetch("/api/products"),
           fetch("/api/invoice-settings")
         ]);
-        setProducts(await productsRes.json());
+        const productsData = await productsRes.json();
+        setProducts(Array.isArray(productsData) ? productsData : (productsData.products || []));
         setInvoiceSettings(await invoiceRes.json());
       } catch (err) {
         console.error("Failed to fetch data", err);
@@ -89,7 +90,7 @@ export default function RepairSalePage() {
     setLastSale(null);
     setCart([]);
     setSuccess("Repair order created!");
-    fetch("/api/products").then(r => r.json()).then(setProducts);
+    fetch("/api/products").then(r => r.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
   };
 
   const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);

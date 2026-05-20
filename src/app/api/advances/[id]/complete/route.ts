@@ -62,11 +62,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   // ── 3. Compute new state ──────────────────────────────────────────────────
-  // All values are DecimalType → JS number; no sub-paise fractions can exist
-  // after the parseFloat guard above, so === 0 is a safe stop-loss.
   const newPaidTotal = alreadyPaid + paidAmount;
   const newDue       = totalAmount - newPaidTotal;
-  const isFullyPaid  = newDue === 0;
+  const isFullyPaid  = newDue < 0.01;
   const newStatus    = isFullyPaid ? ("COMPLETED" as const) : ("PARTIAL" as const);
 
   // ── 3.5. Validate stock before completing ─────────────────────────────────

@@ -74,7 +74,7 @@ export default function POSPage() {
       try {
         const res = await fetch("/api/products");
         const json = await res.json();
-        setProducts(json);
+        setProducts(Array.isArray(json) ? json : (json.products || []));
       } catch (err) {
         console.error("Failed to fetch products", err);
       } finally {
@@ -290,7 +290,7 @@ if (found) {
           setSelectedCustomer(null);
           setPaidAmount("");
           // Refresh products to update stock
-          fetch("/api/products").then(res => res.json()).then(setProducts);
+          fetch("/api/products").then(res => res.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
         }, 500);
       } else {
         setError(data.error || "Checkout failed");

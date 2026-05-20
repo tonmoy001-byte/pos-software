@@ -32,7 +32,7 @@ export default function WholesaleSalePage() {
       fetch("/api/settings/store").then(r => r.json()),
       fetch("/api/invoice-settings").then(r => r.json())
     ]).then(([productsData, storeData, invoiceData]) => {
-      setProducts(productsData);
+      setProducts(Array.isArray(productsData) ? productsData : (productsData.products || []));
       setCurrentStore(storeData);
       setInvoiceSettings(invoiceData);
     }).finally(() => setLoading(false)); 

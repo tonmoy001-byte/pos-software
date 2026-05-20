@@ -14,12 +14,16 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const records = await prisma.secondHandRecord.findMany({
-    where: { storeId: session.user.storeId },
-    orderBy: { date: "desc" }
-  });
+  try {
+    const records = await prisma.secondHandRecord.findMany({
+      where: { storeId: session.user.storeId },
+      orderBy: { date: "desc" }
+    });
 
-  return NextResponse.json(records);
+    return NextResponse.json(records);
+  } catch (error: any) {
+    return NextResponse.json({ error: "Failed to fetch second-hand records" }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
@@ -51,17 +55,19 @@ export async function POST(req: Request) {
   }
 
   const result = await prisma.$transaction(async (tx) => {
+    const encryptedNid = encryptVal(Buffer.from(nidNumber, "utf-8"));
     const record = await tx.secondHandRecord.create({
       data: {
         sellerName,
         fatherName,
-        nidNumber,
+        nidNumber: encryptedNid.ciphertext,
         phone,
         imei,
         model,
         purchasePrice: Number(purchasePrice),
         storeId,
         isImmutable: true,
+        encryptionIv: encryptedNid.iv,
       }
     });
 
@@ -91,13 +97,14 @@ export async function POST(req: Request) {
       storeId,
     } as EventStoreData, tx);
 
+    const markup = parseFloat(process.env.SECONDHAND_MARKUP || "1.2");
     const product = await tx.product.create({
       data: {
         name: model + " (Second Hand)",
         brand: "Used",
         model,
         category: "Second Hand",
-        price: Number(purchasePrice) * 1.2,
+        price: Number(purchasePrice) * markup,
         cost: Number(purchasePrice),
         stock: 1,
         minStock: 1,
@@ -132,7 +139,7 @@ export async function POST(req: Request) {
     });
 
     await postTransactionEntry(
-      "",
+      record.id,
       "SECONDHAND_BUY",
       Number(purchasePrice),
       "CASH",

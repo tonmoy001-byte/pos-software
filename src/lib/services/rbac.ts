@@ -43,7 +43,7 @@ export type Permission =
   | "user:view"
   | "user:delete"
   | "store:settings"
-  | "store:view_all";
+  | "admin:all";
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ADMIN: [
@@ -59,7 +59,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "secondhand:create", "secondhand:view", "secondhand:edit",
     "document:view", "document:upload",
     "user:create", "user:update", "user:view", "user:delete",
-    "store:settings", "store:view_all"
+    "store:settings", "admin:all"
   ],
   MANAGER: [
     "sale:create", "sale:view", "sale:refund", "sale:cancel", "sale:view_all",

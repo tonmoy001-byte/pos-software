@@ -90,7 +90,7 @@ export default function AdvanceOrderPage() {
           setCompletePayAmount("");
           setCompleteMessage(null);
           fetchAdvances();
-          fetch("/api/products").then(res => res.json()).then(setProducts);
+          fetch("/api/products").then(res => res.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
         }, 1500);
       } else {
         setCompleteMessage({ type: "error", text: data.error || "Failed to complete" });
@@ -122,7 +122,8 @@ export default function AdvanceOrderPage() {
           fetch("/api/settings/store"),
           fetch("/api/invoice-settings")
         ]);
-        setProducts(await productsRes.json());
+        const productsData = await productsRes.json();
+        setProducts(Array.isArray(productsData) ? productsData : (productsData.products || []));
         setCurrentStore(await storeRes.json());
         setInvoiceSettings(await invoiceRes.json());
       } catch (err) {
@@ -136,7 +137,7 @@ export default function AdvanceOrderPage() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      fetch("/api/products").then(res => res.json()).then(setProducts);
+      fetch("/api/products").then(res => res.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
     }, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -301,7 +302,7 @@ export default function AdvanceOrderPage() {
     setDiscount(0);
     setSelectedCustomer(null);
     setPaidAmount("");
-    fetch("/api/products").then(res => res.json()).then(setProducts);
+    fetch("/api/products").then(res => res.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);

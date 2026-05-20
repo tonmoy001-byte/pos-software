@@ -53,13 +53,13 @@ export class SaleService {
       }
 
       // 2.5. Validate totalAmount matches item sum
-      const calculatedTotal = new Decimal(items.reduce((sum, item) => sum + item.price * item.quantity, 0)).toNumber();
+      const calculatedTotal = items.reduce((sum, item) => sum.plus(new Decimal(item.price).times(item.quantity)), new Decimal(0)).toNumber();
       if (Math.abs(calculatedTotal - totalAmount) > 0.01) {
         throw new Error(`Total amount (${totalAmount}) does not match item sum (${calculatedTotal})`);
       }
 
       // 2.6. Validate paidAmount + dueAmount === totalAmount
-      if (Math.abs((paidAmount + dueAmount) - totalAmount) > 0.01) {
+      if (Math.abs(new Decimal(paidAmount).plus(dueAmount).minus(totalAmount).toNumber()) > 0.01) {
         throw new Error("Paid amount + Due amount must equal Total Amount");
       }
 
@@ -146,20 +146,28 @@ export class SaleService {
 
       // Update stock for non-advance orders
       if (saleType !== "ADVANCE_ORDER") {
-        await Promise.all(items.map(async (item) => {
+        const stockMovements = [];
+        for (const item of items) {
           const product = products.find(p => p.id === item.productId);
           const currentStock = product ? Number(product.stock) : 0;
           await tx.product.update({
             where: { id: item.productId },
             data: { stock: { decrement: item.quantity } }
           });
-          await recordStockMovement(item.productId, -item.quantity, "SALE", storeId, {
+          stockMovements.push({
+            productId: item.productId,
+            quantityChange: -item.quantity,
+            stockBefore: currentStock,
+            stockAfter: currentStock - item.quantity,
+            reason: "SALE",
             referenceId: sale.id,
             referenceType: "Sale",
-            tx,
-            stockBefore: currentStock,
+            storeId,
           });
-        }));
+        }
+        if (stockMovements.length > 0) {
+          await tx.stockMovement.createMany({ data: stockMovements });
+        }
       }
 
       // 10. Create financial transaction
@@ -263,8 +271,8 @@ export class SaleService {
         skip,
         include: {
           customer: { select: { name: true, phone: true } },
-          items: { include: { product: true } },
-          payments: true
+          items: { select: { id: true, productId: true, quantity: true, price: true, profit: true, product: { select: { name: true, model: true } } } },
+          payments: { select: { id: true, amount: true, method: true, date: true, status: true } }
         },
       }),
       prisma.sale.count({ where }),
@@ -503,19 +511,31 @@ export class SaleService {
 
       const isFullRefund = refundAmountNum >= totalAmount;
 
-      if (isFullRefund && sale.saleType !== "ADVANCE_ORDER") {
+      if (sale.saleType !== "ADVANCE_ORDER") {
+        const refundRatio = new Decimal(refundAmountNum).dividedBy(totalAmount).toNumber();
+        const stockMovements = [];
         for (const item of sale.items) {
           const currentStock = Number((await tx.product.findUnique({ where: { id: item.productId } }))?.stock || 0);
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { increment: item.quantity } }
-          });
-          await recordStockMovement(item.productId, item.quantity, "REFUND", storeId, {
-            referenceId: saleId,
-            referenceType: "Sale",
-            tx,
-            stockBefore: currentStock,
-          });
+          const stockToRestore = Math.round(item.quantity * refundRatio);
+          if (stockToRestore > 0) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: { increment: stockToRestore } }
+            });
+            stockMovements.push({
+              productId: item.productId,
+              quantityChange: stockToRestore,
+              stockBefore: currentStock,
+              stockAfter: currentStock + stockToRestore,
+              reason: "REFUND",
+              referenceId: saleId,
+              referenceType: "Sale",
+              storeId,
+            });
+          }
+        }
+        if (stockMovements.length > 0) {
+          await tx.stockMovement.createMany({ data: stockMovements });
         }
       }
 
@@ -561,7 +581,7 @@ export class SaleService {
       // Adjust customer due if applicable
       if (sale.customerId) {
         const remainingDues = await tx.sale.aggregate({
-          where: { customerId: sale.customerId, dueAmount: { gt: 0 }, id: { not: saleId } },
+          where: { customerId: sale.customerId, dueAmount: { gt: 0 } },
           _sum: { dueAmount: true },
         });
         await tx.customer.update({

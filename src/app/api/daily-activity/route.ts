@@ -129,9 +129,10 @@ export async function POST(req: Request) {
     return NextResponse.json(result);
   } catch (error: any) {
     logger.error("Failed to process transaction", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
+    const isClientError = error.message?.includes("not found") || error.message?.includes("required") || error.message?.includes("invalid") || error.message?.includes("Insufficient");
     return NextResponse.json(
-      { error: error.message || "Failed to process transaction" },
-      { status: 400 }
+      { error: isClientError ? error.message : "Failed to process transaction" },
+      { status: isClientError ? 400 : 500 }
     );
   }
 }

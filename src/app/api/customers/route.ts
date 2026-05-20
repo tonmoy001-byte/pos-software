@@ -33,7 +33,7 @@ export async function GET(req: Request) {
 
   if (query) {
     where.OR = [
-      { name: { contains: query } },
+      { name: { contains: query, mode: "insensitive" } },
       { phone: { contains: query } }
     ];
   }

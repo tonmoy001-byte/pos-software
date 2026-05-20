@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { 
   Search, 
   User, 
@@ -61,7 +61,8 @@ const [barcodeInput, setBarcodeInput] = useState("");
       try {
         const res = await fetch("/api/products");
         const json = await res.json();
-        setProducts(json);
+        // Handle both paginated response { products: [...] } and legacy array response
+        setProducts(Array.isArray(json) ? json : (json.products || []));
       } catch (err) {
         console.error("Failed to fetch products", err);
       } finally {
@@ -237,17 +238,18 @@ const [barcodeInput, setBarcodeInput] = useState("");
     setDiscount(0);
     setSelectedCustomer(null);
     setPaidAmount("");
-    fetch("/api/products").then(res => res.json()).then(setProducts);
+    fetch("/api/products").then(res => res.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const total = subtotal - discount;
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.brand.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const lowerQuery = searchQuery.toLowerCase();
+  const filteredProducts = useMemo(() => products.filter(p => 
+    p.name.toLowerCase().includes(lowerQuery) ||
+    p.model.toLowerCase().includes(lowerQuery) ||
+    p.brand.toLowerCase().includes(lowerQuery)
+  ), [products, lowerQuery]);
 
   if (loading) return <div className="p-8 animate-pulse text-secondary font-bold">Loading POS Inventory...</div>;
 

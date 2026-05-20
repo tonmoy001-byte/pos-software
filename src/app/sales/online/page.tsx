@@ -35,7 +35,7 @@ export default function OnlineSalePage() {
       fetch("/api/products").then(r => r.json()),
       fetch("/api/invoice-settings").then(r => r.json())
     ]).then(([productsData, invoiceData]) => {
-      setProducts(productsData);
+      setProducts(Array.isArray(productsData) ? productsData : (productsData.products || []));
       setInvoiceSettings(invoiceData);
     }).finally(() => setLoading(false)); 
   }, []);

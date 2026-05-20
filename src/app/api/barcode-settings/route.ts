@@ -5,10 +5,30 @@ import { prisma } from "@/lib/prisma";
 import { hasPermission, logger } from "@/lib/services";
 import type { Role } from "@prisma/client";
 import type { BarcodeSettings } from "@prisma/client";
+import { z } from "zod";
+
+const barcodeSettingsSchema = z.object({
+  barcodeType: z.enum(["CODE128", "EAN13", "UPC", "QR"]).optional(),
+  labelWidth: z.number().int().min(10).max(200).optional(),
+  labelHeight: z.number().int().min(10).max(200).optional(),
+  labelSizeName: z.string().max(50).optional(),
+  showProductName: z.boolean().optional(),
+  showPrice: z.boolean().optional(),
+  showSku: z.boolean().optional(),
+  showBarcode: z.boolean().optional(),
+  showQrCode: z.boolean().optional(),
+  showWarranty: z.boolean().optional(),
+  includeCurrency: z.boolean().optional(),
+  fontSize: z.number().int().min(6).max(24).optional(),
+  compactMode: z.boolean().optional(),
+});
 
 export async function GET(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasPermission(session.user.role as Role, "store:settings")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
     const settings = await prisma.barcodeSettings.findUnique({
@@ -41,12 +61,15 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
-    const { id, storeId, createdAt, updatedAt, ...updateData } = body;
+    const parsed = barcodeSettingsSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+    }
 
     const settings = await prisma.barcodeSettings.upsert({
       where: { storeId: session.user.storeId },
-      update: updateData as any,
-      create: { ...(updateData as any), storeId: session.user.storeId },
+      update: parsed.data,
+      create: { ...parsed.data, storeId: session.user.storeId },
     });
 
     return NextResponse.json(settings);

@@ -1,7 +1,10 @@
-import fs from "fs";
+import fs from "fs/promises";
 import path from "path";
-import { execSync } from "child_process";
+import { exec } from "child_process";
+import { promisify } from "util";
 import { prisma } from "@/lib/prisma";
+
+const execAsync = promisify(exec);
 
 function isSqlite(): boolean {
   const url = process.env.DATABASE_URL || "file:./prisma/dev.db";
@@ -19,7 +22,7 @@ export async function createBackup(): Promise<{ filePath: string; size: number }
 
   const projectRoot = path.resolve(import.meta.dirname || process.cwd(), "..", "..");
   const backupDir = path.join(projectRoot, "prisma", "backups");
-  fs.mkdirSync(backupDir, { recursive: true });
+  await fs.mkdir(backupDir, { recursive: true });
 
   let backupPath: string;
 
@@ -31,27 +34,32 @@ export async function createBackup(): Promise<{ filePath: string; size: number }
     backupPath = path.join(backupDir, `backup-${timestamp}.sql`);
     const url = new URL(process.env.DATABASE_URL || "");
     const dbName = url.pathname.replace(/^\//, "");
-    execSync(
-      `pg_dump --dbname="${process.env.DATABASE_URL}" --file="${backupPath}" --format=plain`,
-      { stdio: "pipe" }
+    await execAsync(
+      `pg_dump --dbname="${process.env.DATABASE_URL}" --file="${backupPath}" --format=plain`
     );
   }
 
-  const stat = fs.statSync(backupPath);
+  const stat = await fs.stat(backupPath);
   return { filePath: backupPath, size: stat.size };
 }
 
-export function listBackups(): { name: string; size: number; date: Date }[] {
+export async function listBackups(): Promise<{ name: string; size: number; date: Date }[]> {
   const projectRoot = path.resolve(process.cwd(), "prisma");
   const backupDir = path.join(projectRoot, "backups");
-  if (!fs.existsSync(backupDir)) return [];
 
-  const ext = isSqlite() ? ".db" : ".sql";
-  return fs.readdirSync(backupDir)
-    .filter(f => f.endsWith(ext))
-    .map(name => {
-      const stat = fs.statSync(path.join(backupDir, name));
-      return { name, size: stat.size, date: stat.mtime };
-    })
-    .sort((a, b) => b.date.getTime() - a.date.getTime());
+  try {
+    const files = await fs.readdir(backupDir);
+    const ext = isSqlite() ? ".db" : ".sql";
+    const result = await Promise.all(
+      files
+        .filter(f => f.endsWith(ext))
+        .map(async name => {
+          const stat = await fs.stat(path.join(backupDir, name));
+          return { name, size: stat.size, date: stat.mtime };
+        })
+    );
+    return result.sort((a, b) => b.date.getTime() - a.date.getTime());
+  } catch {
+    return [];
+  }
 }

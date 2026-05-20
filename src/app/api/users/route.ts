@@ -20,18 +20,23 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const users = await prisma.user.findMany({
-    where: { storeId: session.user.storeId },
-    select: {
-      id: true,
-      username: true,
-      name: true,
-      role: true,
-      createdAt: true
-    }
-  });
+  try {
+    const users = await prisma.user.findMany({
+      where: { storeId: session.user.storeId },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        role: true,
+        createdAt: true
+      }
+    });
 
-  return NextResponse.json(users);
+    return NextResponse.json(users);
+  } catch (error: any) {
+    logger.error("Failed to fetch users", { storeId: session?.user?.storeId, error: error.message });
+    return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {

@@ -72,7 +72,7 @@ export class TransactionService {
           aggregateType: "Supplier",
           aggregateId: data.supplierId,
           type: "UPDATED",
-          payload: { dueAmount: isPaid ? currentDue - data.amount : currentDue + data.amount },
+          payload: { dueAmount: isPaid ? currentDue : currentDue + data.amount },
           metadata: { previousState: { dueAmount: currentDue } },
           userId,
           storeId,
@@ -81,27 +81,24 @@ export class TransactionService {
 
       if ((data.type === "HAWLAT_GIVEN" || data.type === "HAWLAT_RECEIVED") && data.loanId) {
         const loan = await tx.loan.findFirst({ where: { id: data.loanId, storeId } });
-        if (loan) {
-          const newPaid = Number(loan.paid) + data.amount;
-          const newRemaining = Math.max(0, Number(loan.remaining) - data.amount);
+        if (!loan) throw new Error("Loan not found or unauthorized");
 
-          await tx.loan.update({
-            where: { id: data.loanId },
-            data: {
-              paid: newPaid,
-              remaining: newRemaining,
-            },
-          });
+        await tx.loan.update({
+          where: { id: data.loanId },
+          data: {
+            paid: { increment: data.amount },
+            remaining: { decrement: data.amount },
+          },
+        });
 
-          await eventStore.append({
-            aggregateType: "Loan",
-            aggregateId: data.loanId,
-            type: "UPDATED",
-            payload: { paid: newPaid, remaining: newRemaining },
-            userId,
-            storeId,
-          } as EventStoreData, tx);
-        }
+        await eventStore.append({
+          aggregateType: "Loan",
+          aggregateId: data.loanId,
+          type: "UPDATED",
+          payload: { amount: data.amount, type: data.type },
+          userId,
+          storeId,
+        } as EventStoreData, tx);
       }
 
       return transaction;

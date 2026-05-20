@@ -14,6 +14,9 @@ export async function GET(
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (!hasPermission(session.user.role as Role, "sale:view")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { id } = await params;
 
@@ -89,9 +92,10 @@ export async function POST(
     return NextResponse.json(result);
   } catch (error: any) {
     logger.error("Payment collection error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
+    const isClientError = error.message?.includes("not found") || error.message?.includes("exceeds") || error.message?.includes("required");
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to collect payment" },
-      { status: 400 }
+      { error: isClientError ? (error instanceof Error ? error.message : "Failed to collect payment") : "Failed to collect payment" },
+      { status: isClientError ? 400 : 500 }
     );
   }
 }

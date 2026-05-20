@@ -181,19 +181,21 @@ model Sale {
   @@index([customerId])
   @@index([storeId, saleType])
   @@index([dueDate])
+  @@index([storeId, dueAmount])
 }
 
 model SaleItem {
-  id        String           @id @default(uuid())
-  saleId    String
-  productId String
-  quantity  Int
-  price     Decimal
-  cost      Decimal?
-  profit    Decimal          @default(0)
-  imeis     String?          // JSON array of IMEI/serial numbers
-  product   Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
-  sale      Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  id                String           @id @default(uuid())
+  saleId            String
+  productId         String
+  quantity          Int
+  price             Decimal
+  cost              Decimal?
+  profit            Decimal          @default(0)
+  returnedQuantity  Int              @default(0)
+  imeis             String?          // JSON array of IMEI/serial numbers
+  product           Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+  sale              Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   @@index([productId])
   @@index([saleId])
@@ -207,6 +209,7 @@ model Payment {
   date      DateTime      @default(now())
   saleId    String?
   customerId String?
+  userId    String?
   storeId   String
   createdAt DateTime      @default(now())
   sale      Sale?         @relation(fields: [saleId], references: [id], onDelete: Cascade)
@@ -214,6 +217,7 @@ model Payment {
   @@index([storeId, date])
   @@index([saleId])
   @@index([customerId])
+  @@index([userId])
 }
 
 model Expense {
@@ -356,6 +360,7 @@ model Transaction {
 
   @@index([storeId, type, createdAt])
   @@index([storeId, createdAt])
+  @@index([storeId, mode, createdAt])
   @@index([barcode])
 }
 

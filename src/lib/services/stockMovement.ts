@@ -7,7 +7,8 @@ export type StockMovementReason =
   | "PURCHASE"
   | "STOCK_IN"
   | "STOCK_ADJUSTMENT"
-  | "ADVANCE_COMPLETE";
+  | "ADVANCE_COMPLETE"
+  | "CANCELLED";
 
 export async function recordStockMovement(
   productId: string,

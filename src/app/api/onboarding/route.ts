@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { eventStore } from "@/lib/services/eventStore";
+import { checkRateLimit } from "@/lib/services/rateLimiter";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,14 @@ interface OnboardingBody {
 }
 
 export async function POST(req: Request) {
+  // Rate limit: max 5 attempts per IP per minute (auth tier)
+  const ip = req.headers.get("x-forwarded-for") || "unknown";
+  const rateKey = `onboarding:${ip}`;
+  const rateLimit = checkRateLimit(rateKey, "auth");
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
+  }
+
   // Use a transaction to prevent race condition
   try {
     const result = await prisma.$transaction(async (tx) => {

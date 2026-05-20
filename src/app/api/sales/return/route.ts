@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { SaleService, hasPermission, logger, recordStockMovement, eventStore } from "@/lib/services";
+import { SaleService, hasPermission, logger, recordStockMovement, eventStore, postRefundEntry } from "@/lib/services";
 import type { Role } from "@prisma/client";
 
 const saleService = new SaleService();
@@ -66,8 +66,9 @@ export async function POST(req: Request) {
       const allItemsReturned = items.every((i: any) => {
         const si       = sale.items.find((s: any) => s.id === i.saleItemId);
         const origQty  = si?.quantity ?? 0;
+        const alreadyReturned = si?.returnedQuantity ?? 0;
         const retQty   = i.returnQty ?? 0;
-        return retQty >= origQty;
+        return (alreadyReturned + retQty) >= origQty;
       });
       const isFullReturn = allItemsReturned;
 
@@ -76,29 +77,43 @@ export async function POST(req: Request) {
         const saleItem = sale.items.find((si: any) => si.id === retItem.saleItemId);
         if (!saleItem) continue;
 
-        const qtyToReturn = Math.min(retItem.returnQty, saleItem.quantity);
-        if (qtyToReturn > 0) {
-          await tx.product.update({
-            where: { id: saleItem.productId },
-            data: { stock: { increment: qtyToReturn } },
-          });
-          await recordStockMovement(
-            saleItem.productId, qtyToReturn, "STOCK_IN", storeId,
-            { referenceId: sale.id, referenceType: "Sale", tx }
-          );
-        }
+        const alreadyReturned = saleItem.returnedQuantity ?? 0;
+        const availableToReturn = saleItem.quantity - alreadyReturned;
+        const qtyToReturn = Math.min(retItem.returnQty, availableToReturn);
+        if (qtyToReturn <= 0) continue;
+
+        await tx.product.update({
+          where: { id: saleItem.productId },
+          data: { stock: { increment: qtyToReturn } },
+        });
+        await recordStockMovement(
+          saleItem.productId, qtyToReturn, "REFUND", storeId,
+          { referenceId: sale.id, referenceType: "Sale", tx }
+        );
+        await tx.saleItem.update({
+          where: { id: saleItem.id },
+          data: { returnedQuantity: { increment: qtyToReturn } },
+        });
       }
 
       // ── 3. Update sale totals ───────────────────────────────────────────
-      const newDue   = Math.max(0, Number(sale.dueAmount)   - refundAmount);
-      const newPaid  = Math.max(0, Number(sale.paidAmount)  - refundAmount);
-      const newStatus = (isFullReturn && newDue === 0) ? "REFUNDED" :
+      const originalTotal = Number(sale.totalAmount);
+      const originalPaid  = Number(sale.paidAmount);
+      const originalDue   = Number(sale.dueAmount);
+      const newTotal      = originalTotal - refundAmount;
+      // Refund reduces paid first, then due
+      const refundFromPaid = Math.min(refundAmount, originalPaid);
+      const refundFromDue  = refundAmount - refundFromPaid;
+      const newDue   = Math.max(0, originalDue - refundFromDue);
+      const newPaid  = Math.max(0, originalPaid - refundFromPaid);
+      const newStatus = (isFullReturn && newDue === 0) ? "CANCELLED" :
                          newDue <= 0 ? "PAID" :
                          newPaid > 0  ? "PARTIAL" : "DUE";
 
       await tx.sale.update({
         where: { id: saleId },
         data: {
+          totalAmount:    newTotal,
           refundedAmount: { increment: refundAmount },
           dueAmount:      newDue,
           paidAmount:     newPaid,
@@ -147,6 +162,10 @@ export async function POST(req: Request) {
           storeId,
         },
       });
+
+      // ── 7. Journal entry for refund ─────────────────────────────────────
+      const totalCost = sale.items.reduce((sum: number, item: any) => sum + (Number(item.cost) || 0) * item.quantity, 0);
+      await postRefundEntry(saleId, refundAmount, totalCost, method, isFullReturn, storeId, tx);
 
       return { success: true, newDue, newPaid, newStatus };
     });

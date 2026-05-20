@@ -3,7 +3,6 @@ import { SaleService } from "./sale";
 import { TransactionService } from "./transaction";
 import { LoanService } from "./loan";
 import { eventStore, EventStoreData } from "./eventStore";
-import * as XLSX from "xlsx";
 import type { TransactionCreateInput } from "@/types";
 
 const saleService = new SaleService();
@@ -63,8 +62,10 @@ export interface ClosingInput {
 
 export class DailyActivityService {
   async getSheet(storeId: string, dateStr: string) {
-    const dayStart = new Date(dateStr + "T00:00:00.000Z");
-    const dayEnd = new Date(dateStr + "T23:59:59.999Z");
+    // Use local time to match business day boundaries
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const dayStart = new Date(year, month - 1, day, 0, 0, 0, 0);
+    const dayEnd = new Date(year, month - 1, day, 23, 59, 59, 999);
     const prevDate = new Date(dayStart.getTime() - 86400000);
 
     const [
@@ -306,6 +307,7 @@ export class DailyActivityService {
   }
 
   async exportExcel(storeId: string, dateStr: string): Promise<Buffer> {
+    const XLSX = (await import("xlsx")).default;
     const sheet = await this.getSheet(storeId, dateStr);
 
     const wb = XLSX.utils.book_new();
@@ -344,13 +346,14 @@ export class DailyActivityService {
   }
 
   async exportAllTransactions(storeId: string, startDate?: Date, endDate?: Date): Promise<Buffer> {
+    const XLSX = (await import("xlsx")).default;
     const dateFilter = startDate && endDate ? { gte: startDate, lte: endDate } : undefined;
     const [sales, transactions, loans, payments] = await Promise.all([
       prisma.sale.findMany({
         where: { storeId, ...(dateFilter ? { createdAt: dateFilter } : {}) },
         include: {
           customer: { select: { name: true, phone: true } },
-          items: { include: { product: { select: { name: true, model: true } } } },
+          items: { select: { quantity: true, price: true, productId: true } },
           payments: { select: { method: true, amount: true, date: true } },
         },
         orderBy: { createdAt: "desc" },
@@ -358,27 +361,40 @@ export class DailyActivityService {
       }),
       prisma.transaction.findMany({
         where: { storeId, ...(dateFilter ? { createdAt: dateFilter } : {}) },
-        include: { supplier: { select: { name: true } } },
+        select: { id: true, type: true, amount: true, description: true, mode: true, createdAt: true, customerId: true },
         orderBy: { createdAt: "desc" },
         take: 1000,
       }),
       prisma.loan.findMany({
         where: { storeId, ...(dateFilter ? { date: dateFilter } : {}) },
+        select: { id: true, amount: true, remaining: true, paid: true, date: true, borrower: true, type: true },
         orderBy: { date: "desc" },
         take: 1000,
       }),
       prisma.payment.findMany({
-        where: { storeId },
-        include: { sale: { select: { invoiceId: true } } },
+        where: { storeId, ...(dateFilter ? { date: dateFilter } : {}) },
+        select: { id: true, amount: true, method: true, date: true, saleId: true, customerId: true },
         orderBy: { date: "desc" },
+        take: 1000,
       }),
     ]);
+
+    // Fetch product names for sale items
+    const productIds = [...new Set(sales.flatMap(s => s.items.map(i => i.productId)))];
+    const products = productIds.length > 0 ? await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, model: true },
+    }) : [];
+    const productMap = new Map(products.map(p => [p.id, p]));
 
     const rows: any[] = [];
 
     for (const sale of sales) {
       const itemsStr = sale.items
-        .map(i => `${i.product?.name || "Unknown"} ${i.product?.model ? `(${i.product.model})` : ""}×${i.quantity}`)
+        .map(i => {
+          const prod = productMap.get(i.productId);
+          return `${prod?.name || "Unknown"} ${prod?.model ? `(${prod.model})` : ""}×${i.quantity}`;
+        })
         .join(", ");
       rows.push({
         Date: sale.createdAt,
@@ -403,7 +419,7 @@ export class DailyActivityService {
         Date: tx.createdAt,
         Type: tx.type,
         Description: tx.description || tx.type,
-        Party: tx.supplier?.name || "",
+        Party: "",
         Phone: "",
         Items: "",
         Amount: Number(tx.amount),
@@ -412,8 +428,8 @@ export class DailyActivityService {
         Discount: "",
         Profit: "",
         Method: tx.mode,
-        Status: tx.status || "COMPLETED",
-        Reference: tx.referenceId || "",
+        Status: "COMPLETED",
+        Reference: "",
       });
     }
 
@@ -440,7 +456,7 @@ export class DailyActivityService {
       rows.push({
         Date: pmt.date,
         Type: "PAYMENT",
-        Description: pmt.sale?.invoiceId || "",
+        Description: "",
         Party: "",
         Phone: "",
         Items: "",
@@ -473,6 +489,7 @@ export class DailyActivityService {
   }
 
   async exportDailySheetDetailed(storeId: string, dateStr: string): Promise<Buffer> {
+    const XLSX = (await import("xlsx")).default;
     const dayStart = new Date(dateStr + "T00:00:00.000Z");
     const dayEnd = new Date(dateStr + "T23:59:59.999Z");
 

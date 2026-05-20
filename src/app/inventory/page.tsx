@@ -78,7 +78,7 @@ export default function InventoryPage() {
     try {
       const res = await fetch("/api/products");
       const json = await res.json();
-      setProducts(json);
+      setProducts(Array.isArray(json) ? json : (json.products || []));
     } finally {
       setLoading(false);
     }

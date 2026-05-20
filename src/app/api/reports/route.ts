@@ -20,8 +20,7 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const storeId = session.user.storeId;
-  const isAdmin = session.user.role === "ADMIN";
-  const storeFilter = isAdmin ? {} : { storeId };
+  const storeFilter = { storeId };
 
   const range = searchParams.get("range") || "today";
   const startParam = searchParams.get("start");
@@ -50,8 +49,8 @@ export async function GET(req: Request) {
     const whereBase: any = { ...storeFilter, createdAt: { gte: startDate, lte: endDate } };
 
     const [summary, capital, sales, salesByPayment, categorySales, topProducts, cashFlow] = await Promise.all([
-      transactionService.getFinancialSummary(storeId, startDate, endDate, isAdmin),
-      capitalService.getCapitalSummary(storeId, isAdmin),
+      transactionService.getFinancialSummary(storeId, startDate, endDate),
+      capitalService.getCapitalSummary(storeId),
 
       // Sales with optional filters
       prisma.sale.findMany({
@@ -106,7 +105,7 @@ export async function GET(req: Request) {
     // Category aggregation
     const catMap: Record<string, { quantity: number; revenue: number; profit: number }> = {};
     for (const item of categorySales) {
-      const product = productNames.find(p => p.id === item.productId);
+      const product = nameMap[item.productId];
       const cat = product?.category || "Unknown";
       if (!catMap[cat]) catMap[cat] = { quantity: 0, revenue: 0, profit: 0 };
       catMap[cat].quantity += item._sum.quantity || 0;

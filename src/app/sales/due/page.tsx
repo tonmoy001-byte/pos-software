@@ -49,7 +49,8 @@ export default function DueSalePage() {
           fetch("/api/settings/store"),
           fetch("/api/invoice-settings")
         ]);
-        setProducts(await productsRes.json());
+        const productsData = await productsRes.json();
+        setProducts(Array.isArray(productsData) ? productsData : (productsData.products || []));
         setCurrentStore(await storeRes.json());
         setInvoiceSettings(await invoiceRes.json());
       } catch (err) {
@@ -212,7 +213,7 @@ export default function DueSalePage() {
     setCart([]);
     setDiscount(0);
     setSelectedCustomer(null);
-    fetch("/api/products").then(res => res.json()).then(setProducts);
+    fetch("/api/products").then(res => res.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);

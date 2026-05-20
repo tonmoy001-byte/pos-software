@@ -31,10 +31,15 @@ export async function POST(
   const data = await req.json();
 
   try {
+    const amount = parseFloat(data.amount);
+    if (isNaN(amount) || amount <= 0) {
+      return NextResponse.json({ error: "Amount is required and must be a positive number." }, { status: 400 });
+    }
+
     const loan = await loanService.payment(
       id,
       {
-        amount: parseFloat(data.amount),
+        amount,
         mode: data.mode,
         note: data.note,
       },

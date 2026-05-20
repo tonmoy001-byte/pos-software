@@ -51,6 +51,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error: any) {
     logger.error("Failed to delete product", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
-    return NextResponse.json({ error: error.message || "Failed to delete product" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
   }
 }

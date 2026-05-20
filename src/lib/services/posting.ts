@@ -26,6 +26,14 @@ async function getAccountMap(storeId: string, tx: Prisma.TransactionClient): Pro
   return accountCache.get(storeId)!;
 }
 
+async function ensureAccountsLoaded(storeId: string, tx: Prisma.TransactionClient): Promise<void> {
+  // Only load accounts if not already cached
+  if (!accountCache.has(storeId)) {
+    const accounts = await tx.account.findMany({ where: { storeId } });
+    accountCache.set(storeId, new Map(accounts.map(a => [a.code, a.id])));
+  }
+}
+
 export async function ensureAccounts(storeId: string, tx?: Prisma.TransactionClient) {
   const client = tx || prisma;
   accountCache.delete(storeId);
@@ -61,7 +69,7 @@ export async function postSaleEntry(
   storeId: string,
   tx: Prisma.TransactionClient
 ) {
-  await ensureAccounts(storeId, tx);
+  await ensureAccountsLoaded(storeId, tx);
   const accountMap = await getAccountMap(storeId, tx);
 
   const lines: { accountId: string; debit: number; credit: number }[] = [];
@@ -115,7 +123,7 @@ export async function postRefundEntry(
   storeId: string,
   tx: Prisma.TransactionClient
 ) {
-  await ensureAccounts(storeId, tx);
+  await ensureAccountsLoaded(storeId, tx);
   const accountMap = await getAccountMap(storeId, tx);
 
   const lines: { accountId: string; debit: number; credit: number }[] = [];
@@ -158,7 +166,7 @@ export async function postTransactionEntry(
   storeId: string,
   tx: Prisma.TransactionClient
 ) {
-  await ensureAccounts(storeId, tx);
+  await ensureAccountsLoaded(storeId, tx);
   const accountMap = await getAccountMap(storeId, tx);
 
   const cashAccountCode = getAccountCode(mode);
@@ -191,8 +199,8 @@ export async function postTransactionEntry(
       lines.push({ accountId: accountMap.get("2100")!, debit: 0, credit: amount });
       break;
     case "DUE_PAYMENT":
-      lines.push({ accountId: accountMap.get("2000")!, debit: amount, credit: 0 });
-      lines.push({ accountId: cashId, debit: 0, credit: amount });
+      lines.push({ accountId: cashId, debit: amount, credit: 0 });
+      lines.push({ accountId: accountMap.get("1200")!, debit: 0, credit: amount });
       break;
     default:
       return;
@@ -217,7 +225,7 @@ export async function postDueCollectionEntry(
   storeId: string,
   tx: Prisma.TransactionClient
 ) {
-  await ensureAccounts(storeId, tx);
+  await ensureAccountsLoaded(storeId, tx);
   const accountMap = await getAccountMap(storeId, tx);
 
   const cashAccountCode = getAccountCode(mode);

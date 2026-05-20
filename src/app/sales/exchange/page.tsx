@@ -28,7 +28,7 @@ export default function ExchangeSalePage() {
       fetch("/api/products").then(r => r.json()),
       fetch("/api/invoice-settings").then(r => r.json()),
     ]).then(([productsData, invoiceData]) => {
-      setProducts(productsData);
+      setProducts(Array.isArray(productsData) ? productsData : (productsData.products || []));
       setInvoiceSettings(invoiceData);
     }).finally(() => setLoading(false));
   }, []);
@@ -121,7 +121,7 @@ export default function ExchangeSalePage() {
     setCart([]);
     setExchangeItems([]);
     setSuccess("Exchange completed!");
-    fetch("/api/products").then(r => r.json()).then(setProducts);
+    fetch("/api/products").then(r => r.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
   }, []);
 
   // ── Render guard ─────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@ export { LoanService } from "./loan";
 export { SaleService } from "./sale";
 export { DailyActivityService, dailyActivityService } from "./dailyActivity";
 export { EventStore, eventStore, calculateProfit, applyEventToState, replayEvents } from "./eventStore";
-export { TenantService, tenantService, validateTenantAccess, getTenantFilter, getAdminFilter } from "./tenant";
+export { TenantService, tenantService, validateTenantAccess, getTenantFilter, getAdminFilter, isSuperAdmin } from "./tenant";
 export { hasPermission, hasAnyPermission, hasAllPermissions, getPermissions, getRoleHierarchy, canManageRole, checkAccess } from "./rbac";
 export { SecureDocumentService, SecondHandService, secureDocumentService, secondHandService } from "./secondhand";
 export { OptimisticUIStore, OptimisticRollbackManager, optimisticStore, rollbackManager, resolveConflict, createOptimisticResponse, createRollbackResponse } from "./optimisticUI";

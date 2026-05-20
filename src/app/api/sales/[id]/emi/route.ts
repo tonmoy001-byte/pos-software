@@ -104,9 +104,10 @@ export async function POST(
       saleId,
       error: err.message,
     });
+    const isClientError = err.message?.includes("not found") || err.message?.includes("invalid") || err.message?.includes("required");
     return NextResponse.json(
-      { error: err.message || "Failed to collect EMI payment." },
-      { status: 400 }
+      { error: isClientError ? err.message : "Failed to collect EMI payment." },
+      { status: isClientError ? 400 : 500 }
     );
   }
 }

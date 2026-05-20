@@ -9,34 +9,42 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const customer = await prisma.customer.findUnique({
-    where: { id, storeId: session.user.storeId },
-    include: {
-      sales: {
-        orderBy: { createdAt: "desc" },
-        take: 50,
-        include: {
-          items: { include: { product: { select: { name: true } } } },
-          payments: { select: { amount: true, method: true, date: true } },
-        }
-      },
-      _count: { select: { sales: true } }
-    }
-  });
-
-  if (!customer) {
-    return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+  if (!hasPermission(session.user.role as Role, "customer:view")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Also fetch standalone payments (from customer page payment, not linked to a specific sale)
-  const standalonePayments = await prisma.payment.findMany({
-    where: { customerId: id },
-    select: { amount: true, method: true, date: true, createdAt: true },
-    orderBy: { date: "desc" },
-  });
+  try {
+    const customer = await prisma.customer.findUnique({
+      where: { id, storeId: session.user.storeId },
+      include: {
+        sales: {
+          orderBy: { createdAt: "desc" },
+          take: 50,
+          include: {
+            items: { include: { product: { select: { name: true } } } },
+            payments: { select: { amount: true, method: true, date: true } },
+          }
+        },
+        _count: { select: { sales: true } }
+      }
+    });
 
-  return NextResponse.json({ ...customer, standalonePayments });
+    if (!customer) {
+      return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+    }
+
+    // Also fetch standalone payments (from customer page payment, not linked to a specific sale)
+    const standalonePayments = await prisma.payment.findMany({
+      where: { customerId: id },
+      select: { amount: true, method: true, date: true, createdAt: true },
+      orderBy: { date: "desc" },
+    });
+
+    return NextResponse.json({ ...customer, standalonePayments });
+  } catch (error: any) {
+    logger.error("Customer fetch error", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
+    return NextResponse.json({ error: "Failed to fetch customer" }, { status: 500 });
+  }
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
