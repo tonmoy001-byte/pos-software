@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
 import {
   Lock,
@@ -63,7 +64,19 @@ export default function SignUpPage() {
       if (!res.ok) {
         setError(data.error || "Something went wrong. Please try again.");
       } else {
-        router.push("/auth/signin?registered=true");
+        // Auto sign in after signup, then proxy will redirect to /onboarding
+        const signInResult = await signIn("credentials", {
+          username,
+          password,
+          redirect: false,
+        });
+        if (signInResult?.error) {
+          // Fallback to signin page if auto-login fails
+          router.push("/auth/signin?registered=true");
+        } else {
+          router.push("/onboarding");
+          router.refresh();
+        }
       }
     } catch {
       setError("An unexpected error occurred. Please try again.");

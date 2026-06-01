@@ -36,8 +36,8 @@ export async function proxy(req: NextRequest) {
 
   // Onboarding check — redirect to setup wizard if not completed
   if (isAuth && !pathname.startsWith("/onboarding") && !pathname.startsWith("/api/")) {
-    const onboardingComplete = token?.onboardingComplete as boolean;
-    if (onboardingComplete === false) {
+    const onboardingComplete = token?.onboardingComplete;
+    if (!onboardingComplete) {
       return NextResponse.redirect(new URL("/onboarding", req.url));
     }
   }

@@ -70,7 +70,7 @@ export default function OnboardingPage() {
       .then((data) => {
         setIsCheckingStore(false);
         if (!data.needsOnboarding) {
-          router.replace("/auth/signin");
+          router.replace("/dashboard");
         }
       })
       .catch(() => {
