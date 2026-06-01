@@ -64,17 +64,16 @@ export default function SignUpPage() {
       if (!res.ok) {
         setError(data.error || "Something went wrong. Please try again.");
       } else {
-        // Auto sign in after signup, then proxy will redirect to /onboarding
+        // Auto sign in after signup — proxy will redirect to /onboarding
         const signInResult = await signIn("credentials", {
           username,
           password,
           redirect: false,
         });
         if (signInResult?.error) {
-          // Fallback to signin page if auto-login fails
           router.push("/auth/signin?registered=true");
         } else {
-          router.push("/onboarding");
+          router.push("/dashboard");
           router.refresh();
         }
       }

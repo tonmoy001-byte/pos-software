@@ -15,13 +15,12 @@ export async function GET() {
     return NextResponse.json({ needsOnboarding: false });
   }
 
-  // Check if this store has any products (onboarding is "done" if products exist)
-  const productCount = await prisma.product.count({
-    where: { storeId: user.storeId, deletedAt: null },
+  const store = await prisma.store.findUnique({
+    where: { id: user.storeId },
+    select: { onboardingComplete: true },
   });
 
   return NextResponse.json({
-    needsOnboarding: productCount === 0,
-    productCount,
+    needsOnboarding: store ? !store.onboardingComplete : false,
   });
 }

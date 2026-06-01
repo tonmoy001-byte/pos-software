@@ -68,13 +68,25 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.role = user.role;
         token.storeId = user.storeId;
         token.storeName = user.storeName;
         token.onboardingComplete = user.onboardingComplete;
       }
+
+      // Re-read from DB when session is updated (e.g., after onboarding completes)
+      if (trigger === "update" && token.storeId) {
+        const store = await prisma.store.findUnique({
+          where: { id: token.storeId as string },
+          select: { onboardingComplete: true },
+        });
+        if (store) {
+          token.onboardingComplete = store.onboardingComplete;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
