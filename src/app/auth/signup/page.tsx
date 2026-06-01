@@ -35,6 +35,7 @@ export default function SignUpPage() {
   const [mobileNumber, setMobileNumber] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState<{ username: string } | null>(null);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,7 +62,7 @@ export default function SignUpPage() {
       if (!res.ok) {
         setError(data.error || "Something went wrong. Please try again.");
       } else {
-        router.push("/auth/signin?registered=true");
+        setSuccess({ username: data.data?.username || "" });
       }
     } catch {
       setError("An unexpected error occurred. Please try again.");
@@ -95,7 +96,38 @@ export default function SignUpPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {success ? (
+            <div className="space-y-4 text-center">
+              <div className="w-14 h-14 bg-green-500/10 rounded-2xl flex items-center justify-center mx-auto">
+                <AlertCircle className="w-7 h-7 text-green-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Account Created!</h3>
+                <p className="text-sm text-secondary mt-1">
+                  Your account is pending admin approval.
+                </p>
+              </div>
+              <div className="bg-background rounded-xl border border-border p-4">
+                <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">
+                  Your Username
+                </p>
+                <p className="text-lg font-bold text-primary font-mono">
+                  {success.username}
+                </p>
+                <p className="text-xs text-secondary mt-1">
+                  Save this — you&apos;ll need it to sign in.
+                </p>
+              </div>
+              <Button
+                onClick={() => router.push("/auth/signin")}
+                className="w-full flex items-center justify-center gap-2 py-3.5"
+              >
+                Go to Sign In
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-secondary uppercase tracking-widest ml-1">
                 Full Name
@@ -242,6 +274,7 @@ export default function SignUpPage() {
               )}
             </Button>
           </form>
+          )}
         </div>
 
         {/* Sign In Link */}

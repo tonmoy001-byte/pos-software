@@ -131,7 +131,7 @@ export async function POST(req: Request) {
         tx
       );
 
-      return { storeId: store.id, userId: user.id };
+      return { storeId: store.id, userId: user.id, username };
     });
 
     return NextResponse.json({
