@@ -12,9 +12,6 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  Package,
-  FileText,
-  ShoppingCart
 } from "lucide-react";
 import { Button } from "@/components/ui";
 
@@ -146,27 +143,6 @@ export default function SignInPage() {
             Create Store
           </Link>
         </p>
-
-        {/* Quick Access */}
-        <div className="bg-surface rounded-2xl border border-border card-shadow p-5">
-          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest text-center mb-3">Quick Access</p>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: "POS", icon: ShoppingCart, href: "/sales/pos" },
-              { label: "Inventory", icon: Package, href: "/inventory" },
-              { label: "Reports", icon: FileText, href: "/reports" },
-            ].map((item) => (
-              <button
-                key={item.label}
-                onClick={() => router.push(item.href)}
-                className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-background border border-border hover:border-primary hover:bg-primary/5 transition-all"
-              >
-                <item.icon className="w-4 h-4 text-primary" />
-                <span className="text-[10px] font-bold text-secondary">{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
 
         {/* Footer */}
         <p className="text-[10px] font-bold text-secondary/50 uppercase tracking-widest text-center">

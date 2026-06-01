@@ -62,41 +62,55 @@ model Subscription {
   @@index([status])
 }
 
+model EmailVerification {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  payload   String
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
 model Store {
-  id                String             @id @default(uuid())
-  name              String
-  address           String?
-  phone             String?
-  email             String?
-  description       String?
-  logo              String?
-  status            String             @default("active")
-  invoicePrefix     String             @default("INV")
-  invoiceCode       String             @default("")
-  invoiceNumbering  Int                @default(1)
-  invoiceFooter     String?
-  taxId             String?
-  isActive          Boolean            @default(true)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  barcodeSettings   BarcodeSettings?
-  customers         Customer[]
-  dailyBalances     DailyBalance[]
-  events            Event[]
-  expenses          Expense[]
-  invoiceSettings   InvoiceSettings?
-  loans             Loan[]
-  products          Product[]
-  sales             Sale[]
-  secondHandRecords SecondHandRecord[]
-  suppliers         Supplier[]
-  transactions      Transaction[]
-  users             User[]
-  stockMovements    StockMovement[]
-  accounts          Account[]
-  journalEntries    JournalEntry[]
-  branches          Branch[]
-  subscription      Subscription?
+  id                  String             @id @default(uuid())
+  name                String
+  address             String?
+  phone               String?
+  email               String?
+  description         String?
+  logo                String?
+  status              String             @default("active")
+  businessType        String?
+  onboardingComplete  Boolean            @default(false)
+  invoicePrefix       String             @default("INV")
+  invoiceCode         String             @default("")
+  invoiceNumbering    Int                @default(1)
+  invoiceFooter       String?
+  taxId               String?
+  isActive            Boolean            @default(true)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  barcodeSettings     BarcodeSettings?
+  customers           Customer[]
+  dailyBalances       DailyBalance[]
+  events              Event[]
+  expenses            Expense[]
+  invoiceSettings     InvoiceSettings?
+  loans               Loan[]
+  products            Product[]
+  sales               Sale[]
+  secondHandRecords   SecondHandRecord[]
+  suppliers           Supplier[]
+  transactions        Transaction[]
+  users               User[]
+  stockMovements      StockMovement[]
+  accounts            Account[]
+  journalEntries      JournalEntry[]
+  branches            Branch[]
+  subscription        Subscription?
 }
 
 model InvoiceSettings {

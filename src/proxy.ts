@@ -10,7 +10,7 @@ export async function proxy(req: NextRequest) {
   const requestId = generateId();
 
   // Skip auth for public endpoints to avoid unnecessary token checks
-  const publicPaths = ["/api/health", "/api/auth"];
+  const publicPaths = ["/api/health", "/api/auth", "/setup", "/api/setup"];
   if (publicPaths.some(path => req.nextUrl.pathname.startsWith(path))) {
     const response = NextResponse.next();
     response.headers.set("X-Request-ID", requestId);
@@ -102,6 +102,8 @@ export const config = {
     "/auth/signup",
     "/onboarding",
     "/onboarding/:path*",
+    "/setup",
+    "/setup/:path*",
     "/api/onboarding/:path*",
     "/api/admin/:path*",
     "/api/:path*",
