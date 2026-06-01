@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Smartphone,
   Check,
@@ -50,6 +51,7 @@ const STEPS: { key: Step; label: string; icon: typeof Store }[] = [
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { update } = useSession();
 
   const [step, setStep] = useState<Step>("business");
   const [business, setBusiness] = useState<BusinessForm>(initialBusiness);
@@ -112,6 +114,8 @@ export default function OnboardingPage() {
         setSubmitError(data.error ?? "Something went wrong.");
         return;
       }
+      // Refresh session to update JWT with onboardingComplete: true
+      await update();
       router.replace("/dashboard");
     } catch {
       setSubmitError("Network error. Please check your connection and try again.");
