@@ -26,6 +26,7 @@ const BUSINESS_TYPES = [
 ];
 
 export default function SignUpPage() {
+  const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +36,6 @@ export default function SignUpPage() {
   const [mobileNumber, setMobileNumber] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState<{ username: string } | null>(null);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,6 +48,7 @@ export default function SignUpPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          username,
           fullName,
           email,
           password,
@@ -62,7 +63,7 @@ export default function SignUpPage() {
       if (!res.ok) {
         setError(data.error || "Something went wrong. Please try again.");
       } else {
-        setSuccess({ username: data.data?.username || "" });
+        router.push("/auth/signin?registered=true");
       }
     } catch {
       setError("An unexpected error occurred. Please try again.");
@@ -96,38 +97,7 @@ export default function SignUpPage() {
             </p>
           </div>
 
-          {success ? (
-            <div className="space-y-4 text-center">
-              <div className="w-14 h-14 bg-green-500/10 rounded-2xl flex items-center justify-center mx-auto">
-                <AlertCircle className="w-7 h-7 text-green-500" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-foreground">Account Created!</h3>
-                <p className="text-sm text-secondary mt-1">
-                  Your account is pending admin approval.
-                </p>
-              </div>
-              <div className="bg-background rounded-xl border border-border p-4">
-                <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">
-                  Your Username
-                </p>
-                <p className="text-lg font-bold text-primary font-mono">
-                  {success.username}
-                </p>
-                <p className="text-xs text-secondary mt-1">
-                  Save this — you&apos;ll need it to sign in.
-                </p>
-              </div>
-              <Button
-                onClick={() => router.push("/auth/signin")}
-                className="w-full flex items-center justify-center gap-2 py-3.5"
-              >
-                Go to Sign In
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-secondary uppercase tracking-widest ml-1">
                 Full Name
@@ -144,6 +114,27 @@ export default function SignUpPage() {
                   minLength={2}
                 />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-secondary uppercase tracking-widest ml-1">
+                Username
+              </label>
+              <div className="relative">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                  placeholder="Choose a username"
+                  className="w-full bg-background border border-border rounded-xl py-3 pl-10 pr-4 text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-secondary/50 text-sm font-medium"
+                  required
+                  minLength={3}
+                  maxLength={20}
+                  pattern="[a-z0-9_]+"
+                />
+              </div>
+              <p className="text-[10px] text-secondary ml-1">Letters, numbers, and underscores only</p>
             </div>
 
             <div className="space-y-1.5">
@@ -274,7 +265,6 @@ export default function SignUpPage() {
               )}
             </Button>
           </form>
-          )}
         </div>
 
         {/* Sign In Link */}

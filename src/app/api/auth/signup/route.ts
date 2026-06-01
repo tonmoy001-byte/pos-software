@@ -8,6 +8,11 @@ import { checkRateLimit } from "@/lib/services/rateLimiter";
 export const dynamic = "force-dynamic";
 
 const signupSchema = z.object({
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .max(20, "Username must be at most 20 characters")
+    .regex(/^[a-z0-9_]+$/, "Username can only contain lowercase letters, numbers, and underscores"),
   fullName: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -34,7 +39,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { fullName, email, password, businessName, businessType, mobileNumber } = parsed.data;
+    const { username, fullName, email, password, businessName, businessType, mobileNumber } = parsed.data;
 
     // Check email uniqueness across all stores
     const existingUser = await prisma.user.findFirst({
@@ -47,7 +52,16 @@ export async function POST(req: Request) {
       );
     }
 
-    const username = `user_${Math.random().toString(36).slice(2, 8)}`;
+    // Check username uniqueness
+    const existingUsername = await prisma.user.findFirst({
+      where: { username: username.trim().toLowerCase() },
+    });
+    if (existingUsername) {
+      return NextResponse.json(
+        { error: "This username is already taken." },
+        { status: 400 }
+      );
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       // 1. Create store
@@ -75,7 +89,7 @@ export async function POST(req: Request) {
       const hashed = await bcrypt.hash(password, 12);
       const user = await tx.user.create({
         data: {
-          username,
+          username: username.trim().toLowerCase(),
           password: hashed,
           name: fullName.trim(),
           role: "ADMIN",
@@ -131,7 +145,7 @@ export async function POST(req: Request) {
         tx
       );
 
-      return { storeId: store.id, userId: user.id, username };
+      return { storeId: store.id, userId: user.id };
     });
 
     return NextResponse.json({
