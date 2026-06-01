@@ -311,9 +311,9 @@ export default function AdvanceOrderPage() {
   const remainingDue = total - paid;
 
   const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.brand.toLowerCase().includes(searchQuery.toLowerCase())
+    (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.model || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.brand || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (loading) return <div className="p-8 animate-pulse text-secondary font-bold">Loading Inventory...</div>;

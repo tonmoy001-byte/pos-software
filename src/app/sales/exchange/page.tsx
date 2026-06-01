@@ -34,7 +34,7 @@ export default function ExchangeSalePage() {
   }, []);
 
   const filtered = useMemo(
-    () => products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    () => products.filter(p => (p.name || "").toLowerCase().includes(searchQuery.toLowerCase())),
     [products, searchQuery]
   );
 

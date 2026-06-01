@@ -54,8 +54,8 @@ export async function POST(req: Request) {
 
     const { username, password, name, role } = parsed.data;
 
-    const existingUser = await prisma.user.findUnique({
-      where: { username }
+    const existingUser = await prisma.user.findFirst({
+      where: { username, storeId: session.user.storeId }
     });
 
     if (existingUser) {

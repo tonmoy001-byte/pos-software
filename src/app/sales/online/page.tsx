@@ -137,7 +137,7 @@ export default function OnlineSalePage() {
         </div>
         <div className="flex-1 overflow-y-auto">
           <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
-            {products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map((product) => (
+            {products.filter(p => (p.name || "").toLowerCase().includes(searchQuery.toLowerCase())).map((product) => (
               <div 
                 key={product.id} 
                 onClick={() => addToCart(product)}
@@ -171,7 +171,7 @@ export default function OnlineSalePage() {
                 <p className="text-sm">Add products in inventory to start creating online sales</p>
               </div>
             )}
-            {products.length > 0 && products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+            {products.length > 0 && products.filter(p => (p.name || "").toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
               <div className="col-span-full py-12 text-center text-secondary">
                 <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p className="font-bold">No products match your search</p>

@@ -94,7 +94,7 @@ export default function RepairSalePage() {
   };
 
   const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const filtered = products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filtered = products.filter(p => (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()));
 
   if (loading) return <div className="p-8 animate-pulse">Loading...</div>;
 

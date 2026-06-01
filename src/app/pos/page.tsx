@@ -310,9 +310,9 @@ if (found) {
   const total = Math.max(0, subtotal - discount);
 
   const filteredProducts = useMemo(() => products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.brand.toLowerCase().includes(searchQuery.toLowerCase())
+    (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.model || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.brand || "").toLowerCase().includes(searchQuery.toLowerCase())
   ), [products, searchQuery]);
 
   if (loading) return <div className="p-8 animate-pulse text-secondary font-bold">Loading POS Inventory...</div>;

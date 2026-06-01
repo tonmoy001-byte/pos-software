@@ -246,9 +246,9 @@ const [barcodeInput, setBarcodeInput] = useState("");
 
   const lowerQuery = searchQuery.toLowerCase();
   const filteredProducts = useMemo(() => products.filter(p => 
-    p.name.toLowerCase().includes(lowerQuery) ||
-    p.model.toLowerCase().includes(lowerQuery) ||
-    p.brand.toLowerCase().includes(lowerQuery)
+    (p.name || "").toLowerCase().includes(lowerQuery) ||
+    (p.model || "").toLowerCase().includes(lowerQuery) ||
+    (p.brand || "").toLowerCase().includes(lowerQuery)
   ), [products, lowerQuery]);
 
   if (loading) return <div className="p-8 animate-pulse text-secondary font-bold">Loading POS Inventory...</div>;

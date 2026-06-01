@@ -46,7 +46,7 @@ export default function ReturnRefundPage() {
 
   const selectSale = (sale: any) => {
     setSelectedSale(sale);
-    setReturnItems(sale.items.map((item: any) => ({ ...item, returnQty: item.quantity, return: true })));
+    setReturnItems((sale.items || []).map((item: any) => ({ ...item, returnQty: item.quantity, return: true })));
   };
 
   const updateReturnItem = (idx: number, field: string, value: any) => {

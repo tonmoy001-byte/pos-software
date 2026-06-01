@@ -10,7 +10,7 @@ export async function proxy(req: NextRequest) {
   const requestId = generateId();
 
   // Skip auth for public endpoints to avoid unnecessary token checks
-  const publicPaths = ["/api/health"];
+  const publicPaths = ["/api/health", "/api/auth"];
   if (publicPaths.some(path => req.nextUrl.pathname.startsWith(path))) {
     const response = NextResponse.next();
     response.headers.set("X-Request-ID", requestId);
@@ -19,11 +19,12 @@ export async function proxy(req: NextRequest) {
 
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const isAuth = !!token;
-  const isAuthPage = req.nextUrl.pathname.startsWith("/auth");
-  const isOnboardingPage = req.nextUrl.pathname.startsWith("/onboarding");
+  const pathname = req.nextUrl.pathname;
+  const isAuthPage = pathname.startsWith("/auth");
+  const isOnboardingPage = pathname.startsWith("/onboarding");
 
   // API-specific headers — scope CORS to the app origin, not wildcard
-  if (req.nextUrl.pathname.startsWith("/api/")) {
+  if (pathname.startsWith("/api/")) {
     const appOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
     const response = NextResponse.next();
     response.headers.set("X-Request-ID", requestId);
@@ -43,7 +44,7 @@ export async function proxy(req: NextRequest) {
   }
 
   if (!isAuth) {
-    let from = req.nextUrl.pathname;
+    let from = pathname;
     if (req.nextUrl.search) {
       from += req.nextUrl.search;
     }
@@ -53,10 +54,18 @@ export async function proxy(req: NextRequest) {
     );
   }
 
+  // Admin routes require SUPER_ADMIN_IDS
+  if (pathname.startsWith("/(admin)") || pathname.startsWith("/api/admin")) {
+    const superAdminIds = process.env.SUPER_ADMIN_IDS?.split(",") ?? [];
+    if (!token?.sub || !superAdminIds.includes(token.sub)) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+  }
+
   const role = token?.role as string;
   const adminRoutes = ["/users", "/activity", "/settings"];
 
-  if (adminRoutes.some(route => req.nextUrl.pathname.startsWith(route)) && role !== "ADMIN") {
+  if (adminRoutes.some(route => pathname.startsWith(route)) && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
@@ -80,9 +89,12 @@ export const config = {
     "/scan/:path*",
     "/mobile-pos/:path*",
     "/admin/:path*",
+    "/(admin)/:path*",
     "/auth/signin",
+    "/auth/signup",
     "/onboarding",
     "/api/onboarding/:path*",
+    "/api/admin/:path*",
     "/api/:path*",
   ],
 };

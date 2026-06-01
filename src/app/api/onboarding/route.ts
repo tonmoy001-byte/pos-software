@@ -55,7 +55,7 @@ export async function POST(req: Request) {
       }
 
       const trimmedUsername = body.username.trim();
-      const existingUser = await tx.user.findUnique({
+      const existingUser = await tx.user.findFirst({
         where: { username: trimmedUsername },
       });
       if (existingUser) {

@@ -138,7 +138,7 @@ export default function EMISalePage() {
   const total = Math.round(subtotal - discount);             // round to nearest whole Taka
   const firstPayment = Math.round(total / emiMonths);         // first EMIs are whole Taka
   const lastEmi       = total - firstPayment * (emiMonths - 1); // last month picks up the residual
-  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.model.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredProducts = products.filter(p => (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || (p.model || "").toLowerCase().includes(searchQuery.toLowerCase()));
 
   if (loading) return <div className="p-8 animate-pulse text-secondary">Loading...</div>;
 

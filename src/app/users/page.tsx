@@ -85,8 +85,8 @@ export default function UsersPage() {
     if (!searchQuery) return users;
     const q = searchQuery.toLowerCase();
     return users.filter(u => 
-      u.name.toLowerCase().includes(q) ||
-      u.username.toLowerCase().includes(q)
+      (u.name || "").toLowerCase().includes(q) ||
+      (u.username || "").toLowerCase().includes(q)
     );
   }, [users, searchQuery]);
 

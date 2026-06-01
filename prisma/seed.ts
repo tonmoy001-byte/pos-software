@@ -22,7 +22,7 @@ async function main() {
 
   // 2. Create Admin User
   await prisma.user.upsert({
-    where: { username: "admin" },
+    where: { username_storeId: { username: "admin", storeId: store.id } },
     update: {},
     create: {
       username: "admin",
