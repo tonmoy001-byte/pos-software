@@ -30,6 +30,38 @@ model Branch {
   @@index([storeId])
 }
 
+model Plan {
+  id           String         @id @default(uuid())
+  name         String         @unique
+  displayName  String
+  maxProducts  Int            @default(100)
+  maxUsers     Int            @default(3)
+  maxBranches  Int            @default(1)
+  features     String         @default("[]")
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                 String    @id @default(uuid())
+  storeId            String    @unique
+  planId             String
+  status             String    @default("trial")
+  trialEndsAt        DateTime?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  store              Store     @relation(fields: [storeId], references: [id])
+  plan               Plan      @relation(fields: [planId], references: [id])
+
+  @@index([storeId])
+  @@index([planId])
+  @@index([status])
+}
+
 model Store {
   id                String             @id @default(uuid())
   name              String
@@ -38,6 +70,7 @@ model Store {
   email             String?
   description       String?
   logo              String?
+  status            String             @default("active")
   invoicePrefix     String             @default("INV")
   invoiceCode       String             @default("")
   invoiceNumbering  Int                @default(1)
@@ -63,6 +96,7 @@ model Store {
   accounts          Account[]
   journalEntries    JournalEntry[]
   branches          Branch[]
+  subscription      Subscription?
 }
 
 model InvoiceSettings {
@@ -81,7 +115,7 @@ model InvoiceSettings {
 
 model User {
   id        String   @id @default(uuid())
-  username  String   @unique
+  username  String
   password  String
   name      String
   role      Role     @default(CASHIER)
@@ -91,6 +125,9 @@ model User {
   store     Store    @relation(fields: [storeId], references: [id])
   branchId  String?
   branch    Branch?  @relation(fields: [branchId], references: [id])
+
+  @@unique([username, storeId])
+  @@index([storeId])
 }
 
 model Product {
