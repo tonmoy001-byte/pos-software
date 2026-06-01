@@ -17,14 +17,22 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui";
 
+const BUSINESS_TYPES = [
+  "Mobile Shop",
+  "Electronics Store",
+  "Accessories Shop",
+  "Multi-Brand Store",
+  "Other",
+];
+
 export default function SignUpPage() {
-  const [storeName, setStoreName] = useState("");
-  const [storePhone, setStorePhone] = useState("");
-  const [storeEmail, setStoreEmail] = useState("");
-  const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const [businessType, setBusinessType] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -39,12 +47,12 @@ export default function SignUpPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          storeName,
-          storePhone,
-          storeEmail,
-          name,
-          username,
+          fullName,
+          email,
           password,
+          businessName,
+          businessType,
+          mobileNumber,
         }),
       });
 
@@ -90,83 +98,33 @@ export default function SignUpPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-secondary uppercase tracking-widest ml-1">
-                Store Name
+                Full Name
               </label>
               <div className="relative">
-                <Store className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
                 <input
                   type="text"
-                  value={storeName}
-                  onChange={(e) => setStoreName(e.target.value)}
-                  placeholder="Enter store name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Enter your full name"
                   className="w-full bg-background border border-border rounded-xl py-3 pl-10 pr-4 text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-secondary/50 text-sm font-medium"
                   required
+                  minLength={2}
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-secondary uppercase tracking-widest ml-1">
-                Store Phone
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
-                <input
-                  type="tel"
-                  value={storePhone}
-                  onChange={(e) => setStorePhone(e.target.value)}
-                  placeholder="Enter store phone"
-                  className="w-full bg-background border border-border rounded-xl py-3 pl-10 pr-4 text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-secondary/50 text-sm font-medium"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-secondary uppercase tracking-widest ml-1">
-                Store Email
+                Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
                 <input
                   type="email"
-                  value={storeEmail}
-                  onChange={(e) => setStoreEmail(e.target.value)}
-                  placeholder="Enter store email"
-                  className="w-full bg-background border border-border rounded-xl py-3 pl-10 pr-4 text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-secondary/50 text-sm font-medium"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-secondary uppercase tracking-widest ml-1">
-                Your Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your name"
-                  className="w-full bg-background border border-border rounded-xl py-3 pl-10 pr-4 text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-secondary/50 text-sm font-medium"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-secondary uppercase tracking-widest ml-1">
-                Username
-              </label>
-              <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Choose a username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
                   className="w-full bg-background border border-border rounded-xl py-3 pl-10 pr-4 text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-secondary/50 text-sm font-medium"
                   required
                 />
@@ -186,6 +144,7 @@ export default function SignUpPage() {
                   placeholder="Choose a password"
                   className="w-full bg-background border border-border rounded-xl py-3 pl-10 pr-10 text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-secondary/50 text-sm font-medium"
                   required
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -198,6 +157,66 @@ export default function SignUpPage() {
                     <Eye className="w-4 h-4" />
                   )}
                 </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-secondary uppercase tracking-widest ml-1">
+                Business Name
+              </label>
+              <div className="relative">
+                <Store className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
+                <input
+                  type="text"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  placeholder="Enter business name"
+                  className="w-full bg-background border border-border rounded-xl py-3 pl-10 pr-4 text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-secondary/50 text-sm font-medium"
+                  required
+                  minLength={2}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-secondary uppercase tracking-widest ml-1">
+                Business Type
+              </label>
+              <div className="relative">
+                <Smartphone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
+                <select
+                  value={businessType}
+                  onChange={(e) => setBusinessType(e.target.value)}
+                  className="w-full bg-background border border-border rounded-xl py-3 pl-10 pr-4 text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-secondary/50 text-sm font-medium appearance-none"
+                  required
+                >
+                  <option value="" disabled>
+                    Select business type
+                  </option>
+                  {BUSINESS_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-secondary uppercase tracking-widest ml-1">
+                Mobile Number
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
+                <input
+                  type="tel"
+                  value={mobileNumber}
+                  onChange={(e) => setMobileNumber(e.target.value)}
+                  placeholder="Enter mobile number"
+                  className="w-full bg-background border border-border rounded-xl py-3 pl-10 pr-4 text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-secondary/50 text-sm font-medium"
+                  required
+                  minLength={11}
+                />
               </div>
             </div>
 

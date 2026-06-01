@@ -8,12 +8,12 @@ import { checkRateLimit } from "@/lib/services/rateLimiter";
 export const dynamic = "force-dynamic";
 
 const signupSchema = z.object({
-  storeName: z.string().min(2, "Store name must be at least 2 characters"),
-  storePhone: z.string().min(1, "Store phone is required"),
-  storeEmail: z.string().email("Invalid email address"),
-  adminName: z.string().min(2, "Admin name must be at least 2 characters"),
-  adminUsername: z.string().min(3, "Username must be at least 3 characters"),
+  fullName: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
+  businessName: z.string().min(2, "Business name must be at least 2 characters"),
+  businessType: z.string().min(1, "Business type is required"),
+  mobileNumber: z.string().min(11, "Mobile number must be at least 11 characters"),
 });
 
 export async function POST(req: Request) {
@@ -34,43 +34,50 @@ export async function POST(req: Request) {
       );
     }
 
-    const { storeName, storePhone, storeEmail, adminName, adminUsername, password } = parsed.data;
+    const { fullName, email, password, businessName, businessType, mobileNumber } = parsed.data;
+
+    // Check email uniqueness across all stores
+    const existingUser = await prisma.user.findFirst({
+      where: { store: { email: email.trim() } },
+    });
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "An account with this email already exists." },
+        { status: 400 }
+      );
+    }
+
+    const username = `user_${Math.random().toString(36).slice(2, 8)}`;
 
     const result = await prisma.$transaction(async (tx) => {
       // 1. Create store
       const store = await tx.store.create({
         data: {
-          name: storeName.trim(),
-          phone: storePhone.trim(),
-          email: storeEmail.trim(),
-          status: "trial",
+          name: businessName.trim(),
+          phone: mobileNumber.trim(),
+          email: email.trim(),
+          status: "pending_approval",
+          description: businessType,
+          onboardingComplete: false,
         },
       });
 
-      // 2. Create default branch
+      // 2. Create default branch (id = store.id)
       const branch = await tx.branch.create({
         data: {
-          name: "Default",
-          storeId: store.id,
           id: store.id,
+          name: "Main Branch",
+          storeId: store.id,
         },
       });
 
-      // 3. Check username uniqueness within this store
-      const existingUser = await tx.user.findFirst({
-        where: { username: adminUsername.trim(), storeId: store.id },
-      });
-      if (existingUser) {
-        throw new Error("Username already taken in this store.");
-      }
-
-      // 4. Create admin user
+      // 3. Create admin user
       const hashed = await bcrypt.hash(password, 12);
       const user = await tx.user.create({
         data: {
-          username: adminUsername.trim(),
+          username,
           password: hashed,
-          name: adminName.trim(),
+          name: fullName.trim(),
           role: "ADMIN",
           storeId: store.id,
           branchId: branch.id,
@@ -78,7 +85,7 @@ export async function POST(req: Request) {
         select: { id: true },
       });
 
-      // 5. Get or create free plan
+      // 4. Get or create free plan
       let plan = await tx.plan.findUnique({ where: { name: "free" } });
       if (!plan) {
         plan = await tx.plan.create({
@@ -93,7 +100,7 @@ export async function POST(req: Request) {
         });
       }
 
-      // 6. Create subscription (14-day trial)
+      // 5. Create subscription (14-day trial)
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + 14);
 
@@ -106,7 +113,7 @@ export async function POST(req: Request) {
         },
       });
 
-      // 7. Fire audit event
+      // 6. Fire audit event
       await eventStore.append(
         {
           aggregateType: "Store",
@@ -114,6 +121,7 @@ export async function POST(req: Request) {
           type: "CREATED",
           payload: {
             name: store.name,
+            businessType,
             createdBy: user.id,
             via: "signup",
           },
@@ -128,15 +136,15 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Store created successfully. Please sign in.",
+      message: "Account created. Please sign in.",
       data: result,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to create store";
-    if (message.includes("already taken") || message.includes("at least")) {
+    const message = err instanceof Error ? err.message : "Failed to create account";
+    if (message.includes("already exists") || message.includes("at least")) {
       return NextResponse.json({ error: message }, { status: 400 });
     }
     console.error("[signup] unexpected error:", err);
-    return NextResponse.json({ error: "Failed to create store. Please try again." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create account. Please try again." }, { status: 500 });
   }
 }
