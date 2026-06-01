@@ -34,6 +34,14 @@ export async function proxy(req: NextRequest) {
     return response;
   }
 
+  // Onboarding check — redirect to setup wizard if not completed
+  if (isAuth && !pathname.startsWith("/onboarding") && !pathname.startsWith("/api/")) {
+    const onboardingComplete = token?.onboardingComplete as boolean;
+    if (onboardingComplete === false) {
+      return NextResponse.redirect(new URL("/onboarding", req.url));
+    }
+  }
+
   // Auth and onboarding pages: accessible without a session.
   // Authenticated visitors are redirected to /dashboard.
   if (isAuthPage || isOnboardingPage) {
@@ -93,6 +101,7 @@ export const config = {
     "/auth/signin",
     "/auth/signup",
     "/onboarding",
+    "/onboarding/:path*",
     "/api/onboarding/:path*",
     "/api/admin/:path*",
     "/api/:path*",

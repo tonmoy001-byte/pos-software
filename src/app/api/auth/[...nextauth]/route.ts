@@ -57,6 +57,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           storeId: user.storeId,
           storeName: user.store.name,
+          onboardingComplete: user.store.onboardingComplete,
         };
       },
     }),
@@ -67,6 +68,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.storeId = user.storeId;
         token.storeName = user.storeName;
+        token.onboardingComplete = user.onboardingComplete;
       }
       return token;
     },
@@ -75,6 +77,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role;
         session.user.storeId = token.storeId;
         session.user.storeName = token.storeName;
+        session.user.onboardingComplete = token.onboardingComplete;
       }
       return session;
     },
