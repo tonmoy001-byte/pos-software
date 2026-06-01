@@ -1,27 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { 
-  Lock, 
-  User, 
-  Smartphone, 
-  ChevronRight, 
+import {
+  Lock,
+  User,
+  Smartphone,
+  ChevronRight,
   AlertCircle,
   Eye,
   EyeOff,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui";
 
-export default function SignInPage() {
+function SignInContent() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const registered = searchParams.get("registered");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +71,13 @@ export default function SignInPage() {
             <h2 className="text-xl font-black text-foreground">Welcome Back</h2>
             <p className="text-sm text-secondary mt-1">Sign in to your account to continue.</p>
           </div>
+
+          {registered && (
+            <div className="bg-green-50 border border-green-200 p-3.5 rounded-xl flex items-center gap-3 text-green-700 text-xs font-bold">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              Account created successfully! Sign in with your username or email.
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
@@ -150,5 +161,19 @@ export default function SignInPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <SignInContent />
+    </Suspense>
   );
 }
