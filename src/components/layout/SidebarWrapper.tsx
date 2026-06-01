@@ -12,6 +12,7 @@ export function SidebarWrapper() {
   if (pathname?.startsWith("/auth")) return null;
   
   const userRole = session?.user?.role || "CASHIER";
+  const userId = (session?.user as any)?.id;
   
-  return <Sidebar userRole={userRole} />;
+  return <Sidebar userRole={userRole} userId={userId} />;
 }

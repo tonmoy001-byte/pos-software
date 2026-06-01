@@ -31,12 +31,6 @@ export async function POST(req: Request) {
   // Use a transaction to prevent race condition
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // Check inside transaction to prevent race condition
-      const existingUsers = await tx.user.count();
-      if (existingUsers > 0) {
-        throw new Error("Onboarding already completed.");
-      }
-
       let body: OnboardingBody;
       try {
         body = (await req.json()) as OnboardingBody;

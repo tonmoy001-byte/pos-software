@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { hasPermission, eventStore, EventStoreData, logger } from "@/lib/services";
+import { canWrite } from "@/lib/services/trialGuard";
 import { generateBarcode } from "@/lib/barcode";
 import { z } from "zod";
 import type { Role } from "@prisma/client";
@@ -101,6 +102,13 @@ export async function POST(req: Request) {
 
   if (!hasPermission(session.user.role as Role, "product:create")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (session?.user?.storeId) {
+    const writeCheck = await canWrite(session.user.storeId);
+    if (!writeCheck.allowed) {
+      return NextResponse.json({ error: writeCheck.reason }, { status: 403 });
+    }
   }
 
   try {

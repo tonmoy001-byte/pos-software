@@ -1,20 +1,27 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
-/**
- * GET /api/onboarding/status
- * Returns whether the shop has completed initial setup.
- * - no users → true  (conceptually a new installation)
- * - every other case → false
- */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
-  let userCount = 0;
-  try {
-    userCount = await prisma.user.count();
-  } catch { /* ignore */ }
+  const session = await getSession();
+  if (!session?.user?.id) {
+    return NextResponse.json({ needsOnboarding: false });
+  }
+
+  const user = session.user as { storeId?: string };
+  if (!user.storeId) {
+    return NextResponse.json({ needsOnboarding: false });
+  }
+
+  // Check if this store has any products (onboarding is "done" if products exist)
+  const productCount = await prisma.product.count({
+    where: { storeId: user.storeId, deletedAt: null },
+  });
 
   return NextResponse.json({
-    needsOnboarding: userCount === 0,
-    userCount,
+    needsOnboarding: productCount === 0,
+    productCount,
   });
 }

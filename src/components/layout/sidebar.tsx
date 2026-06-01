@@ -17,7 +17,8 @@ import {
   Settings,
   Calculator,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Building2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -73,11 +74,25 @@ const menuItems = [
       { label: "Barcode Settings", href: "/settings/barcode", roles: ADMIN_ONLY },
     ]
   },
+  {
+    icon: Building2,
+    label: "Admin",
+    href: "/(admin)",
+    roles: ["SUPER_ADMIN"],
+    submenu: [
+      { label: "Tenants", href: "/(admin)/tenants", roles: ["SUPER_ADMIN"] },
+      { label: "Plans", href: "/(admin)/plans", roles: ["SUPER_ADMIN"] },
+      { label: "Audit Log", href: "/(admin)/ops/audit", roles: ["SUPER_ADMIN"] },
+    ]
+  },
 ];
 
-export function Sidebar({ userRole }: { userRole: string }) {
+export function Sidebar({ userRole, userId }: { userRole: string; userId?: string }) {
   const pathname = usePathname();
   const [expandedMenu, setExpandedMenu] = useState<string | null>("/sales");
+
+  const superAdminIds = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPER_ADMIN_IDS) || "";
+  const isSuperAdmin = userId ? superAdminIds.split(",").includes(userId) : false;
 
   const toggleSubmenu = (href: string) => {
     setExpandedMenu(expandedMenu === href ? null : href);
@@ -106,7 +121,10 @@ export function Sidebar({ userRole }: { userRole: string }) {
       </div>
       
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
-        {menuItems.filter(item => item.roles.includes(userRole)).map((item) => {
+        {menuItems.filter(item => {
+  if (item.roles.includes("SUPER_ADMIN")) return isSuperAdmin;
+  return item.roles.includes(userRole);
+}).map((item) => {
           const isActive = pathname === item.href;
           const hasSubmenu = item.submenu && item.submenu.length > 0;
           const isExpanded = expandedMenu === item.href;
@@ -132,7 +150,10 @@ export function Sidebar({ userRole }: { userRole: string }) {
                   </button>
                   {isExpanded && (
                     <div className="ml-4 mt-1 space-y-1">
-                      {item.submenu!.filter(sub => sub.roles.includes(userRole)).map((sub) => (
+                      {item.submenu!.filter(sub => {
+  if (sub.roles.includes("SUPER_ADMIN")) return isSuperAdmin;
+  return sub.roles.includes(userRole);
+}).map((sub) => (
                         <Link
                           key={sub.href}
                           href={sub.href}
