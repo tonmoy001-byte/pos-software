@@ -1,28 +1,19 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import path from "path";
+import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-
-// Create a local prisma client to bypass any caching issues
-const dbUrl = path.join(process.cwd(), "prisma", "dev.db");
-const adapter = new PrismaBetterSqlite3({ url: dbUrl });
-const localPrisma = new PrismaClient({ adapter });
 
 export async function GET(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    // @ts-ignore
-    const settings = await localPrisma.barcodeSettings.findUnique({
+    const settings = await prisma.barcodeSettings.findUnique({
       where: { storeId: session.user.storeId }
     });
 
     if (!settings) {
-      // @ts-ignore
-      const newSettings = await localPrisma.barcodeSettings.create({
+      const newSettings = await prisma.barcodeSettings.create({
         data: { storeId: session.user.storeId }
       });
       return NextResponse.json(newSettings);
@@ -46,8 +37,7 @@ export async function PUT(req: Request) {
     const body = await req.json();
     const { id, storeId, createdAt, updatedAt, ...updateData } = body;
 
-    // @ts-ignore
-    const settings = await localPrisma.barcodeSettings.upsert({
+    const settings = await prisma.barcodeSettings.upsert({
       where: { storeId: session.user.storeId },
       update: updateData,
       create: { ...updateData, storeId: session.user.storeId }

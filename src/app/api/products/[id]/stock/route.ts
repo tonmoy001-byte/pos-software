@@ -21,7 +21,10 @@ export async function POST(
 
   try {
     await prisma.product.update({
-      where: { id },
+      where: {
+        id,
+        storeId: session.user.storeId
+      },
       data: { stock: { increment: quantity } }
     });
 
@@ -50,7 +53,10 @@ export async function PUT(
 
   try {
     await prisma.product.update({
-      where: { id },
+      where: {
+        id,
+        storeId: session.user.storeId
+      },
       data: { stock }
     });
 

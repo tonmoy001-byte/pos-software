@@ -47,6 +47,8 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           storeId: user.storeId,
           storeName: user.store.name,
+          status: user.store.status,
+          onboardingComplete: user.store.onboardingComplete,
         };
       },
     }),
@@ -54,17 +56,23 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.id = user.id;
         token.role = user.role;
         token.storeId = user.storeId;
         token.storeName = user.storeName;
+        token.status = user.status;
+        token.onboardingComplete = user.onboardingComplete;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
+        session.user.id = token.id;
         session.user.role = token.role;
         session.user.storeId = token.storeId;
         session.user.storeName = token.storeName;
+        session.user.status = token.status;
+        session.user.onboardingComplete = token.onboardingComplete;
       }
       return session;
     },

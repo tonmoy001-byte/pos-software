@@ -22,7 +22,10 @@ export async function DELETE(
     const { id } = await params;
     
     await prisma.product.delete({
-      where: { id },
+      where: {
+        id,
+        storeId: session.user.storeId
+      },
       include: { saleItems: true }
     });
     

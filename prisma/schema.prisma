@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Store {
@@ -20,6 +20,9 @@ model Store {
   invoiceFooter     String?
   taxId             String?
   isActive          Boolean            @default(true)
+  status            String             @default("pending_approval")
+  businessType      String?
+  onboardingComplete Boolean           @default(false)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   barcodeSettings   BarcodeSettings?
@@ -35,6 +38,44 @@ model Store {
   suppliers         Supplier[]
   transactions      Transaction[]
   users             User[]
+  subscription      Subscription?
+}
+
+model Plan {
+  id           String         @id @default(uuid())
+  name         String         @unique
+  displayName  String
+  maxProducts  Int
+  maxUsers     Int
+  maxBranches  Int
+  features     String         @default("{}") // JSON string
+  subscriptions Subscription[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Subscription {
+  id           String    @id @default(uuid())
+  storeId      String    @unique
+  planId       String
+  status       String
+  trialEndsAt  DateTime?
+  startDate    DateTime  @default(now())
+  endDate      DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  store        Store     @relation(fields: [storeId], references: [id])
+  plan         Plan      @relation(fields: [planId], references: [id])
+}
+
+model EmailVerification {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  payload   String?  // JSON string for additional data
+  createdAt DateTime @default(now())
 }
 
 model InvoiceSettings {
@@ -300,7 +341,7 @@ model BarcodeSettings {
   compactMode     Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  store           Store    @relation(fields: [storeId], references: [id])
+  store           Store           @relation(fields: [storeId], references: [id])
 }
 
 enum Role {

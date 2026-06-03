@@ -127,3 +127,25 @@ export interface PaginatedResponse<T> extends ApiResponse<T> {
   page?: number;
   limit?: number;
 }
+
+export type StoreStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED';
+
+export type SubscriptionStatus = 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'TRIAL';
+
+export interface PlanFeature {
+  name: string;
+  included: boolean;
+}
+
+export interface StoreOnboardingInput {
+  businessType: string;
+  address?: string;
+  phone?: string;
+}
+
+export interface UserSignUpInput {
+  name: string;
+  username: string;
+  password?: string;
+  storeName: string;
+}

@@ -49,6 +49,7 @@ const menuItems = [
   { icon: TrendingUp, label: "Capital", href: "/capital", roles: ["ADMIN"] },
   { icon: FileText, label: "Reports", href: "/reports", roles: ["ADMIN"] },
   { icon: UserPlus, label: "Users", href: "/users", roles: ["ADMIN"] },
+  { icon: Users, label: "Tenants", href: "/tenants", roles: ["SUPER_ADMIN"] },
   { 
     icon: Settings, 
     label: "Settings", 
@@ -62,9 +63,13 @@ const menuItems = [
   },
 ];
 
-export function Sidebar({ userRole }: { userRole: string }) {
+export function Sidebar({ userRole, userId }: { userRole: string, userId?: string }) {
   const pathname = usePathname();
   const [expandedMenu, setExpandedMenu] = useState<string | null>("/sales");
+
+  // In a real app, this would be an environment variable or a list in DB
+  const SUPER_ADMIN_IDS = (process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS || "").split(",");
+  const isSuperAdmin = userId && SUPER_ADMIN_IDS.includes(userId);
 
   const toggleSubmenu = (href: string) => {
     setExpandedMenu(expandedMenu === href ? null : href);
@@ -93,7 +98,10 @@ export function Sidebar({ userRole }: { userRole: string }) {
       </div>
       
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
-        {menuItems.filter(item => item.roles.includes(userRole)).map((item) => {
+        {menuItems.filter(item => {
+          if (item.roles.includes("SUPER_ADMIN") && !isSuperAdmin) return false;
+          return item.roles.includes(userRole) || (isSuperAdmin && item.roles.includes("ADMIN"));
+        }).map((item) => {
           const isActive = pathname === item.href;
           const hasSubmenu = item.submenu && item.submenu.length > 0;
           const isExpanded = expandedMenu === item.href;
