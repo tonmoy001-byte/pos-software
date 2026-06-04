@@ -76,13 +76,15 @@ const menuItems = [
   },
   {
     icon: Building2,
-    label: "Admin",
-    href: "/(admin)",
+    label: "Admin Panel",
+    href: "/admin",
     roles: ["SUPER_ADMIN"],
     submenu: [
-      { label: "Tenants", href: "/(admin)/tenants", roles: ["SUPER_ADMIN"] },
-      { label: "Plans", href: "/(admin)/plans", roles: ["SUPER_ADMIN"] },
-      { label: "Audit Log", href: "/(admin)/ops/audit", roles: ["SUPER_ADMIN"] },
+      { label: "Overview", href: "/admin", roles: ["SUPER_ADMIN"] },
+      { label: "Tenants", href: "/admin/tenants", roles: ["SUPER_ADMIN"] },
+      { label: "Users", href: "/admin/users", roles: ["SUPER_ADMIN"] },
+      { label: "Plans", href: "/admin/plans", roles: ["SUPER_ADMIN"] },
+      { label: "Subscriptions", href: "/admin/subscriptions", roles: ["SUPER_ADMIN"] },
     ]
   },
 ];

@@ -8,6 +8,8 @@ export interface AppUser extends DefaultSession {
   role: Role;
   storeId: string;
   storeName: string;
+  storeStatus?: string;
+  onboardingComplete?: boolean;
 }
 
 export async function getSession() {

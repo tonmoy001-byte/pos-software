@@ -13,7 +13,8 @@ export interface IsolationConfig {
 }
 
 export function isSuperAdmin(userId: string): boolean {
-  const superAdmins = process.env.SUPER_ADMIN_IDS?.split(",") ?? [];
+  const raw = process.env.SUPER_ADMIN_IDS ?? "";
+  const superAdmins = raw.replace(/"/g, "").split(",").filter(Boolean);
   return superAdmins.includes(userId);
 }
 

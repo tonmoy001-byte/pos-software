@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getToken, encode } from "next-auth/jwt";
 
 export const dynamic = "force-dynamic";
+
+const COOKIE_NAME = "next-auth.session-token";
 
 interface OnboardingBody {
   step1: {
@@ -39,14 +42,12 @@ export async function POST(req: Request) {
       onboardingComplete: true,
     };
 
-    // Set address: prefer step2.storeAddress, fallback to step1.address
     if (step2?.storeAddress) {
       storeUpdateData.address = step2.storeAddress.trim();
     } else if (step1?.address) {
       storeUpdateData.address = step1.address.trim();
     }
 
-    // Store currency and language in invoiceFooter as JSON
     if (step1?.currency || step1?.language) {
       const footerData: Record<string, string> = {};
       if (step1.currency) footerData.currency = step1.currency;
@@ -54,7 +55,6 @@ export async function POST(req: Request) {
       storeUpdateData.invoiceFooter = JSON.stringify(footerData);
     }
 
-    // Store logo if provided
     if (step1?.logo) {
       storeUpdateData.logo = step1.logo;
     }
@@ -64,7 +64,6 @@ export async function POST(req: Request) {
       data: storeUpdateData,
     });
 
-    // Update Branch: find the default branch (where id = storeId)
     if (step2?.branchName) {
       try {
         await prisma.branch.update({
@@ -76,10 +75,30 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({
+    // Update JWT token with onboardingComplete = true
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+    let token: any = await getToken({ req: req as any, secret });
+    if (token) {
+      token.onboardingComplete = true;
+    } else {
+      token = { onboardingComplete: true };
+    }
+    const newTokenValue = await encode({ token, secret: secret || "" });
+
+    const response = NextResponse.json({
       success: true,
       message: "Setup complete",
     });
+
+    response.cookies.set(COOKIE_NAME, newTokenValue, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 30 * 24 * 60 * 60,
+    });
+
+    return response;
   } catch (err) {
     console.error("[onboarding] unexpected error:", err);
     return NextResponse.json({ error: "Failed to complete setup. Please try again." }, { status: 500 });

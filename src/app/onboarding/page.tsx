@@ -114,9 +114,8 @@ export default function OnboardingPage() {
         setSubmitError(data.error ?? "Something went wrong.");
         return;
       }
-      // Refresh session to update JWT with onboardingComplete: true
-      await update();
-      router.replace("/dashboard");
+      // Hard redirect to ensure proxy reads the updated JWT cookie
+      window.location.href = "/dashboard";
     } catch {
       setSubmitError("Network error. Please check your connection and try again.");
     } finally {

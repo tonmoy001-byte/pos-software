@@ -10,7 +10,7 @@ export async function proxy(req: NextRequest) {
   const requestId = generateId();
 
   // Skip auth for public endpoints to avoid unnecessary token checks
-  const publicPaths = ["/api/health", "/api/auth", "/setup", "/api/setup"];
+  const publicPaths = ["/api/health", "/api/auth", "/setup", "/api/setup", "/suspended"];
   if (publicPaths.some(path => req.nextUrl.pathname.startsWith(path))) {
     const response = NextResponse.next();
     response.headers.set("X-Request-ID", requestId);
@@ -42,13 +42,25 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // Auth and onboarding pages: accessible without a session.
+  // Auth pages: accessible without a session.
   // Authenticated visitors are redirected to /dashboard.
-  if (isAuthPage || isOnboardingPage) {
+  if (isAuthPage) {
     if (isAuth) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
     return NextResponse.next();
+  }
+
+  // Onboarding page: only redirect to dashboard if onboarding is complete
+  if (isOnboardingPage) {
+    if (isAuth) {
+      const onboardingComplete = token?.onboardingComplete;
+      if (onboardingComplete) {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
+      return NextResponse.next();
+    }
+    return NextResponse.redirect(new URL("/auth/signin", req.url));
   }
 
   if (!isAuth) {
@@ -62,10 +74,19 @@ export async function proxy(req: NextRequest) {
     );
   }
 
+  // Suspended store check — block non-super-admin users if their store is suspended
+  const isSuperAdminUser = (process.env.SUPER_ADMIN_IDS ?? "").replace(/"/g, "").split(",").includes(token?.sub || "");
+  if (
+    !isSuperAdminUser &&
+    token?.storeStatus === "suspended" &&
+    !pathname.startsWith("/suspended")
+  ) {
+    return NextResponse.redirect(new URL("/suspended", req.url));
+  }
+
   // Admin routes require SUPER_ADMIN_IDS
-  if (pathname.startsWith("/(admin)") || pathname.startsWith("/api/admin")) {
-    const superAdminIds = process.env.SUPER_ADMIN_IDS?.split(",") ?? [];
-    if (!token?.sub || !superAdminIds.includes(token.sub)) {
+  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
+    if (!isSuperAdminUser) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
   }
@@ -97,7 +118,6 @@ export const config = {
     "/scan/:path*",
     "/mobile-pos/:path*",
     "/admin/:path*",
-    "/(admin)/:path*",
     "/auth/signin",
     "/auth/signup",
     "/onboarding",

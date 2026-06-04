@@ -62,6 +62,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           storeId: user.storeId,
           storeName: user.store.name,
+          storeStatus: user.store.status,
           onboardingComplete: user.store.onboardingComplete,
         };
       },
@@ -74,16 +75,18 @@ export const authOptions: NextAuthOptions = {
         token.storeId = user.storeId;
         token.storeName = user.storeName;
         token.onboardingComplete = user.onboardingComplete;
+        token.storeStatus = user.storeStatus;
       }
 
-      // Re-read from DB when session is updated (e.g., after onboarding completes)
-      if (trigger === "update" && token.storeId) {
+      // Re-read store state from DB on every token use (catches status changes like suspension)
+      if (token.storeId) {
         const store = await prisma.store.findUnique({
           where: { id: token.storeId as string },
-          select: { onboardingComplete: true },
+          select: { onboardingComplete: true, status: true },
         });
         if (store) {
           token.onboardingComplete = store.onboardingComplete;
+          token.storeStatus = store.status;
         }
       }
 
@@ -91,9 +94,11 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
+        if (token.sub) session.user.id = token.sub;
         session.user.role = token.role;
         session.user.storeId = token.storeId;
         session.user.storeName = token.storeName;
+        session.user.storeStatus = token.storeStatus;
         session.user.onboardingComplete = token.onboardingComplete;
       }
       return session;

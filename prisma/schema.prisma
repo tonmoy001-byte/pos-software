@@ -85,6 +85,9 @@ model Store {
   status              String             @default("active")
   businessType        String?
   onboardingComplete  Boolean            @default(false)
+  suspendedAt         DateTime?
+  suspendedBy         String?
+  suspendedReason     String?
   invoicePrefix       String             @default("INV")
   invoiceCode         String             @default("")
   invoiceNumbering    Int                @default(1)
