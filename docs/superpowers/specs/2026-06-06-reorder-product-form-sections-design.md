@@ -73,7 +73,8 @@ The Zod schema (`src/lib/validators/product.ts`) requires `productType` to be on
    - `<SelectInput label="Condition">` (lines 289-296)
    - `<SelectInput label="Network">` (lines 313-320)
 6. In `handleSubmit` (line 96), add `values.productType = "NON_SERIALIZED"` before building the payload
-7. Remove now-unused imports: `NETWORK_OPTIONS` from `@/lib/validators/product` (line 13) — and `condition` field from Zod schema? No, leave schema alone. Only remove imports used in deleted JSX.
+7. Remove unused import: `NETWORK_OPTIONS` from `@/lib/validators/product` import (line 13)
+8. Leave the `condition` field in the Zod schema and the `values.condition` defaults intact — they remain valid (the field is `optional().nullable()` and payload sends `null` when undefined). Only the UI input for Condition is removed.
 
 Wait — `NETWORK_OPTIONS` is also used in `useMemo` or other? Need to verify. Will check during implementation.
 
