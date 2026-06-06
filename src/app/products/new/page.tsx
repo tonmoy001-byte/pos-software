@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Save, X, Info, Plus, Hash, Package, DollarSign, Truck, Image as ImageIcon, Boxes, X as XIcon } from "lucide-react";
+import { Save, X, Info, Plus, Hash, Package, DollarSign, Truck, Image as ImageIcon, X as XIcon } from "lucide-react";
 import {
   PageHeader, FormSectionCard, TextInput, NumberInput, SelectInput,
   TextareaInput, CheckboxInput, ImageUploader, Button,
@@ -314,10 +314,11 @@ export default function AddNewProductPage() {
           </FormSectionCard>
 
           <FormSectionCard
-            title="Pricing & Cost"
-            description="Set cost, selling price, and tax."
+            title="Pricing & Stock"
+            description="Set pricing, stock levels, and warehouse."
             icon={DollarSign}
           >
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Pricing</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <NumberInput
                 label="Cost Price"
@@ -359,13 +360,8 @@ export default function AddNewProductPage() {
                 error={errors.unit}
               />
             </div>
-          </FormSectionCard>
-
-          <FormSectionCard
-            title="Stock & Inventory"
-            description="Opening stock and reorder settings."
-            icon={Boxes}
-          >
+            <hr className="border-border" />
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Stock & Inventory</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <NumberInput
                 label="Opening Stock"
@@ -401,15 +397,6 @@ export default function AddNewProductPage() {
                 onChange={(v) => set("minStockAlert", v === "" ? 5 : v)}
                 error={errors.minStockAlert}
                 placeholder="5"
-              />
-              <NumberInput
-                label="Reorder Quantity"
-                min={0}
-                value={values.reorderQuantity}
-                onChange={(v) => set("reorderQuantity", v === "" ? 0 : v)}
-                error={errors.reorderQuantity}
-                placeholder="0"
-                containerClassName="sm:col-span-2"
               />
               <div className="sm:col-span-2 pt-2 border-t border-border/60">
                 <CheckboxInput
