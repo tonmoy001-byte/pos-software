@@ -51,16 +51,6 @@ const menuItems = [
   { icon: Wallet, label: "Hawlat", href: "/loans", roles: ADMIN_MANAGER },
   { icon: Calculator, label: "Suppliers", href: "/suppliers", roles: ADMIN_MANAGER },
   { icon: Smartphone, label: "Second Hand", href: "/second-hand", roles: ALL_ROLES },
-  {
-    icon: Smartphone,
-    label: "Mobile Shop",
-    href: "/mobile-pos",
-    roles: ALL_ROLES,
-    submenu: [
-      { label: "Quick POS", href: "/mobile-pos", roles: ALL_ROLES },
-      { label: "Barcode Scan", href: "/scan", roles: ALL_ROLES },
-    ]
-  },
   { icon: FileText, label: "Reports", href: "/reports", roles: ADMIN_MANAGER },
   { icon: UserPlus, label: "Users", href: "/users", roles: ADMIN_ONLY },
   { 
