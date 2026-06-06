@@ -138,7 +138,7 @@ export async function POST(req: Request) {
     const result = productSchema.safeParse(json);
 
     if (!result.success) {
-      const firstError = result.error.errors[0];
+      const firstError = result.error.issues[0];
       return NextResponse.json({
         error: firstError?.message || "Validation failed",
         field: firstError?.path?.[0],

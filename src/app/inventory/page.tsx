@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, forwardRef } from "react";
+import Link from "next/link";
 import { 
   Plus, 
   Search, 
@@ -43,7 +44,6 @@ Barcode.displayName = "Barcode";
 export default function InventoryPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAddOpen, setIsAddOpen] = useState(false);
   const [isBarcodeOpen, setIsBarcodeOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [printItems, setPrintItems] = useState<any[]>([]);
@@ -54,19 +54,6 @@ export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState("ALL");
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [stockProduct, setStockProduct] = useState<any>(null);
-
-  const [form, setForm] = useState({
-    name: "",
-    brand: "",
-    category: "SMARTPHONE",
-    price: "",
-    cost: "",
-    minStock: "5",
-    storage: "",
-    color: "",
-    imei: "",
-    warranty: ""
-  });
 
   const [stockForm, setStockForm] = useState({
     quantity: "",
@@ -91,34 +78,6 @@ export default function InventoryPage() {
       .then(data => setBarcodeSettings(data))
       .catch(() => {});
   }, []);
-
-  const handleAddProduct = async () => {
-    if (!form.name || !form.price) return;
-    setSubmitting(true);
-    setMessage(null);
-
-    try {
-      const res = await fetch("/api/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
-      });
-      const data = await res.json();
-
-      if (res.ok) {
-        setMessage({ type: "success", text: "Product added!" });
-        setIsAddOpen(false);
-        setForm({ name: "", brand: "", category: "SMARTPHONE", price: "", cost: "", minStock: "5", storage: "", color: "", imei: "", warranty: "" });
-        fetchProducts();
-      } else {
-        setMessage({ type: "error", text: data.error || "Failed to add product" });
-      }
-    } catch (err) {
-      setMessage({ type: "error", text: "Error" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
@@ -294,9 +253,11 @@ settings={barcodeSettings || {
           <h1 className="text-3xl font-bold">Inventory</h1>
           <p className="text-secondary">Manage stock and print barcode labels.</p>
         </div>
-        <Button onClick={() => setIsAddOpen(true)}>
-          <Plus className="w-5 h-5" /> Add Product
-        </Button>
+        <Link href="/products/new">
+          <Button>
+            <Plus className="w-5 h-5" /> Add Product
+          </Button>
+        </Link>
       </div>
 
       <div className="flex gap-2 border-b border-border">
@@ -413,146 +374,7 @@ settings={barcodeSettings || {
         </div>
       </div>
 
-      {/* Add Product Modal */}
-      {isAddOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface w-full max-w-2xl rounded-3xl p-8 space-y-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold">Add New Product</h2>
-              <button onClick={() => setIsAddOpen(false)}><X className="w-5 h-5" /></button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-secondary uppercase">Product Name *</label>
-                <input 
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
-                  placeholder="iPhone 13 Pro"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-secondary uppercase">Brand</label>
-                  <input 
-                    type="text"
-                    value={form.brand}
-                    onChange={(e) => setForm({ ...form, brand: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
-                    placeholder="Apple"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-secondary uppercase">Category</label>
-                  <select 
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value.toUpperCase() })}
-                    className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
-                  >
-                    <option value="SMARTPHONE">SMARTPHONE</option>
-                    <option value="TABLET">TABLET</option>
-                    <option value="ACCESSORIES">ACCESSORIES</option>
-                    <option value="PARTS">PARTS</option>
-                    <option value="EARBUDS">EARBUDS</option>
-                    <option value="GADGET">GADGET</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-secondary uppercase">Selling Price *</label>
-                  <input 
-                    type="number"
-                    value={form.price}
-                    onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary font-bold"
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-secondary uppercase">Cost Price</label>
-                  <input 
-                    type="number"
-                    value={form.cost}
-                    onChange={(e) => setForm({ ...form, cost: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-border outline-none font-bold"
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-secondary uppercase">Min Stock Alert</label>
-                <input 
-                  type="number"
-                  value={form.minStock}
-                  onChange={(e) => setForm({ ...form, minStock: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-secondary uppercase">Storage</label>
-                  <select 
-                    value={form.storage}
-                    onChange={(e) => setForm({ ...form, storage: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
-                  >
-                    <option value="">Select</option>
-                    <option value="64GB">64GB</option>
-                    <option value="128GB">128GB</option>
-                    <option value="256GB">256GB</option>
-                    <option value="512GB">512GB</option>
-                    <option value="1TB">1TB</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-secondary uppercase">Color</label>
-                  <input 
-                    type="text"
-                    value={form.color}
-                    onChange={(e) => setForm({ ...form, color: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
-                    placeholder="Black, White, etc."
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-secondary uppercase">IMEI</label>
-                  <input 
-                    type="text"
-                    value={form.imei}
-                    onChange={(e) => setForm({ ...form, imei: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
-                    placeholder="IMEI number"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-secondary uppercase">Warranty (Months)</label>
-                  <input 
-                    type="number"
-                    value={form.warranty}
-                    onChange={(e) => setForm({ ...form, warranty: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary"
-                    placeholder="12"
-                  />
-                </div>
-              </div>
-            </div>
 
-            <Button 
-              className="w-full" 
-              size="lg"
-              onClick={handleAddProduct}
-              disabled={submitting || !form.name || !form.price}
-            >
-              {submitting ? "Saving..." : "Add Product"}
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Stock Modal */}
       {isStockModalOpen && stockProduct && (

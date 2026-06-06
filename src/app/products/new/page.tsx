@@ -85,7 +85,7 @@ export default function AddNewProductPage() {
     const result = productFormSchema.safeParse(values);
     if (result.success) { setErrors({}); return true; }
     const newErrors: Partial<Record<keyof ProductFormValues, string>> = {};
-    for (const issue of result.error.errors) {
+    for (const issue of result.error.issues) {
       const path = issue.path[0] as keyof ProductFormValues;
       if (path && !newErrors[path]) newErrors[path] = issue.message;
     }
