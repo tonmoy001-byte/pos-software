@@ -89,7 +89,7 @@ const menuItems = [
   },
 ];
 
-export function Sidebar({ userRole, userId }: { userRole: string; userId?: string }) {
+export function Sidebar({ userRole, userId, storeName }: { userRole: string; userId?: string; storeName?: string }) {
   const pathname = usePathname();
   const [expandedMenu, setExpandedMenu] = useState<string | null>("/sales");
 
@@ -103,7 +103,7 @@ export function Sidebar({ userRole, userId }: { userRole: string; userId?: strin
   return (
     <div className="w-64 h-screen bg-surface border-r border-border flex flex-col">
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-primary tracking-tight">Dinex POS</h1>
+        <h1 className="text-2xl font-bold text-primary tracking-tight truncate">{storeName || "RetailOS"}</h1>
         <p className="text-xs text-secondary font-medium">Retail Management</p>
       </div>
 

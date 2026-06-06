@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { getToken, encode } from "next-auth/jwt";
+import { ensureAccounts } from "@/lib/services/posting";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,9 @@ export async function POST(req: Request) {
       where: { id: storeId },
       data: storeUpdateData,
     });
+
+    // Initialize the chart of accounts for the store so journal entries work
+    await ensureAccounts(storeId);
 
     if (step2?.branchName) {
       try {

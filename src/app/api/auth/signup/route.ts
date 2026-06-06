@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { eventStore } from "@/lib/services/eventStore";
 import { checkRateLimit } from "@/lib/services/rateLimiter";
+import { ensureAccounts } from "@/lib/services/posting";
 
 export const dynamic = "force-dynamic";
 
@@ -147,6 +148,9 @@ export async function POST(req: Request) {
 
       return { storeId: store.id, userId: user.id };
     });
+
+    // Initialize chart of accounts for the new store so journal entries work
+    await ensureAccounts(result.storeId);
 
     return NextResponse.json({
       success: true,

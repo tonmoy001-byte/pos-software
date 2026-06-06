@@ -69,7 +69,7 @@ export async function postSaleEntry(
   storeId: string,
   tx: Prisma.TransactionClient
 ) {
-  await ensureAccountsLoaded(storeId, tx);
+  await ensureAccounts(storeId, tx);
   const accountMap = await getAccountMap(storeId, tx);
 
   const lines: { accountId: string; debit: number; credit: number }[] = [];
@@ -123,7 +123,7 @@ export async function postRefundEntry(
   storeId: string,
   tx: Prisma.TransactionClient
 ) {
-  await ensureAccountsLoaded(storeId, tx);
+  await ensureAccounts(storeId, tx);
   const accountMap = await getAccountMap(storeId, tx);
 
   const lines: { accountId: string; debit: number; credit: number }[] = [];
@@ -166,7 +166,7 @@ export async function postTransactionEntry(
   storeId: string,
   tx: Prisma.TransactionClient
 ) {
-  await ensureAccountsLoaded(storeId, tx);
+  await ensureAccounts(storeId, tx);
   const accountMap = await getAccountMap(storeId, tx);
 
   const cashAccountCode = getAccountCode(mode);
@@ -225,7 +225,7 @@ export async function postDueCollectionEntry(
   storeId: string,
   tx: Prisma.TransactionClient
 ) {
-  await ensureAccountsLoaded(storeId, tx);
+  await ensureAccounts(storeId, tx);
   const accountMap = await getAccountMap(storeId, tx);
 
   const cashAccountCode = getAccountCode(mode);
