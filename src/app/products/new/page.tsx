@@ -10,7 +10,7 @@ import {
 } from "@/components/ui";
 import {
   productFormSchema, type ProductFormValues,
-  RAM_OPTIONS, STORAGE_OPTIONS, NETWORK_OPTIONS,
+  RAM_OPTIONS, STORAGE_OPTIONS,
 } from "@/lib/validators/product";
 
 type MetadataResponse = {
@@ -109,7 +109,7 @@ export default function AddNewProductPage() {
         barcode: values.barcode || null,
         brand: values.brand,
         category: values.category,
-        productType: values.productType,
+        productType: "NON_SERIALIZED",
         modelNumber: values.modelNumber || null,
         condition: values.condition || null,
         ram: values.ram || null,
@@ -252,14 +252,6 @@ export default function AddNewProductPage() {
                 hint="Leave blank to auto-generate"
               />
               <SelectInput
-                label="Product Type"
-                required
-                options={meta?.productTypes || []}
-                value={values.productType}
-                onChange={(e) => set("productType", e.target.value as any)}
-                error={errors.productType}
-              />
-              <SelectInput
                 label="Brand"
                 required
                 options={brandOptions}
@@ -287,14 +279,6 @@ export default function AddNewProductPage() {
                 error={errors.modelNumber}
               />
               <SelectInput
-                label="Condition"
-                options={meta?.conditions || []}
-                value={values.condition || ""}
-                onChange={(e) => set("condition", (e.target.value || undefined) as any)}
-                error={errors.condition}
-                placeholder="Select condition"
-              />
-              <SelectInput
                 label="RAM"
                 options={RAM_OPTIONS.map(r => ({ value: r, label: r }))}
                 value={values.ram || ""}
@@ -309,14 +293,6 @@ export default function AddNewProductPage() {
                 onChange={(e) => set("storage", e.target.value)}
                 error={errors.storage}
                 placeholder="Select storage"
-              />
-              <SelectInput
-                label="Network"
-                options={NETWORK_OPTIONS.map(n => ({ value: n, label: n }))}
-                value={values.network || ""}
-                onChange={(e) => set("network", e.target.value)}
-                error={errors.network}
-                placeholder="Select network"
               />
               <TextInput
                 label="Color"
@@ -447,6 +423,17 @@ export default function AddNewProductPage() {
           </FormSectionCard>
 
           <FormSectionCard
+            title="Product Image"
+            description="Drag and drop an image. JPG, PNG, or WEBP. Max 2MB."
+            icon={ImageIcon}
+          >
+            <ImageUploader
+              value={values.imageUrl || null}
+              onChange={(url) => set("imageUrl", url || "")}
+            />
+          </FormSectionCard>
+
+          <FormSectionCard
             title="Supplier & Warranty"
             description="Default supplier and warranty periods."
             icon={Truck}
@@ -534,17 +521,6 @@ export default function AddNewProductPage() {
                 )}
               </div>
             </div>
-          </FormSectionCard>
-
-          <FormSectionCard
-            title="Product Image"
-            description="Drag and drop an image. JPG, PNG, or WEBP. Max 2MB."
-            icon={ImageIcon}
-          >
-            <ImageUploader
-              value={values.imageUrl || null}
-              onChange={(url) => set("imageUrl", url || "")}
-            />
           </FormSectionCard>
         </div>
 
