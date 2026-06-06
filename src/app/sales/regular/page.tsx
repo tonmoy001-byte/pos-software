@@ -63,7 +63,8 @@ export default function AllSalesPage() {
     try {
       const res = await fetch("/api/sales");
       const data = await res.json();
-      setSales(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : (Array.isArray(data?.sales) ? data.sales : []);
+      setSales(list);
     } catch (err) {
       console.error("Failed to fetch sales", err);
     } finally {

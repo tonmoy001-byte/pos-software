@@ -171,10 +171,6 @@ export default function CustomersPage() {
     }
   };
 
-  if (loading && customers.length === 0) {
-    return <div className="p-8 animate-pulse text-secondary font-bold">Loading Customers...</div>;
-  }
-
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {message && (
