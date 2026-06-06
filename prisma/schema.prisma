@@ -163,6 +163,7 @@ model Product {
   color    String?
   imei     String?
   warranty Int?
+  metadata Json?
   storeId   String
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
