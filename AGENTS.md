@@ -37,3 +37,36 @@ After ANY code change, you MUST run verification before declaring success:
 - Pre-existing warnings (twilio module, next.config.ts NFT trace) are not blockers
 - 403 on admin API routes without auth is expected behavior
 <!-- END:verification-rules -->
+
+<!-- BEGIN:commit-push-rules -->
+# Commit and Push After Every Successful Test
+
+After completing verification and confirming all tests pass, you MUST commit and push the changes before stopping work. This is not optional.
+
+## Workflow
+
+1. **Inspect state**: `git status` and `git diff` to review what changed
+2. **Stage only intended files**: do not stage secrets, logs, or unintended changes
+3. **Commit with a descriptive message** that explains the why, not just the what
+4. **Push to the current branch's upstream**: `git push` (or `git push -u origin <branch>` if no upstream)
+5. **Confirm the push succeeded** by checking `git status` shows "Your branch is up to date"
+
+## Commit Message Style
+
+- Imperative mood: "Fix sales list..." not "Fixed sales list..."
+- Reference the affected page/component: `src/app/sales/regular/page.tsx:66`
+- Group related changes in a single commit; do not batch unrelated work
+- One short subject line, optional body explaining the root cause
+
+## What NOT to Commit
+
+- Generated logs (`dev-server.log`, `prod-server.log`, `build-output.log`) unless explicitly required
+- Secrets, `.env` files, or credentials
+- Unrelated formatting changes (whitespace-only diffs)
+
+## When to Skip
+
+- If verification FAILED, do not commit — fix first, then verify, then commit
+- If the user explicitly says "don't commit" or "hold off", respect that
+- If the change is experimental and the user hasn't approved it, ask first
+<!-- END:commit-push-rules -->
