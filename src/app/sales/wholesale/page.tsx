@@ -37,7 +37,7 @@ export default function WholesaleSalePage() {
       setInvoiceSettings(invoiceData);
     }).finally(() => setLoading(false)); 
   }, []);
-  useEffect(() => { if (customerSearch.length > 1) fetch(`/api/customers?query=${customerSearch}`).then(r => r.json()).then(setCustomerResults); }, [customerSearch]);
+  useEffect(() => { if (customerSearch.length > 1) fetch(`/api/customers?query=${customerSearch}`).then(r => r.json()).then(d => setCustomerResults(d.data || [])); }, [customerSearch]);
 
   const addToCart = (product: any) => {
     const existing = cart.find(item => item.productId === product.id);

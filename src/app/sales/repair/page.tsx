@@ -43,7 +43,7 @@ export default function RepairSalePage() {
 
   useEffect(() => {
     if (customerSearch.length > 1) {
-      fetch(`/api/customers?query=${customerSearch}`).then(r => r.json()).then(setCustomerResults);
+      fetch(`/api/customers?query=${customerSearch}`).then(r => r.json()).then(d => setCustomerResults(d.data || []));
     }
   }, [customerSearch]);
 
@@ -106,7 +106,7 @@ export default function RepairSalePage() {
         <div className="mb-6 p-4 bg-surface rounded-2xl border border-border">
           <h3 className="font-bold mb-3">Customer</h3>
           <div className="flex gap-2 mb-3">
-            <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary w-4" /><input value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} placeholder="Search customer..." className="w-full pl-10 pr-3 py-2 rounded-xl bg-background border border-border text-sm" /></div>
+            <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary w-4" /><input value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} placeholder="Search customer..." className="w-full pl-10 pr-3 py-2 rounded-xl bg-background border border-border text-sm" />{customerResults.length > 0 && (<div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-xl overflow-hidden z-20 shadow-lg">{customerResults.map(c => (<button key={c.id} onClick={() => { setSelectedCustomer(c); setCustomerSearch(""); setCustomerResults([]); }} className="w-full p-2 text-left hover:bg-primary/5 border-b border-border/50 last:border-0 text-sm"><span className="font-bold">{c.name}</span><span className="text-secondary ml-2">{c.phone}</span></button>))}</div>)}</div>
             <button onClick={() => setIsAddingCustomer(true)} className="px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm">+ New</button>
           </div>
           {isAddingCustomer && (

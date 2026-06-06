@@ -99,7 +99,7 @@ const [barcodeInput, setBarcodeInput] = useState("");
       if (customerSearch.length > 1) {
         const res = await fetch(`/api/customers?query=${customerSearch}`);
         const data = await res.json();
-        setCustomerResults(data);
+        setCustomerResults(data.data || []);
       } else {
         setCustomerResults([]);
       }

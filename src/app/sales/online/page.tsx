@@ -39,7 +39,7 @@ export default function OnlineSalePage() {
       setInvoiceSettings(invoiceData);
     }).finally(() => setLoading(false)); 
   }, []);
-  useEffect(() => { if (customerSearch.length > 1) fetch(`/api/customers?query=${customerSearch}`).then(r => r.json()).then(setCustomerResults); }, [customerSearch]);
+  useEffect(() => { if (customerSearch.length > 1) fetch(`/api/customers?query=${customerSearch}`).then(r => r.json()).then(d => setCustomerResults(d.data || [])); }, [customerSearch]);
 
   const platforms = ["BANGLAVISION", "FACEBOOK", "INSTAGRAM", "TikTok", "DARAZ", "EVABE", "OTHER"];
   const couriers = ["SSL Commerze", "Pathao", "Steadfast", "Paperfly", "eCourier", "Other"];
