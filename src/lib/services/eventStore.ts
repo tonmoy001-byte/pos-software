@@ -21,7 +21,9 @@ export type EventType =
   | "SALE_ITEM_ADDED"
   | "PAYMENT_RECEIVED"
   | "REFUND_PROCESSED"
-  | "CANCELLED";
+  | "CANCELLED"
+  | "EMI_INSTALLMENT_PAID"
+  | "EMI_EARLY_PAYOFF";
 
 export interface EventPayload {
   [key: string]: any;
