@@ -33,6 +33,10 @@ const saleCreateSchema = z.object({
   deliveryDate: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),
   exchangeItems: z.array(exchangeItemSchema).optional().default([]),
+  emiMonths: z.coerce.number().int().min(3).max(12).optional(),
+  interestRate: z.coerce.number().min(0).max(100).optional(),
+  downPayment: z.coerce.number().nonnegative().optional(),
+  monthlyAmount: z.coerce.number().nonnegative().optional(),
 });
 
 export async function GET(req: Request) {
@@ -145,6 +149,10 @@ export async function POST(req: Request) {
       saleType: data.saleType,
       deliveryDate: data.deliveryDate || null,
       dueDate: data.dueDate || null,
+      emiMonths: data.emiMonths,
+      interestRate: data.interestRate,
+      downPayment: data.downPayment,
+      monthlyAmount: data.monthlyAmount,
     }, session.user.storeId, session.user.id);
 
     const response = NextResponse.json(sale, {
