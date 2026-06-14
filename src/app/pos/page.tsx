@@ -30,7 +30,7 @@ export default function POSPage() {
   const [submitting, setSubmitting] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
   const [customerType, setCustomerType] = useState<"WALKING" | "REGISTERED">("WALKING");
-  const [discount, setDiscount] = useState(0);
+  const [discount, setDiscount] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   // Checkout Modal State
@@ -201,7 +201,7 @@ if (found) {
       totalAmount: total,
       paidAmount: Number(paidAmount) || 0, 
       dueAmount: Math.max(0, total - (Number(paidAmount) || 0)),
-      discount: discount,
+      discount: Number(discount) || 0,
       paymentMethod: paymentMethod
     };
 
@@ -220,7 +220,7 @@ if (found) {
         setTimeout(() => {
           window.print();
           setCart([]);
-          setDiscount(0);
+          setDiscount("");
           setLastSale(null);
           setIsCheckoutOpen(false);
           setSelectedCustomer(null);
@@ -243,7 +243,7 @@ if (found) {
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const total = Math.max(0, subtotal - discount);
+  const total = Math.max(0, subtotal - (Number(discount) || 0));
 
   const filteredProducts = useMemo(() => products.filter(p => 
     (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -838,7 +838,7 @@ setPaidAmount(String(total));
               <input 
                 type="number" 
                 value={discount} 
-                onChange={(e) => setDiscount(Number(e.target.value))}
+                onChange={(e) => setDiscount(e.target.value)}
                 className="w-20 text-right bg-transparent border-b border-border outline-none focus:border-primary text-foreground font-bold" 
               />
             </div>

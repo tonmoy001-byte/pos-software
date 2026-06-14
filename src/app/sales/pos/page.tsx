@@ -32,7 +32,7 @@ export default function POSPage() {
   const [submitting, setSubmitting] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
   const [customerType, setCustomerType] = useState<"WALKING" | "REGISTERED">("WALKING");
-  const [discount, setDiscount] = useState(0);
+  const [discount, setDiscount] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   
@@ -206,7 +206,7 @@ const [barcodeInput, setBarcodeInput] = useState("");
       totalAmount: total,
       paidAmount: Number(paidAmount) || 0,
       dueAmount: Math.max(0, total - (Number(paidAmount) || 0)),
-      discount: discount,
+      discount: Number(discount) || 0,
       paymentMethod: paymentMethod
     };
 
@@ -235,14 +235,14 @@ const [barcodeInput, setBarcodeInput] = useState("");
     setShowReceipt(false);
     setLastSale(null);
     setCart([]);
-    setDiscount(0);
+    setDiscount("");
     setSelectedCustomer(null);
     setPaidAmount("");
     fetch("/api/products").then(res => res.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const total = subtotal - discount;
+  const total = subtotal - (Number(discount) || 0);
 
   const lowerQuery = searchQuery.toLowerCase();
   const filteredProducts = useMemo(() => products.filter(p => 
@@ -634,7 +634,7 @@ const [barcodeInput, setBarcodeInput] = useState("");
                 <Percent className="w-4 h-4" />
                 <span>Discount</span>
               </div>
-              <input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="w-20 text-right bg-transparent border-b border-border outline-none focus:border-primary text-foreground font-bold" />
+              <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} className="w-20 text-right bg-transparent border-b border-border outline-none focus:border-primary text-foreground font-bold" />
             </div>
             <div className="flex justify-between text-xl font-black text-foreground pt-2 border-t border-border/50">
               <span>Total Payable</span>

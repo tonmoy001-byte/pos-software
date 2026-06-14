@@ -12,7 +12,7 @@ export default function OnlineSalePage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
-  const [discount, setDiscount] = useState(0);
+  const [discount, setDiscount] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -57,7 +57,7 @@ export default function OnlineSalePage() {
     setError(null);
     if (cart.length === 0) return setError("Cart is empty");
     setSubmitting(true);
-    const payload = { customerId: selectedCustomer?.id || null, items: cart, totalAmount: total, paidAmount: Number(paidAmount) || 0, dueAmount: Math.max(0, total - (Number(paidAmount) || 0)), discount, paymentMethod, saleType: "ONLINE", platform, courier };
+    const payload = { customerId: selectedCustomer?.id || null, items: cart, totalAmount: total, paidAmount: Number(paidAmount) || 0, dueAmount: Math.max(0, total - (Number(paidAmount) || 0)), discount: Number(discount) || 0, paymentMethod, saleType: "ONLINE", platform, courier };
     try {
       const res = await fetch("/api/sales", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
@@ -75,13 +75,13 @@ export default function OnlineSalePage() {
     setShowReceipt(false);
     setLastSale(null);
     setCart([]);
-    setDiscount(0);
+    setDiscount("");
     setSelectedCustomer(null);
     setPaidAmount("");
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const total = subtotal - discount;
+  const total = subtotal - (Number(discount) || 0);
 
   if (loading) return <div className="p-8 animate-pulse">Loading...</div>;
 
@@ -221,7 +221,7 @@ export default function OnlineSalePage() {
         </div>
         <div className="border-t border-border pt-4 space-y-2">
           <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-          <div className="flex justify-between items-center"><span>Discount</span><input type="number" value={discount} onChange={e => setDiscount(Number(e.target.value))} className="w-20 border-b" /></div>
+          <div className="flex justify-between items-center"><span>Discount</span><input type="number" value={discount} onChange={e => setDiscount(e.target.value)} className="w-20 border-b" /></div>
           <div className="flex justify-between text-xl font-black"><span>Total</span><span className="text-primary">{formatCurrency(total)}</span></div>
         </div>
         <button onClick={openCheckout} disabled={cart.length === 0} className="w-full mt-4 py-4 bg-primary text-white rounded-xl font-bold disabled:opacity-50">Process Online Order</button>

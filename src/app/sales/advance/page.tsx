@@ -40,7 +40,7 @@ export default function AdvanceOrderPage() {
   const [submitting, setSubmitting] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
   const [customerType, setCustomerType] = useState<"WALKING" | "REGISTERED">("WALKING");
-  const [discount, setDiscount] = useState(0);
+  const [discount, setDiscount] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   
@@ -268,7 +268,7 @@ export default function AdvanceOrderPage() {
       totalAmount: total,
       paidAmount: Number(paidAmount) || 0,
       dueAmount: Math.max(0, total - (Number(paidAmount) || 0)),
-      discount: discount,
+      discount: Number(discount) || 0,
       paymentMethod: paymentMethod,
       saleType: "ADVANCE_ORDER",
       deliveryDate: deliveryDate || null
@@ -299,14 +299,14 @@ export default function AdvanceOrderPage() {
     setShowReceipt(false);
     setLastSale(null);
     setCart([]);
-    setDiscount(0);
+    setDiscount("");
     setSelectedCustomer(null);
     setPaidAmount("");
     fetch("/api/products").then(res => res.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const total = subtotal - discount;
+  const total = subtotal - (Number(discount) || 0);
   const paid = paidAmount ? parseFloat(paidAmount) : 0;
   const remainingDue = total - paid;
 

@@ -15,7 +15,7 @@ export default function DueSalePage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
-  const [discount, setDiscount] = useState(0);
+  const [discount, setDiscount] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -183,7 +183,7 @@ export default function DueSalePage() {
     if (cart.length === 0) return setError("Cart is empty");
     if (!selectedCustomer) return setError("Customer required for due sale");
     setSubmitting(true);
-    const payload = { customerId: selectedCustomer.id, items: cart, totalAmount: total, paidAmount: 0, dueAmount: total, discount, paymentMethod: "DUE", saleType: "DUE" };
+    const payload = { customerId: selectedCustomer.id, items: cart, totalAmount: total, paidAmount: 0, dueAmount: total, discount: Number(discount) || 0, paymentMethod: "DUE", saleType: "DUE" };
     try {
       const res = await fetch("/api/sales", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
@@ -199,13 +199,13 @@ export default function DueSalePage() {
     setShowReceipt(false);
     setLastSale(null);
     setCart([]);
-    setDiscount(0);
+    setDiscount("");
     setSelectedCustomer(null);
     fetch("/api/products").then(res => res.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const total = subtotal - discount;
+  const total = subtotal - (Number(discount) || 0);
   const filteredProducts = products.filter(p => (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || (p.model || "").toLowerCase().includes(searchQuery.toLowerCase()) || (p.brand || "").toLowerCase().includes(searchQuery.toLowerCase()));
 
   if (loading) return <div className="p-8 animate-pulse text-secondary font-bold">Loading Inventory...</div>;
@@ -442,7 +442,7 @@ export default function DueSalePage() {
                     <span>Discount</span>
                     <div className="flex items-center gap-2">
                       <Percent className="w-3 h-3" />
-                      <input type="number" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="w-20 text-right bg-transparent border-b border-border outline-none focus:border-primary font-bold text-foreground" />
+                      <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} className="w-20 text-right bg-transparent border-b border-border outline-none focus:border-primary font-bold text-foreground" />
                     </div>
                   </div>
                 </div>

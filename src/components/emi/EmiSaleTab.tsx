@@ -20,10 +20,10 @@ export function EmiSaleTab() {
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customers, setCustomers] = useState<any[]>([]);
-  const [discount, setDiscount] = useState(0);
+  const [discount, setDiscount] = useState("");
   const [emiMonths, setEmiMonths] = useState(6);
-  const [interestRate, setInterestRate] = useState(0);
-  const [downPayment, setDownPayment] = useState(0);
+  const [interestRate, setInterestRate] = useState("");
+  const [downPayment, setDownPayment] = useState("");
   const [showCheckout, setShowCheckout] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -107,11 +107,11 @@ export function EmiSaleTab() {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const net = subtotal - discount;
-  const interest = net * (interestRate / 100);
+  const net = subtotal - (Number(discount) || 0);
+  const interest = net * ((Number(interestRate) || 0) / 100);
   const total = net + interest;
   const effectiveDownPayment =
-    downPayment > 0 ? downPayment : total / emiMonths;
+    (Number(downPayment) || 0) > 0 ? Number(downPayment) : total / emiMonths;
   const remaining = total - effectiveDownPayment;
   const monthlyAmount = remaining / (emiMonths - 1);
 
@@ -157,9 +157,9 @@ export function EmiSaleTab() {
       setReceiptSale(data.sale);
       setShowCheckout(false);
       setCart([]);
-      setDiscount(0);
-      setInterestRate(0);
-      setDownPayment(0);
+      setDiscount("");
+      setInterestRate("");
+      setDownPayment("");
       setSelectedCustomer(null);
       setCustomerSearch("");
     } catch (err: any) {
@@ -315,7 +315,7 @@ export function EmiSaleTab() {
             <input
               type="number"
               value={discount}
-              onChange={(e) => setDiscount(Number(e.target.value))}
+              onChange={(e) => setDiscount(e.target.value)}
               className="w-full bg-background border border-border rounded-xl py-2 px-3 text-sm outline-none focus:border-primary"
             />
           </div>
@@ -326,7 +326,7 @@ export function EmiSaleTab() {
             <input
               type="number"
               value={interestRate}
-              onChange={(e) => setInterestRate(Number(e.target.value))}
+              onChange={(e) => setInterestRate(e.target.value)}
               className="w-full bg-background border border-border rounded-xl py-2 px-3 text-sm outline-none focus:border-primary"
             />
           </div>
@@ -337,7 +337,7 @@ export function EmiSaleTab() {
             <input
               type="number"
               value={downPayment}
-              onChange={(e) => setDownPayment(Number(e.target.value))}
+              onChange={(e) => setDownPayment(e.target.value)}
               className="w-full bg-background border border-border rounded-xl py-2 px-3 text-sm outline-none focus:border-primary"
             />
           </div>
@@ -368,13 +368,13 @@ export function EmiSaleTab() {
               <span className="text-secondary">Subtotal</span>
               <span>{subtotal.toFixed(2)}</span>
             </div>
-            {discount > 0 && (
+            {Number(discount) > 0 && (
               <div className="flex justify-between text-red-600">
                 <span>Discount</span>
-                <span>-{discount.toFixed(2)}</span>
+                <span>-{(Number(discount) || 0).toFixed(2)}</span>
               </div>
             )}
-            {interestRate > 0 && (
+            {Number(interestRate) > 0 && (
               <div className="flex justify-between text-secondary">
                 <span>Interest ({interestRate}%)</span>
                 <span>+{interest.toFixed(2)}</span>
