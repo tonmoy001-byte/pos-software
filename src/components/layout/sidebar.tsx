@@ -38,7 +38,6 @@ const menuItems = [
       { label: "All Sale", href: "/sales/regular", roles: ALL_ROLES },
       { label: "Advance Order", href: "/sales/advance", roles: ALL_ROLES },
       { label: "Due Sale", href: "/sales/due", roles: ADMIN_MANAGER },
-      { label: "EMI Sale", href: "/sales/emi", roles: ADMIN_MANAGER },
       { label: "Exchange Sale", href: "/sales/exchange", roles: ADMIN_MANAGER },
       { label: "Repair Sale", href: "/sales/repair", roles: ADMIN_MANAGER },
       { label: "Online Sale", href: "/sales/online", roles: ADMIN_MANAGER },
@@ -47,6 +46,7 @@ const menuItems = [
     ]
   },
   { icon: Package, label: "Products", href: "/products", roles: ALL_ROLES },
+  { icon: CreditCard, label: "EMI", href: "/emi", roles: ADMIN_MANAGER },
   { icon: Users, label: "Customers", href: "/customers", roles: ALL_ROLES },
   { icon: Wallet, label: "Hawlat", href: "/loans", roles: ADMIN_MANAGER },
   { icon: Calculator, label: "Suppliers", href: "/suppliers", roles: ADMIN_MANAGER },
