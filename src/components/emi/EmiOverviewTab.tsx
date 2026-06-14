@@ -98,7 +98,7 @@ export function EmiOverviewTab({ onViewSale }: EmiOverviewTabProps) {
             </span>
           </div>
           <div className="text-2xl font-black">
-            {summary.totalOutstanding.toFixed(2)}
+            {(Number(summary.totalOutstanding) || 0).toFixed(2)}
           </div>
         </div>
         <div className="bg-surface rounded-xl border border-border p-4">
@@ -120,7 +120,7 @@ export function EmiOverviewTab({ onViewSale }: EmiOverviewTabProps) {
             </span>
           </div>
           <div className="text-2xl font-black">
-            {summary.collectedThisMonth.toFixed(2)}
+            {(Number(summary.collectedThisMonth) || 0).toFixed(2)}
           </div>
         </div>
       </div>
