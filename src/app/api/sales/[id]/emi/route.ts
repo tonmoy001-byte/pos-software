@@ -1,6 +1,9 @@
-import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
+
+import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { SaleService, hasPermission, logger } from "@/lib/services";
+import { prisma } from "@/lib/prisma";
 import type { Role } from "@prisma/client";
 
 const saleService = new SaleService();
@@ -8,16 +11,13 @@ const saleService = new SaleService();
 /**
  * POST /api/sales/[id]/emi
  *
- * Collect one or more EMI instalments against an EMI sale, moving it
- * from DUE → PARTIAL → PAID exactly like collectPayment but scoped
- * to EMI sale type and returning the next expected instalment amount.
- *
- * body: { amount?: number, method?: "CASH"|"BKASH"|"NAGAD"|"CARD"|"BANK" }
- *         amount  — if omitted, the entire remaining due is collected at once
- *         method  — payment method (default: CASH)
+ * Collect installment payments against an EMI sale.
+ * Supports:
+ * - Sequential payment: pay next due installment (installmentNo required)
+ * - Early payoff: pay all remaining installments (payAll: true)
  */
 export async function POST(
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession();
@@ -32,82 +32,95 @@ export async function POST(
 
   try {
     const body = await req.json();
-    const rawAmount = body.amount ?? null;   // null → collect everything
-    const method    = body.method || "CASH";
+    const { installmentNo, payAll, method = "CASH" } = body;
 
-    const amount = rawAmount != null ? parseFloat(String(rawAmount)) : null;
-
-    // ── Fetch the sale before touching the transaction ─────────────────────
-    const sale = await saleService.findById(saleId);
-    if (!sale) {
-      return NextResponse.json({ error: "Sale not found" }, { status: 404 });
-    }
-    if (sale.storeId !== session.user.storeId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
-
-    // ── EMI sales only ─────────────────────────────────────────────────────
-    if (sale.saleType !== "EMI") {
-      return NextResponse.json(
-        { error: `This sale is type "${sale.saleType}", not EMI. Use the regular payment endpoint.` },
-        { status: 400 }
-      );
-    }
-
-    if (!sale.dueAmount || Number(sale.dueAmount) <= 0) {
-      return NextResponse.json(
-        { error: "This EMI sale is already fully paid." },
-        { status: 400 }
-      );
-    }
-
-    // ── Determine how much to collect ──────────────────────────────────────
-    const currentDue   = Number(sale.dueAmount);
-    const collectNow  = amount != null ? amount : currentDue;  // null → everything
-
-    if (!isFinite(collectNow) || collectNow <= 0) {
-      return NextResponse.json(
-        { error: "Invalid amount. Enter a positive number." },
-        { status: 400 }
-      );
-    }
-
-    if (collectNow > currentDue) {
-      return NextResponse.json(
-        { error: `Amount exceeds remaining due. Max: ${currentDue.toFixed(2)}` },
-        { status: 400 }
-      );
-    }
-
-    // ── Process ────────────────────────────────────────────────────────────
-    const result = await saleService.collectPayment(
-      saleId,
-      collectNow,
-      method,
-      session.user.id,
-      session.user.storeId
-    );
-
-    // Re-read the sale for the next instalment hint
-    const updatedSale = await saleService.findById(saleId);
-
-    return NextResponse.json({
-      ...result,
-      collectedThisTime: collectNow,
-      remainingDue:   Number(updatedSale!.dueAmount),
-      status:         updatedSale!.status,  // DUE / PARTIAL / PAID
-      isEmiPaidOff:   Number(updatedSale!.dueAmount) <= 0,
+    // Verify sale exists and is EMI
+    const sale = await prisma.sale.findFirst({
+      where: {
+        id: saleId,
+        storeId: session.user.storeId,
+        saleType: "EMI",
+      },
     });
-  } catch (err: any) {
-    logger.error("EMI collection failed", {
+
+    if (!sale) {
+      return NextResponse.json({ error: "EMI sale not found" }, { status: 404 });
+    }
+
+    if (sale.status === "PAID") {
+      return NextResponse.json(
+        { error: "This EMI sale is fully paid" },
+        { status: 400 }
+      );
+    }
+
+    let result;
+
+    if (payAll) {
+      // Early payoff — pay all remaining installments
+      result = await saleService.payAllInstallments(
+        saleId,
+        method,
+        session.user.id,
+        session.user.storeId
+      );
+      return NextResponse.json({
+        message: `Paid ${result.paidCount} installments. EMI fully settled.`,
+        sale: result.sale,
+        paidCount: result.paidCount,
+        isEmiPaidOff: true,
+      });
+    } else {
+      // Pay specific installment (sequential — next due only)
+      if (!installmentNo) {
+        return NextResponse.json(
+          { error: "installmentNo is required" },
+          { status: 400 }
+        );
+      }
+
+      const installment = await prisma.eMISchedule.findFirst({
+        where: { saleId, installmentNo, status: "PENDING" },
+      });
+
+      if (!installment) {
+        return NextResponse.json(
+          { error: `Installment #${installmentNo} not found or already paid` },
+          { status: 400 }
+        );
+      }
+
+      result = await saleService.payInstallment(
+        saleId,
+        installmentNo,
+        Number(installment.amount),
+        method,
+        session.user.id,
+        session.user.storeId
+      );
+
+      // Check if fully paid
+      const pendingCount = await prisma.eMISchedule.count({
+        where: { saleId, status: "PENDING" },
+      });
+
+      return NextResponse.json({
+        installment: result.installment,
+        sale: result.sale,
+        remainingDue: Number(result.sale.dueAmount),
+        status: result.sale.status,
+        isEmiPaidOff: pendingCount === 0,
+      });
+    }
+  } catch (error: any) {
+    logger.error("EMI payment failed", {
       storeId: session.user.storeId,
       saleId,
-      error: err.message,
+      error: error.message,
     });
-    const isClientError = err.message?.includes("not found") || err.message?.includes("invalid") || err.message?.includes("required");
     return NextResponse.json(
-      { error: isClientError ? err.message : "Failed to collect EMI payment." },
-      { status: isClientError ? 400 : 500 }
+      { error: error.message || "Failed to process EMI payment" },
+      { status: 500 }
     );
   }
 }
