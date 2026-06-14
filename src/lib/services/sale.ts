@@ -25,11 +25,15 @@ interface SaleCreateInput {
   saleType?: string;
   deliveryDate?: string | null;
   dueDate?: string | null;
+  emiMonths?: number;
+  interestRate?: number;
+  downPayment?: number;
+  monthlyAmount?: number;
 }
 
 export class SaleService {
   async create(input: SaleCreateInput, storeId: string, userId: string) {
-    const { items, customerId, customerName, totalAmount, paidAmount, dueAmount, paymentMethod, discount, saleType, deliveryDate, dueDate } = input;
+    const { items, customerId, customerName, totalAmount, paidAmount, dueAmount, paymentMethod, discount, saleType, deliveryDate, dueDate, emiMonths, interestRate, downPayment, monthlyAmount } = input;
 
     return prisma.$transaction(async (tx) => {
       // 1. Fetch products and validate stock/existence
@@ -127,6 +131,10 @@ export class SaleService {
           storeId,
           deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
           dueDate: calculatedDueDate,
+          emiMonths: emiMonths || null,
+          interestRate: interestRate || null,
+          downPayment: downPayment || null,
+          monthlyAmount: monthlyAmount || null,
           payments: paidAmount > 0
             ? {
                 create: {
@@ -143,6 +151,11 @@ export class SaleService {
       await tx.saleItem.createMany({
         data: saleItemsData.map(item => ({ saleId: sale.id, ...item })),
       });
+
+      // 9.5. Generate EMI schedule if EMI sale
+      if (saleType === "EMI" && emiMonths && downPayment !== undefined) {
+        await this.generateEmiSchedule(tx, sale.id, emiMonths, totalAmount, downPayment, sale.createdAt);
+      }
 
       // Update stock for non-advance orders
       if (saleType !== "ADVANCE_ORDER") {
@@ -629,6 +642,209 @@ export class SaleService {
       });
 
       return { success: true };
+    });
+  }
+
+  private async generateEmiSchedule(tx: any, saleId: string, emiMonths: number, totalAmount: number, downPayment: number, saleDate: Date): Promise<void> {
+    const scheduleData: Array<{
+      saleId: string;
+      installmentNo: number;
+      dueDate: Date;
+      amount: any;
+      status: string;
+    }> = [];
+
+    // Installment 1 = down payment, due on sale date
+    scheduleData.push({
+      saleId,
+      installmentNo: 1,
+      dueDate: saleDate,
+      amount: downPayment,
+      status: "PAID",
+    });
+
+    // Remaining installments
+    const remaining = totalAmount - downPayment;
+    const monthlyAmount = remaining / (emiMonths - 1);
+
+    for (let i = 2; i <= emiMonths; i++) {
+      const dueDate = new Date(saleDate);
+      dueDate.setMonth(dueDate.getMonth() + (i - 1));
+
+      scheduleData.push({
+        saleId,
+        installmentNo: i,
+        dueDate,
+        amount: monthlyAmount,
+        status: "PENDING",
+      });
+    }
+
+    await tx.eMISchedule.createMany({ data: scheduleData });
+  }
+
+  async payInstallment(saleId: string, installmentNo: number, amount: number, method: string, userId: string, storeId: string): Promise<{ sale: any; installment: any }> {
+    return prisma.$transaction(async (tx) => {
+      // Find the installment
+      const installment = await tx.eMISchedule.findFirst({
+        where: { saleId, installmentNo, status: "PENDING" },
+      });
+
+      if (!installment) {
+        throw new Error(`Installment #${installmentNo} not found or already paid`);
+      }
+
+      // Mark installment as paid
+      const updatedInstallment = await tx.eMISchedule.update({
+        where: { id: installment.id },
+        data: {
+          status: "PAID",
+          paidDate: new Date(),
+        },
+      });
+
+      // Update sale paid amount
+      const sale = await tx.sale.update({
+        where: { id: saleId },
+        data: {
+          paidAmount: { increment: amount },
+          dueAmount: { decrement: amount },
+        },
+      });
+
+      // Check if all installments are paid
+      const pendingCount = await tx.eMISchedule.count({
+        where: { saleId, status: "PENDING" },
+      });
+
+      if (pendingCount === 0) {
+        await tx.sale.update({
+          where: { id: saleId },
+          data: { status: "PAID" },
+        });
+      }
+
+      // Create payment record
+      await tx.payment.create({
+        data: {
+          saleId,
+          amount,
+          method,
+          storeId,
+        },
+      });
+
+      // Create transaction record
+      await tx.transaction.create({
+        data: {
+          type: "SALE",
+          amount,
+          mode: method as "CASH" | "BANK" | "BKASH" | "NAGAD" | "CARD" | "DUE",
+          description: `EMI installment #${installmentNo} for ${sale.invoiceId}`,
+          referenceId: saleId,
+          referenceType: "SALE",
+          userId,
+          storeId,
+          status: "COMPLETED",
+        },
+      });
+
+      // Audit event
+      await eventStore.append({
+        aggregateType: "Sale",
+        aggregateId: saleId,
+        type: "EMI_INSTALLMENT_PAID",
+        payload: {
+          installmentNo,
+          amount,
+          method,
+          paidAmount: sale.paidAmount,
+          dueAmount: sale.dueAmount,
+        },
+        userId,
+        storeId,
+      } as EventStoreData, tx);
+
+      return { sale, installment: updatedInstallment };
+    });
+  }
+
+  async payAllInstallments(saleId: string, method: string, userId: string, storeId: string): Promise<{ sale: any; paidCount: number }> {
+    return prisma.$transaction(async (tx) => {
+      // Find all pending installments
+      const pendingInstallments = await tx.eMISchedule.findMany({
+        where: { saleId, status: "PENDING" },
+        orderBy: { installmentNo: "asc" },
+      });
+
+      if (pendingInstallments.length === 0) {
+        throw new Error("No pending installments found");
+      }
+
+      const totalRemaining = pendingInstallments.reduce(
+        (sum: number, inst: any) => sum + Number(inst.amount),
+        0
+      );
+
+      // Mark all as paid
+      await tx.eMISchedule.updateMany({
+        where: { saleId, status: "PENDING" },
+        data: {
+          status: "PAID",
+          paidDate: new Date(),
+        },
+      });
+
+      // Update sale
+      const sale = await tx.sale.update({
+        where: { id: saleId },
+        data: {
+          paidAmount: { increment: totalRemaining },
+          dueAmount: 0,
+          status: "PAID",
+        },
+      });
+
+      // Create payment record
+      await tx.payment.create({
+        data: {
+          saleId,
+          amount: totalRemaining,
+          method,
+          storeId,
+        },
+      });
+
+      // Create transaction record
+      await tx.transaction.create({
+        data: {
+          type: "SALE",
+          amount: totalRemaining,
+          mode: method as "CASH" | "BANK" | "BKASH" | "NAGAD" | "CARD" | "DUE",
+          description: `EMI early payoff for ${sale.invoiceId}`,
+          referenceId: saleId,
+          referenceType: "SALE",
+          userId,
+          storeId,
+          status: "COMPLETED",
+        },
+      });
+
+      // Audit event
+      await eventStore.append({
+        aggregateType: "Sale",
+        aggregateId: saleId,
+        type: "EMI_EARLY_PAYOFF",
+        payload: {
+          paidCount: pendingInstallments.length,
+          totalAmount: totalRemaining,
+          method,
+        },
+        userId,
+        storeId,
+      } as EventStoreData, tx);
+
+      return { sale, paidCount: pendingInstallments.length };
     });
   }
 }
