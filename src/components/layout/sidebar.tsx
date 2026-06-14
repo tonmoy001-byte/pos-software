@@ -46,7 +46,7 @@ const menuItems = [
       { label: "Return & Refund", href: "/sales/return", roles: ADMIN_MANAGER },
     ]
   },
-  { icon: Package, label: "Inventory", href: "/inventory", roles: ALL_ROLES },
+  { icon: Package, label: "Products", href: "/products", roles: ALL_ROLES },
   { icon: Users, label: "Customers", href: "/customers", roles: ALL_ROLES },
   { icon: Wallet, label: "Hawlat", href: "/loans", roles: ADMIN_MANAGER },
   { icon: Calculator, label: "Suppliers", href: "/suppliers", roles: ADMIN_MANAGER },

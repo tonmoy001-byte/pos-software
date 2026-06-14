@@ -2,115 +2,83 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { generateBarcode } from "@/lib/barcode";
-import { hasPermission, eventStore, EventStoreData, logger } from "@/lib/services";
+import { hasPermission, eventStore, logger } from "@/lib/services";
 import type { Role } from "@prisma/client";
-import * as XLSX from "xlsx";
 
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasPermission(session.user.role as Role, "product:create")) {
+  if (!hasPermission(session.user.role as Role, "product:update")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const data = await req.json();
+  const { action, productIds, value } = data;
+
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    return NextResponse.json({ error: "No products selected" }, { status: 400 });
+  }
+
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
-    if (!file) return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+    let affected = 0;
 
-    const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet) as any[];
-
-    const results = await prisma.$transaction(async (tx) => {
-      const createdProducts = [];
-      const seenBarcodes = new Set<string>();
-
-      // Pre-check: validate all barcodes in the file
-      const barcodesInFile = data.map(row => row.Barcode).filter(Boolean);
-      const duplicateBarcodes = barcodesInFile.filter((bc, i) => barcodesInFile.indexOf(bc) !== i);
-      if (duplicateBarcodes.length > 0) {
-        throw new Error(`Duplicate barcodes in file: ${[...new Set(duplicateBarcodes)].join(", ")}`);
-      }
-
-      // Check against existing barcodes
-      if (barcodesInFile.length > 0) {
-        const existing = await tx.product.findMany({
-          where: { barcode: { in: barcodesInFile }, storeId: session.user.storeId },
-          select: { barcode: true },
+    switch (action) {
+      case "delete": {
+        const result = await prisma.product.deleteMany({
+          where: { id: { in: productIds }, storeId: session.user.storeId },
         });
-        if (existing.length > 0) {
-          throw new Error(`Barcodes already exist: ${existing.map(p => p.barcode).join(", ")}`);
-        }
+        affected = result.count;
+        break;
       }
-
-      for (const row of data) {
-        const { Name, Brand, Category, Price, Cost, Stock, MinStock, Barcode } = row;
-
-        if (!Name || !Price) {
-          logger.warn("Skipping row with missing Name or Price", { row });
-          continue;
-        }
-        
-        const productBarcode = Barcode || generateBarcode();
-        if (seenBarcodes.has(productBarcode)) {
-          throw new Error(`Duplicate barcode detected: ${productBarcode}`);
-        }
-        seenBarcodes.add(productBarcode);
-
-        const price = Number(Price);
-        const cost = Cost ? Number(Cost) : undefined;
-        if (isNaN(price) || price <= 0) {
-          throw new Error(`Invalid price for product: ${Name}`);
-        }
-        if (cost !== undefined && (isNaN(cost) || cost < 0)) {
-          throw new Error(`Invalid cost for product: ${Name}`);
-        }
-
-        const productData: any = {
-          name: Name,
-          brand: Brand || "Generic",
-          model: Name,
-          category: Category || "Mobile",
-          price,
-          stock: Number(Stock || 0),
-          minStock: Number(MinStock || 5),
-          barcode: productBarcode,
-          storeId: session.user.storeId,
-        };
-        if (cost !== undefined) productData.cost = cost;
-
-        const product = await tx.product.create({
-          data: productData
+      case "updateCategory": {
+        if (!value) return NextResponse.json({ error: "Category value required" }, { status: 400 });
+        const result = await prisma.product.updateMany({
+          where: { id: { in: productIds }, storeId: session.user.storeId },
+          data: { category: value.toUpperCase() },
         });
-
-        await eventStore.append({
-          aggregateType: "Product",
-          aggregateId: product.id,
-          type: "CREATED",
-          payload: {
-            name: product.name,
-            brand: product.brand,
-            price: product.price,
-            cost: product.cost,
-            stock: product.stock,
-            bulkImport: true,
-          },
-          userId: session.user.id,
-          storeId: session.user.storeId,
-        }, tx);
-
-        createdProducts.push(product);
+        affected = result.count;
+        break;
       }
-      return createdProducts;
+      case "updateStatus": {
+        if (!value) return NextResponse.json({ error: "Status value required" }, { status: 400 });
+        const products = await prisma.product.findMany({
+          where: { id: { in: productIds }, storeId: session.user.storeId },
+        });
+        for (const product of products) {
+          const metadata = (product.metadata as Record<string, any>) || {};
+          await prisma.product.update({
+            where: { id: product.id },
+            data: { metadata: { ...metadata, status: value } },
+          });
+        }
+        affected = products.length;
+        break;
+      }
+      case "updatePrice": {
+        if (value === undefined || value === null) return NextResponse.json({ error: "Price value required" }, { status: 400 });
+        const result = await prisma.product.updateMany({
+          where: { id: { in: productIds }, storeId: session.user.storeId },
+          data: { price: parseFloat(value) },
+        });
+        affected = result.count;
+        break;
+      }
+      default:
+        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
+
+    await eventStore.append({
+      aggregateType: "Product",
+      aggregateId: "bulk",
+      type: "UPDATED",
+      payload: { action, productIds, value, affected },
+      userId: session.user.id,
+      storeId: session.user.storeId,
     });
 
-    return NextResponse.json({ message: `Imported ${results.length} products`, count: results.length });
+    return NextResponse.json({ success: true, affected });
   } catch (error: any) {
-    logger.error("Bulk import failed", { storeId: session?.user?.storeId, userId: session?.user?.id, error: error.message });
-    return NextResponse.json({ error: "Import failed. Check format: Name, Brand, Category, Price, Cost, Stock, MinStock" }, { status: 500 });
+    logger.error("Bulk product operation failed", { storeId: session.user.storeId, userId: session.user.id, error: error.message });
+    return NextResponse.json({ error: "Bulk operation failed" }, { status: 500 });
   }
 }

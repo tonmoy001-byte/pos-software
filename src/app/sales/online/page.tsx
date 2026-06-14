@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Trash2, Plus, Minus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, Check, SmartphoneNfc, X, Package, Truck } from "lucide-react";
+import { Search, Trash2, Plus, Minus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, X, Package, Truck } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
 
@@ -14,9 +14,6 @@ export default function OnlineSalePage() {
   const [lastSale, setLastSale] = useState<any>(null);
   const [discount, setDiscount] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [isIMEIOpen, setIsIMEIOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [tempSelectedImeis, setTempSelectedImeis] = useState<string[]>([]);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [invoiceSettings, setInvoiceSettings] = useState<any>(null);
@@ -44,10 +41,15 @@ export default function OnlineSalePage() {
   const platforms = ["BANGLAVISION", "FACEBOOK", "INSTAGRAM", "TikTok", "DARAZ", "EVABE", "OTHER"];
   const couriers = ["SSL Commerze", "Pathao", "Steadfast", "Paperfly", "eCourier", "Other"];
 
-  const addToCart = (product: any) => { setSelectedProduct(product); setIsIMEIOpen(true); };
-  const confirmIMEIs = (product: any, selectedImeis: string[]) => {
-    setCart([...cart, { productId: product.id, name: product.name, price: product.price, quantity: selectedImeis.length, imeis: selectedImeis }]);
-    setIsIMEIOpen(false);
+  const addToCart = (product: any) => {
+    const existing = cart.find(item => item.productId === product.id);
+    if (existing) {
+      setCart(cart.map(item =>
+        item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item
+      ));
+    } else {
+      setCart([...cart, { productId: product.id, name: product.name, price: product.price, quantity: 1 }]);
+    }
   };
   const removeFromCart = (productId: string) => setCart(cart.filter(item => item.productId !== productId));
   const openCheckout = () => { if (cart.length === 0) return setError("Cart is empty"); setPaidAmount(String(total)); setIsCheckoutOpen(true); };
@@ -85,19 +87,6 @@ export default function OnlineSalePage() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {isIMEIOpen && selectedProduct && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-surface w-full max-w-lg rounded-3xl p-8">
-            <button onClick={() => setIsIMEIOpen(false)} className="absolute top-6 right-6"><X className="w-6 h-6" /></button>
-            <h2 className="text-xl font-bold text-center mb-4">Select IMEIs</h2>
-            <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto">
-              {selectedProduct.items?.map((item: any) => { const isSelected = tempSelectedImeis.includes(item.imei); return (<button key={item.imei} onClick={() => isSelected ? setTempSelectedImeis(prev => prev.filter(i => i !== item.imei)) : setTempSelectedImeis(prev => [...prev, item.imei])} className={`p-3 rounded-xl border ${isSelected ? 'border-primary bg-primary/5' : 'border-border'}`}><p className="text-sm">{item.imei}</p>{isSelected && <Check className="w-4 h-4 text-primary" />}</button>); })}
-            </div>
-            <button disabled={tempSelectedImeis.length === 0} onClick={() => confirmIMEIs(selectedProduct, tempSelectedImeis)} className="w-full mt-4 py-3 bg-primary text-white rounded-xl font-bold disabled:opacity-50">Add {tempSelectedImeis.length}</button>
-          </div>
-        </div>
-      )}
-
       {isCheckoutOpen && (
         <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
           <div className="bg-surface w-full max-w-lg rounded-2xl p-8 space-y-6 relative">

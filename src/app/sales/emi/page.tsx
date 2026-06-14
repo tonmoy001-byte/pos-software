@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Trash2, Plus, Minus, Scan, Receipt, Banknote, Percent, Users, Smartphone, Check, SmartphoneNfc, X, Wallet, Calendar } from "lucide-react";
+import { Search, Trash2, Plus, Minus, Scan, Receipt, Banknote, Percent, Users, Smartphone, X, Wallet, Calendar } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { playBeep } from "@/lib/audio";
 import { ReceiptModal } from "@/components/invoice";
@@ -16,9 +16,6 @@ export default function EMISalePage() {
   const [discount, setDiscount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [emiMonths, setEmiMonths] = useState(3);
-  const [isIMEIOpen, setIsIMEIOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [tempSelectedImeis, setTempSelectedImeis] = useState<string[]>([]);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [invoiceSettings, setInvoiceSettings] = useState<any>(null);
@@ -60,15 +57,23 @@ export default function EMISalePage() {
     return () => clearTimeout(delayDebounceFn);
   }, [customerSearch]);
 
-  const addToCart = (product: any) => { setSelectedProduct(product); setIsIMEIOpen(true); };
+  const addToCart = (product: any) => {
+    const existing = cart.find(item => item.productId === product.id);
+    if (existing) {
+      setCart(cart.map(item =>
+        item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item
+      ));
+    } else {
+      setCart([...cart, { productId: product.id, name: product.name, price: product.price, quantity: 1 }]);
+    }
+  };
   
   // Instant barcode detection
   useEffect(() => {
     if (!barcodeInput.trim() || barcodeInput.length < 3) return;
     const timer = setTimeout(() => {
       const trimmed = barcodeInput.trim();
-      const foundProduct = products.find(p => p.items?.some((item: any) => item.imei === trimmed || item.barcode === trimmed));
-      const found = foundProduct || products.find(p => p.barcode === trimmed);
+      const found = products.find(p => p.barcode === trimmed);
       if (found) { addToCart(found); playBeep(true); setBarcodeInput(""); }
     }, 100);
     return () => clearTimeout(timer);
@@ -76,16 +81,9 @@ export default function EMISalePage() {
 
   const handleBarcodeScan = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && barcodeInput.trim()) {
-      const foundProduct = products.find(p => p.items?.some((item: any) => item.imei === barcodeInput.trim() || item.barcode === barcodeInput.trim()));
-      const found = foundProduct || products.find(p => p.barcode === barcodeInput.trim());
+      const found = products.find(p => p.barcode === barcodeInput.trim());
       if (found) { addToCart(found); playBeep(true); setBarcodeInput(""); }
     }
-  };
-  const confirmIMEIs = (product: any, selectedImeis: string[]) => {
-    const existing = cart.find(item => item.productId === product.id);
-    if (existing) setCart(cart.map(item => item.productId === product.id ? { ...item, quantity: selectedImeis.length, imeis: selectedImeis } : item));
-    else setCart([...cart, { productId: product.id, name: product.name, price: product.price, quantity: selectedImeis.length, imeis: selectedImeis }]);
-    setIsIMEIOpen(false);
   };
   const removeFromCart = (productId: string) => setCart(cart.filter(item => item.productId !== productId));
   const handleAddCustomer = async () => {
@@ -100,7 +98,6 @@ export default function EMISalePage() {
     setError(null);
     if (cart.length === 0) return setError("Cart is empty");
     if (!selectedCustomer) return setError("Customer required for EMI");
-    for (const item of cart) { if (item.imeis.length !== item.quantity) return setError(`Select ${item.quantity} IMEIs`); }
     setSubmitting(true);
     const payload = {
       customerId:        selectedCustomer.id,
@@ -144,19 +141,6 @@ export default function EMISalePage() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {isIMEIOpen && selectedProduct && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-surface w-full max-w-lg rounded-3xl p-8">
-            <button onClick={() => setIsIMEIOpen(false)} className="absolute top-6 right-6"><X className="w-6 h-6" /></button>
-            <h2 className="text-xl font-bold text-center">Select IMEIs</h2>
-            <div className="grid grid-cols-2 gap-3 mt-4 max-h-[300px] overflow-y-auto">
-              {selectedProduct.items?.map((item: any) => { const isSelected = tempSelectedImeis.includes(item.imei); return (<button key={item.imei} onClick={() => isSelected ? setTempSelectedImeis(prev => prev.filter(i => i !== item.imei)) : setTempSelectedImeis(prev => [...prev, item.imei])} className={`p-3 rounded-xl border ${isSelected ? 'border-primary bg-primary/5' : 'border-border'}`}><p className="text-sm">{item.imei}</p>{isSelected && <Check className="w-4 h-4 text-primary" />}</button>); })}
-            </div>
-            <button disabled={tempSelectedImeis.length === 0} onClick={() => confirmIMEIs(selectedProduct, tempSelectedImeis)} className="w-full mt-4 py-3 bg-primary text-white rounded-xl font-bold disabled:opacity-50">Add {tempSelectedImeis.length}</button>
-          </div>
-        </div>
-      )}
-
       {isCheckoutOpen && (
         <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
           <div className="bg-surface w-full max-w-lg rounded-2xl p-8 space-y-6">

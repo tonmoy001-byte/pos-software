@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import {
-  Search, Trash2, Plus, Minus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, Check, SmartphoneNfc, X, UserPlus, Wallet, Clock, Filter, Calendar, ChevronRight, AlertTriangle, Phone
+  Search, Trash2, Plus, Minus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, Check, X, UserPlus, Wallet, Clock, Filter, Calendar, ChevronRight, AlertTriangle, Phone
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { playBeep } from "@/lib/audio";
@@ -17,9 +17,6 @@ export default function DueSalePage() {
   const [lastSale, setLastSale] = useState<any>(null);
   const [discount, setDiscount] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [isIMEIOpen, setIsIMEIOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [tempSelectedImeis, setTempSelectedImeis] = useState<string[]>([]);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [invoiceSettings, setInvoiceSettings] = useState<any>(null);
@@ -128,8 +125,14 @@ export default function DueSalePage() {
   });
 
   const addToCart = (product: any) => {
-    setSelectedProduct(product);
-    setIsIMEIOpen(true);
+    const existing = cart.find(item => item.productId === product.id);
+    if (existing) {
+      setCart(cart.map(item =>
+        item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item
+      ));
+    } else {
+      setCart([...cart, { productId: product.id, name: product.name, price: product.price, quantity: 1 }]);
+    }
   };
 
   // Instant barcode detection
@@ -137,9 +140,7 @@ export default function DueSalePage() {
     if (!barcodeInput.trim() || barcodeInput.length < 3) return;
     const timer = setTimeout(() => {
       const trimmed = barcodeInput.trim();
-      const foundProduct = products.find(p => p.items?.some((item: any) => item.imei === trimmed || item.barcode === trimmed));
-      const foundByProductBarcode = products.find(p => p.barcode === trimmed);
-      const found = foundProduct || foundByProductBarcode;
+      const found = products.find(p => p.barcode === trimmed);
       if (found) {
         addToCart(found);
         setBarcodeInput("");
@@ -154,9 +155,7 @@ export default function DueSalePage() {
 
   const handleBarcodeScan = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && barcodeInput.trim()) {
-      const foundProduct = products.find(p => p.items?.some((item: any) => item.imei === barcodeInput.trim() || item.barcode === barcodeInput.trim()));
-      const foundByProductBarcode = products.find(p => p.barcode === barcodeInput.trim());
-      const found = foundProduct || foundByProductBarcode;
+      const found = products.find(p => p.barcode === barcodeInput.trim());
       if (found) {
         addToCart(found);
         setBarcodeInput("");
@@ -165,16 +164,6 @@ export default function DueSalePage() {
         setTimeout(() => setError(null), 3000);
       }
     }
-  };
-
-  const confirmIMEIs = (product: any, selectedImeis: string[]) => {
-    const existing = cart.find(item => item.productId === product.id);
-    if (existing) {
-      setCart(cart.map(item => item.productId === product.id ? { ...item, quantity: selectedImeis.length, imeis: selectedImeis } : item));
-    } else {
-      setCart([...cart, { productId: product.id, name: product.name, price: product.price, quantity: selectedImeis.length, imeis: selectedImeis }]);
-    }
-    setIsIMEIOpen(false);
   };
 
   const removeFromCart = (productId: string) => setCart(cart.filter(item => item.productId !== productId));
@@ -193,7 +182,6 @@ export default function DueSalePage() {
     setError(null);
     if (cart.length === 0) return setError("Cart is empty");
     if (!selectedCustomer) return setError("Customer required for due sale");
-    for (const item of cart) { if (item.imeis.length !== item.quantity) return setError(`Select ${item.quantity} IMEIs for ${item.name}`); }
     setSubmitting(true);
     const payload = { customerId: selectedCustomer.id, items: cart, totalAmount: total, paidAmount: 0, dueAmount: total, discount, paymentMethod: "DUE", saleType: "DUE" };
     try {
@@ -251,33 +239,6 @@ export default function DueSalePage() {
       </div>
 
       {/* Modals */}
-      {isIMEIOpen && selectedProduct && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-          <div className="bg-surface w-full max-w-lg rounded-3xl p-8 card-shadow space-y-6 relative">
-            <button onClick={() => { setIsIMEIOpen(false); setTempSelectedImeis([]); }} className="absolute top-6 right-6"><X className="w-6 h-6" /></button>
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto"><SmartphoneNfc className="w-8 h-8" /></div>
-              <h2 className="text-2xl font-bold">Select IMEIs</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-2">
-              {selectedProduct.items?.map((item: any) => {
-                const isSelected = tempSelectedImeis.includes(item.imei);
-                return (
-                  <button key={item.imei} onClick={() => isSelected ? setTempSelectedImeis(prev => prev.filter(i => i !== item.imei)) : setTempSelectedImeis(prev => [...prev, item.imei])} className={`p-4 rounded-xl border-2 text-left ${isSelected ? 'border-primary bg-primary/5' : 'border-border'}`}>
-                    <p className="text-sm font-bold">{item.imei}</p>
-                    {isSelected && <Check className="w-5 h-5 text-primary" />}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex gap-4 pt-4">
-              <button onClick={() => { setIsIMEIOpen(false); }} className="flex-1 py-4 bg-background border border-border rounded-2xl font-bold">Cancel</button>
-              <button disabled={tempSelectedImeis.length === 0} onClick={() => confirmIMEIs(selectedProduct, tempSelectedImeis)} className="flex-1 py-4 bg-primary text-white rounded-2xl font-black disabled:opacity-50">Add {tempSelectedImeis.length}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {isCheckoutOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[80] flex items-center justify-center p-4">
           <div className="bg-surface w-full max-w-lg rounded-[2rem] p-8 card-shadow space-y-6">
@@ -463,9 +424,6 @@ export default function DueSalePage() {
                       <button onClick={() => removeFromCart(item.productId)} className="text-secondary hover:text-red-500 p-1 transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-border/30">
-                      <div className="flex gap-1 flex-wrap">
-                        {item.imeis.map((imei: string) => <span key={imei} className="text-[9px] bg-surface px-1.5 py-0.5 rounded border border-border text-secondary font-medium">{imei}</span>)}
-                      </div>
                       <span className="font-black text-foreground">{formatCurrency(item.price * item.quantity)}</span>
                     </div>
                   </div>

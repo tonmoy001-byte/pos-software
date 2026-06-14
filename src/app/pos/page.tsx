@@ -14,8 +14,6 @@ import {
   Percent,
   Users,
   Smartphone,
-  Check,
-  SmartphoneNfc,
   X,
   UserPlus,
   Wallet
@@ -35,10 +33,6 @@ export default function POSPage() {
   const [discount, setDiscount] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const [isIMEIOpen, setIsIMEIOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [tempSelectedImeis, setTempSelectedImeis] = useState<string[]>([]);
-  
   // Checkout Modal State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paidAmount, setPaidAmount] = useState<string>("");
@@ -57,17 +51,6 @@ export default function POSPage() {
   const [isPriceOverrideOpen, setIsPriceOverrideOpen] = useState(false);
   const [priceOverrideItem, setPriceOverrideItem] = useState<any>(null);
   const [newPrice, setNewPrice] = useState("");
-
-  useEffect(() => {
-    if (isIMEIOpen && selectedProduct) {
-      const existingItem = cart.find(item => item.productId === selectedProduct.id);
-      if (existingItem) {
-        setTempSelectedImeis(existingItem.imeis || []);
-      } else {
-        setTempSelectedImeis([]);
-      }
-    }
-  }, [isIMEIOpen, selectedProduct?.id]);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -114,14 +97,19 @@ export default function POSPage() {
   }, [customerSearch]);
 
   const addToCart = (product: any) => {
-    const existingItem = cart.find(item => item.productId === product.id);
-    if (existingItem) {
-      setTempSelectedImeis(existingItem.imeis || []);
+    const existing = cart.find(item => item.productId === product.id);
+    if (existing) {
+      setCart(cart.map(item =>
+        item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item
+      ));
     } else {
-      setTempSelectedImeis([]);
+      setCart([...cart, {
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+      }]);
     }
-    setSelectedProduct(product);
-    setIsIMEIOpen(true);
   };
 
   // Instant barcode detection - no need to press Enter
@@ -130,11 +118,8 @@ export default function POSPage() {
     
     const timer = setTimeout(() => {
       const trimmed = barcodeInput.trim();
-      const foundProduct = products.find(p => 
-        p.items?.some((item: any) => item.imei === trimmed || item.barcode === trimmed)
-      );
       const foundByProductBarcode = products.find(p => p.barcode === trimmed);
-      const found = foundProduct || foundByProductBarcode;
+      const found = foundByProductBarcode;
       
 if (found) {
         addToCart(found);
@@ -142,7 +127,7 @@ if (found) {
         setBarcodeInput("");
       } else if (barcodeInput.length >= 8) {
         // Only show error for longer barcodes to avoid false positives
-        setError("Product not found for this IMEI/Barcode");
+        setError("Product not found for this barcode");
         playBeep(false);
         setTimeout(() => setError(null), 3000);
         setBarcodeInput("");
@@ -154,22 +139,14 @@ if (found) {
 
   const handleBarcodeScan = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && barcodeInput.trim()) {
-      // Search by imei or barcode in serialized items
-      const foundProduct = products.find(p => 
-        p.items?.some((item: any) => 
-          item.imei === barcodeInput.trim() || 
-          item.barcode === barcodeInput.trim()
-        )
-      );
-      // Also search by product barcode
       const foundByProductBarcode = products.find(p => p.barcode === barcodeInput.trim());
       
-      const found = foundProduct || foundByProductBarcode;
+      const found = foundByProductBarcode;
       if (found) {
         addToCart(found);
         setBarcodeInput("");
       } else {
-        setError("Product not found for this IMEI/Barcode");
+        setError("Product not found for this barcode");
         setTimeout(() => setError(null), 3000);
       }
     }
@@ -177,33 +154,6 @@ if (found) {
 
   const focusBarcodeInput = () => {
     barcodeInputRef.current?.focus();
-  };
-
-  const confirmIMEIs = (product: any, selectedImeis: string[]) => {
-    const duplicates = selectedImeis.filter(imei =>
-      cart.some(item => item.productId !== product.id && item.imeis?.includes(imei))
-    );
-    if (duplicates.length > 0) {
-      setError(`Duplicate IMEI(s) already in cart: ${duplicates.join(", ")}`);
-      setTimeout(() => setError(null), 5000);
-      return;
-    }
-
-    const existing = cart.find(item => item.productId === product.id);
-    if (existing) {
-      setCart(cart.map(item =>
-        item.productId === product.id ? { ...item, quantity: selectedImeis.length, imeis: selectedImeis } : item
-      ));
-    } else {
-      setCart([...cart, {
-        productId: product.id,
-        name: product.name,
-        price: product.price,
-        quantity: selectedImeis.length,
-        imeis: selectedImeis
-      }]);
-    }
-    setIsIMEIOpen(false);
   };
 
   const removeFromCart = (productId: string) => {
@@ -239,20 +189,6 @@ if (found) {
   const handleCheckout = async () => {
     setError(null);
     if (cart.length === 0) return setError("Cart is empty");
-    
-    // Validate that each item has correct number of IMEIs
-    for (const item of cart) {
-      if (item.imeis.length !== item.quantity) {
-        return setError(`Please select ${item.quantity} IMEIs for ${item.name}`);
-      }
-    }
-
-    // Validate no duplicate IMEIs across cart items
-    const allImeis = cart.flatMap(item => item.imeis || []);
-    const uniqueImeis = new Set(allImeis);
-    if (uniqueImeis.size !== allImeis.length) {
-      return setError("Duplicate IMEI detected in cart. Please remove duplicates.");
-    }
 
     setSubmitting(true);
     
@@ -319,71 +255,6 @@ if (found) {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* IMEI Selection Modal */}
-      {isIMEIOpen && selectedProduct && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface w-full max-w-lg rounded-3xl p-8 card-shadow space-y-6 relative animate-in zoom-in-95 duration-200">
-            <button 
-              onClick={() => { setIsIMEIOpen(false); setTempSelectedImeis([]); }}
-              className="absolute top-6 right-6 text-secondary hover:text-foreground"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto">
-                <SmartphoneNfc className="w-8 h-8" />
-              </div>
-              <h2 className="text-2xl font-bold">Select IMEIs</h2>
-              <p className="text-sm text-secondary">Select the specific units for {selectedProduct.name}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-2">
-              {selectedProduct.items?.map((item: any) => {
-                const isSelected = tempSelectedImeis.includes(item.imei);
-                return (
-                  <button
-                    key={item.imei}
-                    onClick={() => {
-                      if (isSelected) setTempSelectedImeis(prev => prev.filter(i => i !== item.imei));
-                      else setTempSelectedImeis(prev => [...prev, item.imei]);
-                    }}
-                    className={`p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between ${isSelected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}
-                  >
-                    <div>
-                      <p className="text-[10px] font-black text-secondary uppercase tracking-widest">IMEI / Serial</p>
-                      <p className="text-sm font-bold">{item.imei}</p>
-                    </div>
-                    {isSelected && <Check className="w-5 h-5 text-primary" />}
-                  </button>
-                );
-              })}
-              {(!selectedProduct.items || selectedProduct.items.length === 0) && (
-                <div className="col-span-2 py-10 text-center text-secondary italic border-2 border-dashed border-border rounded-2xl">
-                  No available units found for this model.
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-4 pt-4">
-              <button 
-                onClick={() => { setIsIMEIOpen(false); setTempSelectedImeis([]); }}
-                className="flex-1 py-4 bg-background border border-border rounded-2xl font-bold text-secondary hover:bg-surface transition-all"
-              >
-                Cancel
-              </button>
-              <button 
-                disabled={tempSelectedImeis.length === 0}
-                onClick={() => confirmIMEIs(selectedProduct, tempSelectedImeis)}
-                className="flex-1 py-4 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-              >
-                Add {tempSelectedImeis.length} Units
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Checkout Modal */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4">
@@ -695,7 +566,7 @@ setPaidAmount(String(total));
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary w-5 h-5" />
             <input 
               type="text" 
-              placeholder="Search by Product Name or IMEI..." 
+              placeholder="Search by Product Name..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-4 rounded-2xl bg-surface border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all card-shadow"
