@@ -229,6 +229,13 @@ model Sale {
   branch           Branch?  @relation(fields: [branchId], references: [id])
   customer         Customer?  @relation(fields: [customerId], references: [id])
   items            SaleItem[]
+  emiSchedules     EMISchedule[]
+
+  // EMI fields (null for non-EMI sales)
+  emiMonths       Int?
+  interestRate    Decimal?   @db.Decimal(5, 2)
+  downPayment     Decimal?   @db.Decimal(10, 2)
+  monthlyAmount   Decimal?   @db.Decimal(10, 2)
 
   @@unique([invoiceId, storeId])
   @@index([storeId, status])
@@ -237,6 +244,24 @@ model Sale {
   @@index([storeId, saleType])
   @@index([dueDate])
   @@index([storeId, dueAmount])
+}
+
+model EMISchedule {
+  id            String   @id @default(cuid())
+  saleId        String
+  installmentNo Int
+  dueDate       DateTime
+  amount        Decimal  @db.Decimal(10, 2)
+  status        String   @default("PENDING")
+  paidDate      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@index([status])
+  @@index([dueDate])
 }
 
 model SaleItem {
