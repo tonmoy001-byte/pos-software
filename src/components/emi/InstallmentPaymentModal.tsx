@@ -83,7 +83,7 @@ export function InstallmentPaymentModal({
   };
 
   const pendingCount =
-    sale.emiSchedules?.filter((s: any) => s.status === "PENDING").length || 0;
+    sale.pendingCount || sale.emiSchedules?.filter((s: any) => s.status === "PENDING").length || 0;
 
   return (
     <Modal isOpen={open} onClose={onClose} title="Pay Installment" size="sm">

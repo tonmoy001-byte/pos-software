@@ -50,7 +50,7 @@ export function StockAdjustModal({ product, onClose, onSuccess }: StockAdjustMod
             <label className="text-xs font-bold text-secondary uppercase ml-1">Quantity</label>
             <input
               type="number"
-              value={quantity}
+              value={quantity || undefined}
               onChange={(e) => setQuantity(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary font-bold text-xl"
               placeholder="0"
@@ -61,7 +61,7 @@ export function StockAdjustModal({ product, onClose, onSuccess }: StockAdjustMod
             <label className="text-xs font-bold text-secondary uppercase ml-1">Cost Price (per unit)</label>
             <input
               type="number"
-              value={cost}
+              value={cost || undefined}
               onChange={(e) => setCost(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary font-bold text-xl"
               placeholder="0"

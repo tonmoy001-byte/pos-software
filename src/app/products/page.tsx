@@ -229,7 +229,7 @@ export default function ProductsPage() {
               </select>
             )}
             {bulkModal === "price" && (
-              <input type="number" value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} placeholder="New price" className="w-full px-4 py-3 rounded-xl border border-border" />
+              <input type="number" value={bulkValue || undefined} onChange={(e) => setBulkValue(e.target.value)} placeholder="New price" className="w-full px-4 py-3 rounded-xl border border-border" />
             )}
             <div className="flex gap-3">
               <Button className="flex-1" onClick={handleBulkAction}>Apply</Button>

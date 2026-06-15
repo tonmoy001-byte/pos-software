@@ -56,14 +56,17 @@ export class SaleService {
         }
       }
 
-      // 2.5. Validate totalAmount matches item sum
-      const calculatedTotal = items.reduce((sum, item) => sum.plus(new Decimal(item.price).times(item.quantity)), new Decimal(0)).toNumber();
-      if (Math.abs(calculatedTotal - totalAmount) > 0.01) {
-        throw new Error(`Total amount (${totalAmount}) does not match item sum (${calculatedTotal})`);
+      // 2.5. Validate totalAmount matches item sum (accounting for discount and interest)
+      const itemSum = items.reduce((sum, item) => sum.plus(new Decimal(item.price).times(item.quantity)), new Decimal(0)).toNumber();
+      const discountNum = Number(discount) || 0;
+      const interestRateNum = Number(interestRate) || 0;
+      const expectedTotal = new Decimal(itemSum).minus(discountNum).times(1 + interestRateNum / 100).toNumber();
+      if (Math.abs(expectedTotal - totalAmount) > 1) {
+        throw new Error(`Total amount (${totalAmount}) does not match expected total (${Math.round(expectedTotal)}) after discount and interest`);
       }
 
       // 2.6. Validate paidAmount + dueAmount === totalAmount
-      if (Math.abs(new Decimal(paidAmount).plus(dueAmount).minus(totalAmount).toNumber()) > 0.01) {
+      if (Math.abs(new Decimal(paidAmount).plus(dueAmount).minus(totalAmount).toNumber()) > 1) {
         throw new Error("Paid amount + Due amount must equal Total Amount");
       }
 
@@ -184,6 +187,10 @@ export class SaleService {
       }
 
       // 10. Create financial transaction
+      // Normalise paymentMethod to a valid DB enum value (EMI is not a payment mode)
+      const validModes = ["CASH", "BANK", "BKASH", "NAGAD", "CARD", "DUE"];
+      const txMode = (validModes.includes(paymentMethod || "") ? paymentMethod : "CASH") as
+        "CASH" | "BANK" | "BKASH" | "NAGAD" | "CARD" | "DUE";
       if (paidAmount > 0) {
         await tx.transaction.create({
           data: {
@@ -191,7 +198,7 @@ export class SaleService {
             amount: paidAmount,
             costAmount: totalCost,
             profit: totalProfit,
-            mode: (paymentMethod as "CASH" | "BANK" | "BKASH" | "NAGAD" | "CARD" | "DUE") || "CASH",
+            mode: txMode,
             description: `Sale: ${invoiceId}`,
             customerId: customerId || null,
             referenceId: sale.id,
@@ -263,7 +270,8 @@ export class SaleService {
         include: {
           items: { include: { product: true } },
           customer: true,
-          payments: true
+          payments: true,
+          emiSchedules: true,
         }
       });
     });

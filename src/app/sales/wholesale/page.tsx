@@ -215,7 +215,7 @@ export default function WholesaleSalePage() {
         </div>
         <div className="border-t border-border pt-4 space-y-2">
           <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-          <div className="flex justify-between items-center"><span>Extra Discount</span><input type="number" value={discountPercent} onChange={e => setDiscountPercent(e.target.value)} className="w-16 text-right border-b" /><span>%</span></div>
+          <div className="flex justify-between items-center"><span>Extra Discount</span><input type="number" value={discountPercent || undefined} onChange={e => setDiscountPercent(e.target.value)} className="w-16 text-right border-b" /><span>%</span></div>
           <div className="flex justify-between text-xl font-black"><span>Total</span><span className="text-primary">{formatCurrency(total)}</span></div>
         </div>
         <button onClick={openCheckout} disabled={cart.length === 0} className="w-full mt-4 py-4 bg-primary text-white rounded-xl font-bold disabled:opacity-50">Process Wholesale</button>

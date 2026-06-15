@@ -233,7 +233,7 @@ export default function SuppliersPage() {
               <label className="text-xs font-bold text-secondary uppercase ml-1">Amount (BDT)</label>
               <input 
                 type="number" 
-                value={adjustAmount}
+                value={adjustAmount || undefined}
                 onChange={(e) => setAdjustAmount(e.target.value)}
                 placeholder="0"
                 className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary font-black text-xl" 

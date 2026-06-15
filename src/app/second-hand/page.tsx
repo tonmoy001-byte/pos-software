@@ -161,7 +161,7 @@ export default function SecondHandPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-secondary uppercase ml-1">Purchase Price *</label>
-                <input type="number" value={formData.purchasePrice} onChange={e => setFormData({...formData, purchasePrice: e.target.value})} placeholder="0.00" className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-bold" />
+                <input type="number" value={formData.purchasePrice || undefined} onChange={e => setFormData({...formData, purchasePrice: e.target.value})} placeholder="0.00" className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-bold" />
               </div>
             </div>
 

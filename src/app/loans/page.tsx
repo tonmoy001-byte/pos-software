@@ -279,7 +279,7 @@ export default function LoansPage() {
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-secondary uppercase ml-1">Amount (BDT)</label>
-                <input required value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} type="number" className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary font-bold" />
+                <input required value={form.amount || undefined} onChange={e => setForm({ ...form, amount: e.target.value })} type="number" className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary font-bold" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-secondary uppercase ml-1">Description (Optional)</label>
@@ -311,7 +311,7 @@ export default function LoansPage() {
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black text-secondary uppercase ml-1">Amount to Adjust</label>
-              <input required value={payAmount} onChange={e => setPayAmount(e.target.value)} type="number" className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary font-bold" />
+              <input required value={payAmount || undefined} onChange={e => setPayAmount(e.target.value)} type="number" className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary font-bold" />
             </div>
             <button disabled={submitting} type="submit" className="w-full py-4 bg-primary text-white rounded-2xl font-black shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all">
               {submitting ? "Updating..." : "Confirm Adjustment"}

@@ -52,10 +52,10 @@ export function EmiSaleTab() {
     }
     try {
       const res = await fetch(
-        `/api/customers?search=${encodeURIComponent(query)}`
+        `/api/customers?query=${encodeURIComponent(query)}`
       );
       const data = await res.json();
-      setCustomers(data.customers || []);
+      setCustomers(data.data || []);
     } catch (err) {
       console.error("Failed to search customers:", err);
     }
@@ -154,7 +154,7 @@ export function EmiSaleTab() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setReceiptSale(data.sale);
+      setReceiptSale(data);
       setShowCheckout(false);
       setCart([]);
       setDiscount("");
@@ -314,7 +314,7 @@ export function EmiSaleTab() {
             </label>
             <input
               type="number"
-              value={discount}
+              value={discount || undefined}
               onChange={(e) => setDiscount(e.target.value)}
               className="w-full bg-background border border-border rounded-xl py-2 px-3 text-sm outline-none focus:border-primary"
             />
@@ -325,7 +325,7 @@ export function EmiSaleTab() {
             </label>
             <input
               type="number"
-              value={interestRate}
+              value={interestRate || undefined}
               onChange={(e) => setInterestRate(e.target.value)}
               className="w-full bg-background border border-border rounded-xl py-2 px-3 text-sm outline-none focus:border-primary"
             />
@@ -336,7 +336,7 @@ export function EmiSaleTab() {
             </label>
             <input
               type="number"
-              value={downPayment}
+              value={downPayment || undefined}
               onChange={(e) => setDownPayment(e.target.value)}
               className="w-full bg-background border border-border rounded-xl py-2 px-3 text-sm outline-none focus:border-primary"
             />

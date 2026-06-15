@@ -334,7 +334,7 @@ export default function AdvanceLedgerPage() {
               <Input
                 label="Payment Amount"
                 type="number"
-                value={payAmount}
+                value={payAmount || undefined}
                 onChange={(e) => setPayAmount(e.target.value)}
                 placeholder="Enter amount"
               />

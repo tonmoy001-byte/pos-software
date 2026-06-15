@@ -53,10 +53,11 @@ export function EmiCollectTab() {
   };
 
   const getNextInstallment = (sale: any) => {
-    if (!sale.emiSchedules) return null;
-    return sale.emiSchedules
-      .filter((s: any) => s.status === "PENDING")
-      .sort((a: any, b: any) => a.installmentNo - b.installmentNo)[0];
+    if (sale.nextDue && sale.nextDueAmount) {
+      const installmentNo = sale.emiMonths - (sale.pendingCount || 0) + 1;
+      return { dueDate: sale.nextDue, amount: sale.nextDueAmount, installmentNo };
+    }
+    return null;
   };
 
   return (
@@ -154,9 +155,7 @@ export function EmiCollectTab() {
                     className={`font-bold ${isOverdue ? "text-red-600" : ""}`}
                   >
                     {nextInst
-                      ? `#${nextInst.installmentNo} — ${new Date(
-                          nextInst.dueDate
-                        ).toLocaleDateString()}`
+                      ? new Date(nextInst.dueDate).toLocaleDateString()
                       : "All paid"}
                   </div>
                 </div>

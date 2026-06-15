@@ -453,7 +453,7 @@ export default function CustomersPage() {
                 <div className="flex items-end gap-3">
                   <div className="flex-1">
                     <label className="text-[10px] font-bold text-secondary uppercase">Amount</label>
-                    <input type="number" value={paymentForm.amount}
+                    <input type="number" value={paymentForm.amount || undefined}
                       onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
                       className="w-full px-3 py-2 rounded-xl border border-border outline-none focus:border-primary font-bold text-sm mt-0.5"
                       placeholder="0" />

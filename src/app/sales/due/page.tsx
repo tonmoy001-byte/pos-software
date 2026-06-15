@@ -276,7 +276,7 @@ export default function DueSalePage() {
                 <label className="text-xs font-bold text-secondary uppercase ml-1">Payment Amount</label>
                 <input 
                   type="number" 
-                  value={payAmount}
+                  value={payAmount || undefined}
                   onChange={(e) => setPayAmount(e.target.value)}
                   placeholder="Enter amount to collect" 
                   className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary font-bold" 
@@ -442,7 +442,7 @@ export default function DueSalePage() {
                     <span>Discount</span>
                     <div className="flex items-center gap-2">
                       <Percent className="w-3 h-3" />
-                      <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} className="w-20 text-right bg-transparent border-b border-border outline-none focus:border-primary font-bold text-foreground" />
+                      <input type="number" value={discount || undefined} onChange={(e) => setDiscount(e.target.value)} className="w-20 text-right bg-transparent border-b border-border outline-none focus:border-primary font-bold text-foreground" />
                     </div>
                   </div>
                 </div>
