@@ -43,4 +43,12 @@ export const productFormSchema = z.object({
   path: ["sellingPrice"],
 });
 
-export type ProductFormValues = z.infer<typeof productFormSchema>;
+type RawProductFormValues = z.infer<typeof productFormSchema>;
+
+export type ProductFormValues = {
+  [K in keyof RawProductFormValues]:
+    K extends "costPrice" | "sellingPrice" | "taxVat" | "openingStock" | "openingCost"
+    | "minStockAlert" | "reorderQuantity" | "purchaseWarrantyMonths" | "salesWarrantyMonths"
+    ? number | ""
+    : RawProductFormValues[K];
+};

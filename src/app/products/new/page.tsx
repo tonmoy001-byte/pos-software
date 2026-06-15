@@ -31,9 +31,9 @@ const EMPTY_VALUES: ProductFormValues = {
   name: "", sku: "", barcode: "", brand: "", category: "",
   productType: "SERIALIZED", modelNumber: "", condition: undefined,
   ram: "", storage: "", network: "", color: "", description: "",
-  costPrice: 0, sellingPrice: 0, taxVat: 0, unit: "PIECE",
-  openingStock: 0, openingCost: 0, warehouse: "", minStockAlert: 5, reorderQuantity: 0, trackImei: false,
-  defaultSupplier: "", purchaseWarrantyMonths: 0, salesWarrantyMonths: 0,
+  costPrice: "", sellingPrice: "", taxVat: "", unit: "PIECE",
+  openingStock: "", openingCost: "", warehouse: "", minStockAlert: "", reorderQuantity: "", trackImei: false,
+  defaultSupplier: "", purchaseWarrantyMonths: "", salesWarrantyMonths: "",
   imageUrl: "", status: "ACTIVE", tags: [],
 };
 
@@ -62,10 +62,13 @@ export default function AddNewProductPage() {
   };
 
   useEffect(() => {
-    if (values.openingStock > 0 && values.costPrice > 0) {
+    const stock = Number(values.openingStock) || 0;
+    const cost = Number(values.costPrice) || 0;
+    if (stock > 0 && cost > 0) {
       setValues((p) => {
-        if (p.openingCost === Number((p.openingStock * p.costPrice).toFixed(2))) return p;
-        return { ...p, openingCost: Number((p.openingStock * p.costPrice).toFixed(2)) };
+        const calculated = Number((Number(p.openingStock) * Number(p.costPrice)).toFixed(2));
+        if (Number(p.openingCost) === calculated) return p;
+        return { ...p, openingCost: calculated };
       });
     }
   }, [values.openingStock, values.costPrice]);
@@ -117,19 +120,19 @@ export default function AddNewProductPage() {
         network: values.network || null,
         color: values.color || null,
         description: values.description || null,
-        price: values.sellingPrice,
-        cost: values.costPrice,
-        taxVat: values.taxVat || 0,
+        price: Number(values.sellingPrice) || 0,
+        cost: Number(values.costPrice) || 0,
+        taxVat: Number(values.taxVat) || 0,
         unit: values.unit,
-        stock: values.openingStock,
-        openingCost: values.openingCost,
+        stock: Number(values.openingStock) || 0,
+        openingCost: Number(values.openingCost) || 0,
         warehouse: values.warehouse || null,
-        minStock: values.minStockAlert,
-        reorderQuantity: values.reorderQuantity,
+        minStock: Number(values.minStockAlert) || 5,
+        reorderQuantity: Number(values.reorderQuantity) || 0,
         trackImei: values.trackImei,
         defaultSupplier: values.defaultSupplier || null,
-        purchaseWarrantyMonths: values.purchaseWarrantyMonths,
-        salesWarrantyMonths: values.salesWarrantyMonths,
+        purchaseWarrantyMonths: Number(values.purchaseWarrantyMonths) || 0,
+        salesWarrantyMonths: Number(values.salesWarrantyMonths) || 0,
         imageUrl: values.imageUrl || null,
         status: values.status,
         tags: values.tags || [],
@@ -326,7 +329,7 @@ export default function AddNewProductPage() {
                 prefix="BDT"
                 min={0}
                 value={values.costPrice}
-                onChange={(v) => set("costPrice", v === "" ? 0 : v)}
+                onChange={(v) => set("costPrice", v)}
                 error={errors.costPrice}
                 placeholder="0.00"
               />
@@ -336,7 +339,7 @@ export default function AddNewProductPage() {
                 prefix="BDT"
                 min={0}
                 value={values.sellingPrice}
-                onChange={(v) => set("sellingPrice", v === "" ? 0 : v)}
+                onChange={(v) => set("sellingPrice", v)}
                 error={errors.sellingPrice}
                 placeholder="0.00"
                 hint="Must be ≥ cost price"
@@ -347,7 +350,7 @@ export default function AddNewProductPage() {
                 min={0}
                 max={100}
                 value={values.taxVat}
-                onChange={(v) => set("taxVat", v === "" ? 0 : v)}
+                onChange={(v) => set("taxVat", v)}
                 error={errors.taxVat}
                 placeholder="0"
               />
@@ -367,7 +370,7 @@ export default function AddNewProductPage() {
                 label="Opening Stock"
                 min={0}
                 value={values.openingStock}
-                onChange={(v) => set("openingStock", v === "" ? 0 : v)}
+                onChange={(v) => set("openingStock", v)}
                 error={errors.openingStock}
                 placeholder="0"
               />
@@ -376,7 +379,7 @@ export default function AddNewProductPage() {
                 prefix="BDT"
                 min={0}
                 value={values.openingCost}
-                onChange={(v) => set("openingCost", v === "" ? 0 : v)}
+                onChange={(v) => set("openingCost", v)}
                 error={errors.openingCost}
                 placeholder="0.00"
                 hint="Auto-calculated from stock × cost"
@@ -394,7 +397,7 @@ export default function AddNewProductPage() {
                 label="Minimum Stock Alert"
                 min={0}
                 value={values.minStockAlert}
-                onChange={(v) => set("minStockAlert", v === "" ? 5 : v)}
+                onChange={(v) => set("minStockAlert", v)}
                 error={errors.minStockAlert}
                 placeholder="5"
               />
@@ -441,7 +444,7 @@ export default function AddNewProductPage() {
                 suffix="months"
                 min={0}
                 value={values.purchaseWarrantyMonths}
-                onChange={(v) => set("purchaseWarrantyMonths", v === "" ? 0 : v)}
+                onChange={(v) => set("purchaseWarrantyMonths", v)}
                 error={errors.purchaseWarrantyMonths}
                 placeholder="0"
               />
@@ -450,7 +453,7 @@ export default function AddNewProductPage() {
                 suffix="months"
                 min={0}
                 value={values.salesWarrantyMonths}
-                onChange={(v) => set("salesWarrantyMonths", v === "" ? 0 : v)}
+                onChange={(v) => set("salesWarrantyMonths", v)}
                 error={errors.salesWarrantyMonths}
                 placeholder="0"
               />
