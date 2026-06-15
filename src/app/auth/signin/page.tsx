@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -26,6 +26,11 @@ function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const registered = searchParams.get("registered");
+
+  useEffect(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +84,7 @@ function SignInContent() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-secondary uppercase tracking-widest ml-1">Username or Email</label>
               <div className="relative">
@@ -89,6 +94,7 @@ function SignInContent() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Enter username or email"
+                  autoComplete="off"
                   className="w-full bg-background border border-border rounded-xl py-3 pl-10 pr-4 text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-secondary/50 text-sm font-medium"
                   required
                 />
@@ -107,6 +113,7 @@ function SignInContent() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
+                  autoComplete="new-password"
                   className="w-full bg-background border border-border rounded-xl py-3 pl-10 pr-10 text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-secondary/50 text-sm font-medium"
                   required
                 />

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { Modal } from "@/components/ui/modal";
 
 const ALL_ROLES: string[] = ["ADMIN", "MANAGER", "CASHIER"];
 const ADMIN_MANAGER: string[] = ["ADMIN", "MANAGER"];
@@ -84,6 +85,7 @@ const menuItems = [
 export function Sidebar({ userRole, userId, storeName }: { userRole: string; userId?: string; storeName?: string }) {
   const pathname = usePathname();
   const [expandedMenu, setExpandedMenu] = useState<string | null>("/sales");
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const superAdminIds = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPER_ADMIN_IDS) || "";
   const isSuperAdmin = userId ? superAdminIds.split(",").includes(userId) : false;
@@ -185,13 +187,31 @@ export function Sidebar({ userRole, userId, storeName }: { userRole: string; use
 
       <div className="px-4 py-2">
         <button
-          onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+          onClick={() => setShowLogoutConfirm(true)}
           className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 w-full text-secondary hover:bg-background hover:text-primary"
         >
           <LogOut className="w-5 h-5" />
           <span className="font-medium">Logout</span>
         </button>
       </div>
+
+      <Modal isOpen={showLogoutConfirm} onClose={() => setShowLogoutConfirm(false)} title="Confirm Logout" size="sm">
+        <p className="text-sm text-secondary mb-6">Are you sure you want to log out?</p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={() => setShowLogoutConfirm(false)}
+            className="px-4 py-2 rounded-xl text-sm font-medium text-secondary hover:bg-background transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+            className="px-4 py-2 rounded-xl text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+          >
+            Logout
+          </button>
+        </div>
+      </Modal>
 
       <div className="p-4 border-t border-border">
         <div className="flex items-center gap-3 px-2">
