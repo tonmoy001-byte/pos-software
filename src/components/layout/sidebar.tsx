@@ -18,8 +18,10 @@ import {
   Calculator,
   ChevronDown,
   ChevronRight,
-  Building2
+  Building2,
+  LogOut
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
 const ALL_ROLES: string[] = ["ADMIN", "MANAGER", "CASHIER"];
@@ -180,6 +182,16 @@ export function Sidebar({ userRole, userId, storeName }: { userRole: string; use
           );
         })}
       </nav>
+
+      <div className="px-4 py-2">
+        <button
+          onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 w-full text-secondary hover:bg-background hover:text-primary"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="font-medium">Logout</span>
+        </button>
+      </div>
 
       <div className="p-4 border-t border-border">
         <div className="flex items-center gap-3 px-2">
