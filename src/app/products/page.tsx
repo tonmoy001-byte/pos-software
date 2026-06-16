@@ -86,8 +86,17 @@ export default function ProductsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this product?")) return;
-    await fetch(`/api/products/${id}`, { method: "DELETE" });
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Failed to delete product");
+        return;
+      }
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+    } catch {
+      alert("Network error — product was not deleted");
+    }
   };
 
   const handleBulkAction = async () => {
@@ -116,11 +125,20 @@ export default function ProductsPage() {
 
   const handleBulkDelete = async () => {
     if (!confirm(`Delete ${selectedIds.size} products?`)) return;
-    await fetch("/api/products/bulk", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "delete", productIds: Array.from(selectedIds) }),
-    });
+    try {
+      const res = await fetch("/api/products/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", productIds: Array.from(selectedIds) }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Failed to delete products");
+        return;
+      }
+    } catch {
+      alert("Network error — products were not deleted");
+    }
     setSelectedIds(new Set());
     fetchProducts();
   };
