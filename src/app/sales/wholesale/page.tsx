@@ -134,7 +134,7 @@ export default function WholesaleSalePage() {
               >
                 <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
                   {product.metadata?.imageUrl ? (
-                    <img src={product.metadata.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                    <img src={product.metadata.imageUrl} alt={product.name} className="w-full h-full object-contain p-3" />
                   ) : (
                     <Package className={`w-12 h-12 ${(product.stock ?? 0) > 0 ? 'text-green-400' : 'text-primary/20 group-hover:scale-110'} transition-transform`} />
                   )}

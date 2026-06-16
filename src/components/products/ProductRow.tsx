@@ -80,7 +80,7 @@ export function ProductRow({ product, selected, onSelect, onUpdate, onDelete, on
             <img
               src={product.metadata.imageUrl}
               alt={product.name}
-              className="w-10 h-10 rounded-lg object-cover border border-border flex-shrink-0"
+              className="w-10 h-10 rounded-lg object-contain p-0.5 border border-border flex-shrink-0"
             />
           ) : (
             <div className="w-10 h-10 rounded-lg bg-primary/5 border border-border flex items-center justify-center flex-shrink-0">
