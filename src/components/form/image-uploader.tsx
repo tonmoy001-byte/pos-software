@@ -14,7 +14,7 @@ export interface ImageUploaderProps {
   uploadEndpoint?: string;
 }
 
-const DEFAULT_MAX_SIZE = 2;
+const DEFAULT_MAX_SIZE = 5;
 const DEFAULT_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export function ImageUploader({
