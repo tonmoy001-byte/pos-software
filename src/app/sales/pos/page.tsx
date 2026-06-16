@@ -443,7 +443,11 @@ const [barcodeInput, setBarcodeInput] = useState("");
                   className={`bg-surface p-4 rounded-2xl border ${isOutOfStock ? 'border-gray-200 opacity-60 cursor-not-allowed' : 'border-green-300 cursor-pointer group transition-all'}`}
                 >
                   <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
-                    <Smartphone className={`w-12 h-12 ${isOutOfStock ? 'text-gray-300' : 'text-green-400 group-hover:scale-110'} transition-transform`} />
+                    {product.metadata?.imageUrl ? (
+                      <img src={product.metadata.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Smartphone className={`w-12 h-12 ${isOutOfStock ? 'text-gray-300' : 'text-green-400 group-hover:scale-110'} transition-transform`} />
+                    )}
                     <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-md ${isOutOfStock ? 'bg-gray-500 text-white' : 'bg-green-500 text-white'}`}>
                       {isOutOfStock ? 'OUT OF STOCK' : 'IN STOCK'}
                   </span>

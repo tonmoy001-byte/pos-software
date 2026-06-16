@@ -150,7 +150,11 @@ export default function ExchangeSalePage() {
                 ${(product.stock ?? 0) > 0 ? 'border-green-300 cursor-pointer group' : 'border-border hover:border-primary/30 cursor-pointer group'}`}
             >
               <div className="aspect-square bg-background rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
-                <Smartphone className={`w-12 h-12 ${(product.stock ?? 0) > 0 ? 'text-green-400' : 'text-primary/20 group-hover:scale-110'} transition-transform`} />
+                {product.metadata?.imageUrl ? (
+                  <img src={product.metadata.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Smartphone className={`w-12 h-12 ${(product.stock ?? 0) > 0 ? 'text-green-400' : 'text-primary/20 group-hover:scale-110'} transition-transform`} />
+                )}
                 {(product.stock ?? 0) > 0 && (
                   <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-md bg-green-500 text-white">{product.stock} in stock</span>
                 )}
