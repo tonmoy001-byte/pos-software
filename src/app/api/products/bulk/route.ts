@@ -24,8 +24,9 @@ export async function POST(req: Request) {
 
     switch (action) {
       case "delete": {
-        const result = await prisma.product.deleteMany({
+        const result = await prisma.product.updateMany({
           where: { id: { in: productIds }, storeId: session.user.storeId },
+          data: { deletedAt: new Date() },
         });
         affected = result.count;
         break;

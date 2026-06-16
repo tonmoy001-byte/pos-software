@@ -110,7 +110,7 @@ export async function DELETE(
     const product = await prisma.product.findUnique({ where: { id, storeId: session.user.storeId } });
     if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
 
-    await prisma.product.delete({ where: { id } });
+    await prisma.product.update({ where: { id }, data: { deletedAt: new Date() } });
 
     await eventStore.append({
       aggregateType: "Product",
