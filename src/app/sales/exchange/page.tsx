@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Search, Plus, Minus, Trash2, RefreshCw, Smartphone, X, ArrowRightLeft } from "lucide-react";
+import { Search, Plus, Minus, Trash2, RefreshCw, Smartphone, X, ArrowRightLeft, Pencil } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
 
@@ -203,11 +203,8 @@ export default function ExchangeSalePage() {
         <div className="space-y-3 mb-6">
           {cart.map((item) => (
             <div key={item.productId} className="p-4 bg-background rounded-2xl border border-border">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="font-black text-sm">{item.name}</p>
-                  <p className="text-xs text-secondary">Unit: {formatCurrency(item.price)}</p>
-                </div>
+              <div className="flex justify-between items-center mb-2">
+                <p className="font-black text-sm">{item.name}</p>
                 <button onClick={() => removeFromCart(item.productId)} className="text-secondary hover:text-red-500">
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -218,7 +215,21 @@ export default function ExchangeSalePage() {
                   <span className="font-bold text-sm w-8 text-center">{item.quantity}</span>
                   <button onClick={() => updateCartQty(item.productId, item.quantity + 1)} className="w-7 h-7 bg-surface border border-border rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:border-primary"><Plus className="w-4 h-4" /></button>
                 </div>
-                <span className="font-black text-foreground">{formatCurrency(item.price * item.quantity)}</span>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      const newPrice = prompt("Enter new price:", item.price.toString());
+                      if (newPrice && !isNaN(Number(newPrice))) {
+                        setCart(cart.map(c => c.productId === item.productId ? { ...c, price: Number(newPrice) } : c));
+                      }
+                    }}
+                    className="p-1 text-secondary hover:text-primary transition-colors"
+                    title="Edit price"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="font-black text-foreground">{formatCurrency(item.price * item.quantity)}</span>
+                </div>
               </div>
             </div>
           ))}

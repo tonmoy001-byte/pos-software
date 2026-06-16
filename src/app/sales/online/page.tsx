@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Trash2, Plus, Minus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, X, Package, Truck } from "lucide-react";
+import { Search, Trash2, Plus, Minus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, X, Package, Truck, Pencil } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
 
@@ -181,11 +181,8 @@ export default function OnlineSalePage() {
         <div className="space-y-3 mb-4">
           {cart.map((item) => (
             <div key={item.productId} className="p-4 bg-background rounded-2xl border border-border group">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="font-black text-sm">{item.name}</p>
-                  <p className="text-xs text-secondary">Unit: {formatCurrency(item.price)}</p>
-                </div>
+              <div className="flex justify-between items-center mb-2">
+                <p className="font-black text-sm">{item.name}</p>
                 <button onClick={() => removeFromCart(item.productId)} className="text-secondary hover:text-red-500 p-1 transition-colors">
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -212,7 +209,21 @@ export default function OnlineSalePage() {
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
-                <span className="font-black text-foreground">{formatCurrency(item.price * item.quantity)}</span>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      const newPrice = prompt("Enter new price:", item.price.toString());
+                      if (newPrice && !isNaN(Number(newPrice))) {
+                        setCart(cart.map(c => c.productId === item.productId ? { ...c, price: Number(newPrice) } : c));
+                      }
+                    }}
+                    className="p-1 text-secondary hover:text-primary transition-colors"
+                    title="Edit price"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="font-black text-foreground">{formatCurrency(item.price * item.quantity)}</span>
+                </div>
               </div>
             </div>
           ))}

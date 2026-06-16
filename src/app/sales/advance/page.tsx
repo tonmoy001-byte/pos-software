@@ -24,7 +24,8 @@ import {
   ClipboardList,
   Phone,
   Filter,
-  ChevronRight
+  ChevronRight,
+  Pencil
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { playBeep } from "@/lib/audio";
@@ -595,11 +596,8 @@ export default function AdvanceOrderPage() {
                 <p className="text-[10px] font-black text-secondary uppercase tracking-[0.2em] mb-2">Cart Items</p>
                 {cart.map((item) => (
                   <div key={item.productId} className="p-4 bg-background rounded-2xl border border-border group">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-black text-sm">{item.name}</p>
-                        <p className="text-xs text-secondary">Unit: {formatCurrency(item.price)}</p>
-                      </div>
+                    <div className="flex justify-between items-center mb-2">
+                      <p className="font-black text-sm">{item.name}</p>
                       <button onClick={() => removeFromCart(item.productId)} className="text-secondary hover:text-red-500 p-1 transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-border/30">
@@ -612,7 +610,21 @@ export default function AdvanceOrderPage() {
                           <Plus className="w-4 h-4" />
                         </button>
                       </div>
-                      <span className="font-black text-foreground">{formatCurrency(item.price * item.quantity)}</span>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => {
+                            const newPrice = prompt("Enter new price:", item.price.toString());
+                            if (newPrice && !isNaN(Number(newPrice))) {
+                              setCart(cart.map(c => c.productId === item.productId ? { ...c, price: Number(newPrice) } : c));
+                            }
+                          }}
+                          className="p-1 text-secondary hover:text-primary transition-colors"
+                          title="Edit price"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="font-black text-foreground">{formatCurrency(item.price * item.quantity)}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
