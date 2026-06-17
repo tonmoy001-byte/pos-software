@@ -13,6 +13,7 @@ import {
   X
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { safeFetch, ApiError } from "@/lib/api-client";
 
 export default function SecondHandPage() {
   const [formData, setFormData] = useState({
@@ -50,20 +51,19 @@ export default function SecondHandPage() {
         fd.append("nidPhoto", nidFile);
       }
 
-      const res = await fetch("/api/second-hand", {
+      await safeFetch("/api/second-hand", {
         method: "POST",
         body: fd
       });
-      const data = await res.json();
-      if (res.ok) {
-        setMessage({ type: "success", text: "Purchase recorded successfully!" });
-        setFormData({ sellerName: "", fatherName: "", nidNumber: "", phone: "", model: "", imei: "", purchasePrice: "" });
-        setNidFile(null);
-      } else {
-        setMessage({ type: "error", text: data.error || "Failed to record purchase" });
-      }
+      setMessage({ type: "success", text: "Purchase recorded successfully!" });
+      setFormData({ sellerName: "", fatherName: "", nidNumber: "", phone: "", model: "", imei: "", purchasePrice: "" });
+      setNidFile(null);
     } catch (err) {
-      setMessage({ type: "error", text: "Connection error" });
+      let text = "Connection error";
+      if (err instanceof ApiError && err.body) {
+        try { text = JSON.parse(err.body).error || "Failed to record purchase"; } catch { text = "Failed to record purchase"; }
+      }
+      setMessage({ type: "error", text });
     } finally {
       setSubmitting(false);
     }
@@ -71,8 +71,7 @@ export default function SecondHandPage() {
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch("/api/second-hand");
-      const data = await res.json();
+      const data = await safeFetch<any[]>("/api/second-hand");
       setRecords(data);
       setShowHistory(true);
     } catch (err) {

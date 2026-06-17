@@ -12,6 +12,7 @@ import {
   productFormSchema, type ProductFormValues,
   RAM_OPTIONS, STORAGE_OPTIONS,
 } from "@/lib/validators/product";
+import { safeFetch, ApiError } from "@/lib/api-client";
 
 type MetadataResponse = {
   categories: string[];
@@ -49,8 +50,7 @@ export default function AddNewProductPage() {
   const [tagInput, setTagInput] = useState("");
 
   useEffect(() => {
-    fetch("/api/products/metadata")
-      .then(r => r.json())
+    safeFetch<MetadataResponse>("/api/products/metadata")
       .then((d) => setMeta(d))
       .catch(() => setMeta(null))
       .finally(() => setMetaLoading(false));
@@ -137,26 +137,30 @@ export default function AddNewProductPage() {
         status: values.status,
         tags: values.tags || [],
       };
-      const res = await fetch("/api/products", {
+      const res = await safeFetch<{ id?: string; error?: string; field?: string }>("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setToast({ type: "error", text: data.error || "Failed to save product" });
-        if (data.field && typeof data.field === "string") {
-          setErrors((e) => ({ ...e, [data.field as keyof ProductFormValues]: data.error }));
-        }
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
       setToast({ type: "success", text: "Product created successfully!" });
       startTransition(() => {
         setTimeout(() => router.push("/inventory"), 800);
       });
     } catch (err: any) {
-      setToast({ type: "error", text: err.message || "An unexpected error occurred" });
+      if (err instanceof ApiError && err.body) {
+        try {
+          const body = JSON.parse(err.body);
+          setToast({ type: "error", text: body.error || "Failed to save product" });
+          if (body.field && typeof body.field === "string") {
+            setErrors((e) => ({ ...e, [body.field as keyof ProductFormValues]: body.error }));
+          }
+        } catch {
+          setToast({ type: "error", text: "Failed to save product" });
+        }
+      } else {
+        setToast({ type: "error", text: err.message || "An unexpected error occurred" });
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setSubmitting(false);
     }

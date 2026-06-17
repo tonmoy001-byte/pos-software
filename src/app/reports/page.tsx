@@ -13,6 +13,7 @@ import {
   FileSpreadsheet
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { safeFetch } from "@/lib/api-client";
 import DailySheet from "@/components/daily-activity/DailySheet";
 
 export default function ReportsPage() {
@@ -34,8 +35,7 @@ export default function ReportsPage() {
     async function fetchReports() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/reports?range=${range}`);
-        const json = await res.json();
+        const json = await safeFetch<any>(`/api/reports?range=${range}`);
         setData(json);
       } catch (err) {
         console.error("Failed to fetch reports", err);

@@ -12,6 +12,7 @@ import {
   X
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { safeFetch } from "@/lib/api-client";
 
 export default function LoansPage() {
   const [loans, setLoans] = useState<any[]>([]);
@@ -30,8 +31,7 @@ export default function LoansPage() {
   const fetchLoans = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/loans");
-      const json = await res.json();
+      const json = await safeFetch<any>("/api/loans");
       setLoans(json);
     } catch (err) {
       console.error(err);

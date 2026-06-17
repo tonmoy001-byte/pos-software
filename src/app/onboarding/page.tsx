@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui";
+import { safeFetch } from "@/lib/api-client";
 
 export const dynamic = "force-dynamic";
 
@@ -65,8 +66,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (skipped) return;
     setIsCheckingStore(true);
-    fetch("/api/onboarding/status")
-      .then((r) => r.json())
+    safeFetch<{ needsOnboarding: boolean }>("/api/onboarding/status")
       .then((data) => {
         setIsCheckingStore(false);
         if (!data.needsOnboarding) {
@@ -93,7 +93,7 @@ export default function OnboardingPage() {
     setSubmitError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/onboarding", {
+      const data = await safeFetch<{ success: boolean; error?: string }>("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -109,8 +109,7 @@ export default function OnboardingPage() {
           },
         }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
+      if (!data.success) {
         setSubmitError(data.error ?? "Something went wrong.");
         return;
       }

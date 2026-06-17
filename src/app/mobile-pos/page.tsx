@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, Plus, Minus, Trash2, Banknote, Smartphone, Camera, Check } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { safeFetch } from "@/lib/api-client";
 
 export default function MobilePOSPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -15,8 +16,7 @@ export default function MobilePOSPage() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    fetch("/api/products")
-      .then(r => r.json())
+    safeFetch<any>("/api/products")
       .then(d => setProducts(Array.isArray(d) ? d : d.products || []))
       .catch(() => {});
   }, []);

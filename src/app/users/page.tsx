@@ -13,6 +13,7 @@ import {
   ShieldCheck
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { safeFetch } from "@/lib/api-client";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -32,9 +33,8 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/users");
-      const json = await res.json();
-      if (res.ok) setUsers(json);
+      const json = await safeFetch<any>("/api/users");
+      setUsers(json);
     } finally {
       setLoading(false);
     }
@@ -49,19 +49,16 @@ export default function UsersPage() {
     setSubmitting(true);
     setMessage(null);
     try {
-      const res = await fetch("/api/users", {
+      await safeFetch<any>("/api/users", {
         method: "POST",
         body: JSON.stringify(form)
       });
-      const data = await res.json();
-      if (res.ok) {
-        setMessage({ type: "success", text: "Staff added successfully!" });
-        setForm({ name: "", username: "", password: "", role: "STAFF" });
-        setTimeout(() => setIsAddOpen(false), 1500);
-        fetchUsers();
-      } else {
-        setMessage({ type: "error", text: data.error });
-      }
+      setMessage({ type: "success", text: "Staff added successfully!" });
+      setForm({ name: "", username: "", password: "", role: "STAFF" });
+      setTimeout(() => setIsAddOpen(false), 1500);
+      fetchUsers();
+    } catch (err: any) {
+      setMessage({ type: "error", text: err?.body || "Failed to add staff" });
     } finally {
       setSubmitting(false);
     }

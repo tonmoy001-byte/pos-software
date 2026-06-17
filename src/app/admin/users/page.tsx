@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Users, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { safeFetch } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 
 const ROLE_OPTIONS = ["", "ADMIN", "MANAGER", "CASHIER"];
@@ -21,8 +22,7 @@ export default function AdminUsersPage() {
     if (search) params.set("search", search);
 
     try {
-      const res = await fetch(`/api/admin/users?${params}`);
-      const data = await res.json();
+      const data = await safeFetch<any>(`/api/admin/users?${params}`);
       setUsers(data.users || []);
       setTotal(data.total || 0);
       setTotalPages(data.totalPages || 1);
@@ -44,15 +44,13 @@ export default function AdminUsersPage() {
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, {
+      await safeFetch<any>(`/api/admin/users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: newRole }),
       });
-      if (res.ok) {
-        setEditingUser(null);
-        fetchUsers();
-      }
+      setEditingUser(null);
+      fetchUsers();
     } catch {}
   };
 

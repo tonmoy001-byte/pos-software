@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { Search, Plus, Minus, Trash2, RefreshCw, Smartphone, X, ArrowRightLeft, Pencil } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
+import { safeFetch } from "@/lib/api-client";
 
 export default function ExchangeSalePage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -25,12 +26,12 @@ export default function ExchangeSalePage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/products").then(r => r.json()),
-      fetch("/api/invoice-settings").then(r => r.json()),
+      safeFetch<any>("/api/products"),
+      safeFetch<any>("/api/invoice-settings"),
     ]).then(([productsData, invoiceData]) => {
       setProducts(Array.isArray(productsData) ? productsData : (productsData.products || []));
       setInvoiceSettings(invoiceData);
-    }).finally(() => setLoading(false));
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const filtered = useMemo(
@@ -96,18 +97,13 @@ export default function ExchangeSalePage() {
         saleType:         "EXCHANGE",
         exchangeItems:    exchangeItems.map(i => ({ imei: i.imei, value: Number(i.value) })),
       };
-      const res = await fetch("/api/sales", {
+      const data = await safeFetch<any>("/api/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (res.ok) {
-        setLastSale(data);
-        setShowReceipt(true);
-      } else {
-        setError(data.error || "Failed to complete exchange.");
-      }
+      setLastSale(data);
+      setShowReceipt(true);
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -121,7 +117,7 @@ export default function ExchangeSalePage() {
     setCart([]);
     setExchangeItems([]);
     setSuccess("Exchange completed!");
-    fetch("/api/products").then(r => r.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
+    safeFetch<any>("/api/products").then(data => setProducts(Array.isArray(data) ? data : (data.products || []))).catch(() => {});
   }, []);
 
   // ── Render guard ─────────────────────────────────────────────────────────

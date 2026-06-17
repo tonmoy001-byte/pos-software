@@ -10,6 +10,7 @@ import {
   Search,
   Eye,
 } from "lucide-react";
+import { safeFetch } from "@/lib/api-client";
 
 interface EmiOverviewTabProps {
   onViewSale: (sale: any) => void;
@@ -33,12 +34,10 @@ export function EmiOverviewTab({ onViewSale }: EmiOverviewTabProps) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [summaryRes, salesRes] = await Promise.all([
-        fetch("/api/emi/summary"),
-        fetch("/api/emi-sales"),
+      const [summaryData, salesData] = await Promise.all([
+        safeFetch<{ totalActive: number; totalOutstanding: number; overdueCount: number; collectedThisMonth: number }>("/api/emi/summary"),
+        safeFetch<{ sales?: any[] }>("/api/emi-sales"),
       ]);
-      const summaryData = await summaryRes.json();
-      const salesData = await salesRes.json();
       setSummary(summaryData);
       setSales(salesData.sales || []);
     } catch (error) {

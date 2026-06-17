@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Building2, Users, CreditCard, AlertTriangle, TrendingUp, Plus } from "lucide-react";
+import { safeFetch } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 
 export default function AdminDashboardPage() {
@@ -13,12 +14,10 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [storesRes, subsRes] = await Promise.all([
-          fetch("/api/admin/stores?limit=5"),
-          fetch("/api/admin/subscriptions?limit=5"),
+        const [storesData, subsData] = await Promise.all([
+          safeFetch<any>("/api/admin/stores?limit=5"),
+          safeFetch<any>("/api/admin/subscriptions?limit=5"),
         ]);
-        const storesData = await storesRes.json();
-        const subsData = await subsRes.json();
 
         const stores = storesData.stores || [];
         const subscriptions = subsData.subscriptions || [];

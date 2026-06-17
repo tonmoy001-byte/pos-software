@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Building2, Search, Filter, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { safeFetch } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 
 const STATUS_OPTIONS = ["", "active", "trial", "suspended", "pending_approval", "expired"];
@@ -23,8 +24,7 @@ export default function TenantListPage() {
     if (statusFilter) params.set("status", statusFilter);
 
     try {
-      const res = await fetch(`/api/admin/stores?${params}`);
-      const data = await res.json();
+      const data = await safeFetch<any>(`/api/admin/stores?${params}`);
       setStores(data.stores || []);
       setTotal(data.total || 0);
       setTotalPages(data.totalPages || 1);

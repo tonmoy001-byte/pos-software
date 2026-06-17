@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Camera, Smartphone, ArrowLeft, Package, ExternalLink } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { safeFetch } from "@/lib/api-client";
 import Link from "next/link";
 
 export default function ScanPage() {
@@ -21,8 +22,7 @@ export default function ScanPage() {
     setLoading(true);
     setProduct(null);
     try {
-      const res = await fetch(`/api/products?barcode=${encodeURIComponent(code.trim())}`);
-      const data = await res.json();
+      const data = await safeFetch<any>(`/api/products?barcode=${encodeURIComponent(code.trim())}`);
       const found = Array.isArray(data) ? data[0] : data.products?.[0] || data;
       if (found?.id) {
         setProduct(found);

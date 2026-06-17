@@ -14,6 +14,7 @@ import {
   Trash2
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { safeFetch } from "@/lib/api-client";
 
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -34,8 +35,7 @@ export default function SuppliersPage() {
   useEffect(() => {
     async function fetchSuppliers() {
       try {
-        const res = await fetch("/api/suppliers");
-        const json = await res.json();
+        const json = await safeFetch<any>("/api/suppliers");
         setSuppliers(Array.isArray(json) ? json : (json.suppliers || []));
       } catch (err) {
         console.error("Failed to fetch suppliers", err);
@@ -45,8 +45,7 @@ export default function SuppliersPage() {
     }
     async function fetchProducts() {
       try {
-        const res = await fetch("/api/products");
-        const json = await res.json();
+        const json = await safeFetch<any>("/api/products");
         setProducts(Array.isArray(json) ? json : (json.products || []));
       } catch (err) {
         console.error("Failed to fetch products", err);
@@ -67,7 +66,7 @@ export default function SuppliersPage() {
       .filter(p => p.length > 0);
     
     try {
-      const res = await fetch("/api/suppliers", {
+      const json = await safeFetch<any>("/api/suppliers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -76,19 +75,15 @@ export default function SuppliersPage() {
           newProducts: newProducts,
         })
       });
-      const json = await res.json();
-      if (res.ok) {
-        setMessage({ type: "success", text: "Supplier added!" });
-        setIsAddOpen(false);
-        setForm({ name: "", phone: "", address: "" });
-        setSelectedProducts([]);
-        setNewProductInput("");
-        const res = await fetch("/api/suppliers");
-        const json = await res.json();
-        setSuppliers(Array.isArray(json) ? json : (json.suppliers || []));
-      } else {
-        setMessage({ type: "error", text: json.error || "Failed to add supplier" });
-      }
+      setMessage({ type: "success", text: "Supplier added!" });
+      setIsAddOpen(false);
+      setForm({ name: "", phone: "", address: "" });
+      setSelectedProducts([]);
+      setNewProductInput("");
+      const refreshed = await safeFetch<any>("/api/suppliers");
+      setSuppliers(Array.isArray(refreshed) ? refreshed : (refreshed.suppliers || []));
+    } catch (err: any) {
+      setMessage({ type: "error", text: err.message || "Failed to add supplier" });
     } finally {
       setSubmitting(false);
     }
@@ -116,8 +111,7 @@ export default function SuppliersPage() {
         setMessage({ type: "success", text: adjustType === "PAY" ? "Payment made!" : "Credit added!" });
         setSelectedSupplier(null);
         setAdjustAmount("");
-        const res = await fetch("/api/suppliers");
-        const json = await res.json();
+        const json = await safeFetch<any>("/api/suppliers");
         setSuppliers(Array.isArray(json) ? json : (json.suppliers || []));
       } else {
         setMessage({ type: "error", text: "Failed" });

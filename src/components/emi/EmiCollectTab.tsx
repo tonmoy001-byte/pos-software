@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui";
 import { Search, CreditCard, AlertCircle } from "lucide-react";
+import { safeFetch } from "@/lib/api-client";
 import { InstallmentPaymentModal } from "./InstallmentPaymentModal";
 import { EmiReceiptModal } from "./EmiReceiptModal";
 
@@ -21,10 +22,9 @@ export function EmiCollectTab() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(
+      const data = await safeFetch<{ sales?: any[] }>(
         `/api/emi-sales?search=${encodeURIComponent(searchQuery)}`
       );
-      const data = await res.json();
       setSales(data.sales || []);
       if (data.sales?.length === 0) {
         setError("No EMI sales found for this search");
@@ -46,8 +46,7 @@ export function EmiCollectTab() {
     setShowReceiptModal(true);
     // Refresh the sale data
     if (selectedSale) {
-      fetch(`/api/emi-sales/${selectedSale.id}`)
-        .then((res) => res.json())
+      safeFetch<{ sale: any }>(`/api/emi-sales/${selectedSale.id}`)
         .then((data) => setSelectedSale(data.sale));
     }
   };

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui";
+import { safeFetch } from "@/lib/api-client";
 
 type EntryType = "SALE" | "PURCHASE" | "EXPENSE" | "HAWLAT" | "ADVANCE" | "DUE" | null;
 
@@ -70,19 +71,15 @@ export default function DailySheet({ date, onDateChange }: DailySheetProps) {
 
   const fetchLookups = useCallback(async () => {
     try {
-      const [pRes, sRes, cRes, dRes] = await Promise.all([
-        fetch("/api/products"),
-        fetch("/api/suppliers"),
-        fetch("/api/customers"),
-        fetch("/api/dues?limit=50"),
+      const [productsData, suppliersData, customersData, duesJson] = await Promise.all([
+        safeFetch<any>("/api/products"),
+        safeFetch<any>("/api/suppliers"),
+        safeFetch<any>("/api/customers"),
+        safeFetch<any>("/api/dues?limit=50"),
       ]);
-      const productsData = await pRes.json();
       setProducts(Array.isArray(productsData) ? productsData : (productsData.products || []));
-      const suppliersData = await sRes.json();
       setSuppliers(Array.isArray(suppliersData) ? suppliersData : (suppliersData.suppliers || []));
-      const customersData = await cRes.json();
       setCustomers(Array.isArray(customersData) ? customersData : (customersData.customers || []));
-      const duesJson = await dRes.json();
       setDueSales(duesJson.data || duesJson || []);
     } catch (err) {
       console.error("Failed to fetch lookups", err);

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Search, Plus, Trash2, RotateCcw, X, Check, Receipt } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
+import { safeFetch } from "@/lib/api-client";
 
 export default function ReturnRefundPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -24,13 +25,12 @@ export default function ReturnRefundPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [salesRes, invoiceRes] = await Promise.all([
-          fetch("/api/sales"),
-          fetch("/api/invoice-settings")
+        const [salesData, invoiceData] = await Promise.all([
+          safeFetch<any[]>("/api/sales"),
+          safeFetch("/api/invoice-settings")
         ]);
-        const salesData = await salesRes.json();
         setInvoices(Array.isArray(salesData) ? salesData : []);
-        setInvoiceSettings(await invoiceRes.json());
+        setInvoiceSettings(invoiceData);
       } catch (err) {
         console.error("Failed to fetch data", err);
       } finally {
@@ -41,7 +41,11 @@ export default function ReturnRefundPage() {
   }, []);
 
   useEffect(() => {
-    if (customerSearch.length > 1) fetch(`/api/customers?query=${customerSearch}`).then(r => r.json()).then(setCustomerResults);
+    if (customerSearch.length > 1) {
+      safeFetch<any>(`/api/customers?query=${customerSearch}`)
+        .then(data => setCustomerResults(data))
+        .catch(() => setCustomerResults([]));
+    }
   }, [customerSearch]);
 
   const selectSale = (sale: any) => {
@@ -62,16 +66,11 @@ export default function ReturnRefundPage() {
     setSubmitting(true);
     try {
       const payload = { saleId: selectedSale.id, items: returnItems.filter(i => i.return), refundAmount: returnTotal, refundMethod };
-      const res = await fetch("/api/sales/return", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await res.json();
-      if (res.ok) {
-        setLastSale(data);
-        setShowReceipt(true);
-      } else {
-        setError("Failed to process return");
-      }
+      const data = await safeFetch("/api/sales/return", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      setLastSale(data);
+      setShowReceipt(true);
     } catch {
-      setError("Error");
+      setError("Failed to process return");
     } finally {
       setSubmitting(false);
     }
@@ -83,7 +82,7 @@ export default function ReturnRefundPage() {
     setSuccess("Return processed!");
     setReturnItems([]);
     setSelectedSale(null);
-    fetch("/api/sales").then(r => r.json()).then(d => setInvoices(Array.isArray(d) ? d : []));
+    safeFetch<any[]>("/api/sales").then(d => setInvoices(Array.isArray(d) ? d : [])).catch(() => {});
   };
 
   const returnTotal = returnItems.filter(i => i.return).reduce((sum, i) => sum + (i.price * i.returnQty), 0);

@@ -5,6 +5,7 @@ import { EmiSaleTab } from "@/components/emi/EmiSaleTab";
 import { EmiCollectTab } from "@/components/emi/EmiCollectTab";
 import { EmiOverviewTab } from "@/components/emi/EmiOverviewTab";
 import { EmiReceiptModal } from "@/components/emi/EmiReceiptModal";
+import { safeFetch } from "@/lib/api-client";
 
 const tabs = [
   { id: "sale", label: "New EMI Sale" },
@@ -19,8 +20,7 @@ export default function EmiPage() {
 
   const handleViewSale = async (saleSummary: any) => {
     try {
-      const res = await fetch(`/api/emi-sales/${saleSummary.id}`);
-      const data = await res.json();
+      const data = await safeFetch<any>(`/api/emi-sales/${saleSummary.id}`);
       setViewSale(data.sale);
       setShowSaleDetail(true);
     } catch (err) {

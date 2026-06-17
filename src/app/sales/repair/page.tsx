@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Search, Plus, Trash2, Wrench, Smartphone, X, DollarSign } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
+import { safeFetch } from "@/lib/api-client";
 
 export default function RepairSalePage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -25,13 +26,12 @@ export default function RepairSalePage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [productsRes, invoiceRes] = await Promise.all([
-          fetch("/api/products"),
-          fetch("/api/invoice-settings")
+        const [productsData, invoiceData] = await Promise.all([
+          safeFetch<any>("/api/products"),
+          safeFetch<any>("/api/invoice-settings")
         ]);
-        const productsData = await productsRes.json();
         setProducts(Array.isArray(productsData) ? productsData : (productsData.products || []));
-        setInvoiceSettings(await invoiceRes.json());
+        setInvoiceSettings(invoiceData);
       } catch (err) {
         console.error("Failed to fetch data", err);
       } finally {
@@ -43,7 +43,7 @@ export default function RepairSalePage() {
 
   useEffect(() => {
     if (customerSearch.length > 1) {
-      fetch(`/api/customers?query=${customerSearch}`).then(r => r.json()).then(d => setCustomerResults(d.data || []));
+      safeFetch<any>(`/api/customers?query=${customerSearch}`).then(d => setCustomerResults(d.data || [])).catch(() => {});
     }
   }, [customerSearch]);
 
@@ -57,8 +57,9 @@ export default function RepairSalePage() {
 
   const handleAddCustomer = async () => {
     try {
-      const res = await fetch("/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newCustomer) });
-      if (res.ok) { const data = await res.json(); setSelectedCustomer(data); setIsAddingCustomer(false); }
+      const data = await safeFetch<any>("/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newCustomer) });
+      setSelectedCustomer(data);
+      setIsAddingCustomer(false);
     } catch (err) {
       console.error("Failed to add customer:", err);
     }
@@ -70,16 +71,11 @@ export default function RepairSalePage() {
     setSubmitting(true);
     try {
       const payload = { customerId: selectedCustomer?.id || null, items: cart, totalAmount: total, paidAmount: total, dueAmount: 0, discount: 0, paymentMethod: "CASH", saleType: "REPAIR" };
-      const res = await fetch("/api/sales", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await res.json();
-      if (res.ok) {
-        setLastSale(data);
-        setShowReceipt(true);
-      } else {
-        setError("Failed");
-      }
+      const data = await safeFetch<any>("/api/sales", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      setLastSale(data);
+      setShowReceipt(true);
     } catch {
-      setError("Error");
+      setError("Failed");
     } finally {
       setSubmitting(false);
     }
@@ -90,7 +86,7 @@ export default function RepairSalePage() {
     setLastSale(null);
     setCart([]);
     setSuccess("Repair order created!");
-    fetch("/api/products").then(r => r.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
+    safeFetch<any>("/api/products").then(data => setProducts(Array.isArray(data) ? data : (data.products || []))).catch(() => {});
   };
 
   const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);

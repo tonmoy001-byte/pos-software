@@ -7,6 +7,7 @@ import {
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { playBeep } from "@/lib/audio";
 import { ReceiptModal } from "@/components/invoice";
+import { safeFetch } from "@/lib/api-client";
 
 export default function DueSalePage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -41,15 +42,14 @@ export default function DueSalePage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [productsRes, storeRes, invoiceRes] = await Promise.all([
-          fetch("/api/products"),
-          fetch("/api/settings/store"),
-          fetch("/api/invoice-settings")
+        const [productsData, storeData, invoiceData] = await Promise.all([
+          safeFetch("/api/products"),
+          safeFetch("/api/settings/store"),
+          safeFetch("/api/invoice-settings")
         ]);
-        const productsData = await productsRes.json();
-        setProducts(Array.isArray(productsData) ? productsData : (productsData.products || []));
-        setCurrentStore(await storeRes.json());
-        setInvoiceSettings(await invoiceRes.json());
+        setProducts(Array.isArray(productsData) ? productsData : ((productsData as any).products || []));
+        setCurrentStore(storeData);
+        setInvoiceSettings(invoiceData);
       } catch (err) {
         console.error("Failed to fetch data", err);
       } finally {
@@ -62,9 +62,12 @@ export default function DueSalePage() {
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (customerSearch.length > 1) {
-        const res = await fetch(`/api/customers?query=${customerSearch}`);
-        const data = await res.json();
-        setCustomerResults(data.data || []);
+        try {
+          const data = await safeFetch<any>(`/api/customers?query=${customerSearch}`);
+          setCustomerResults(data.data || []);
+        } catch {
+          setCustomerResults([]);
+        }
       } else {
         setCustomerResults([]);
       }
@@ -78,8 +81,7 @@ export default function DueSalePage() {
       const params = new URLSearchParams();
       if (duesSearch) params.set("search", duesSearch);
       if (filterStatus !== "ALL") params.set("status", filterStatus);
-      const res = await fetch(`/api/dues?${params}`);
-      const json = await res.json();
+      const json = await safeFetch<any>(`/api/dues?${params}`);
       setDues(json.data || []);
     } catch (err) {
       console.error("Failed to fetch dues", err);
@@ -93,22 +95,17 @@ export default function DueSalePage() {
     setSubmittingDue(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/dues/${selectedDue.id}`, {
+      const data = await safeFetch(`/api/dues/${selectedDue.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: payAmount, method: "CASH" })
       });
-      const data = await res.json();
-      if (res.ok) {
-        setMessage({ type: "success", text: "Payment collected successfully" });
-        setSelectedDue(null);
-        setPayAmount("");
-        fetchDues();
-      } else {
-        setMessage({ type: "error", text: data.error || "Failed to collect payment" });
-      }
-    } catch (err) {
-      setMessage({ type: "error", text: "Connection error" });
+      setMessage({ type: "success", text: "Payment collected successfully" });
+      setSelectedDue(null);
+      setPayAmount("");
+      fetchDues();
+    } catch (err: any) {
+      setMessage({ type: "error", text: err?.body || "Failed to collect payment" });
     } finally {
       setSubmittingDue(false);
     }
@@ -170,9 +167,10 @@ export default function DueSalePage() {
 
   const handleAddCustomer = async () => {
     try {
-      const res = await fetch("/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newCustomer) });
-      const data = await res.json();
-      if (res.ok) { setSelectedCustomer(data); setIsAddingCustomer(false); setNewCustomer({ name: "", phone: "", address: "" }); }
+      const data = await safeFetch("/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newCustomer) });
+      setSelectedCustomer(data);
+      setIsAddingCustomer(false);
+      setNewCustomer({ name: "", phone: "", address: "" });
     } catch (err) { console.error(err); }
   };
 
@@ -185,14 +183,11 @@ export default function DueSalePage() {
     setSubmitting(true);
     const payload = { customerId: selectedCustomer.id, items: cart, totalAmount: total, paidAmount: 0, dueAmount: total, discount: Number(discount) || 0, paymentMethod: "DUE", saleType: "DUE" };
     try {
-      const res = await fetch("/api/sales", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await res.json();
-      if (res.ok) {
-        setLastSale(data);
-        setIsCheckoutOpen(false);
-        setShowReceipt(true);
-      } else { setError(data.error || "Checkout failed"); }
-    } catch (err) { setError("Checkout failed"); } finally { setSubmitting(false); }
+      const data = await safeFetch("/api/sales", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      setLastSale(data);
+      setIsCheckoutOpen(false);
+      setShowReceipt(true);
+    } catch (err: any) { setError(err?.body || "Checkout failed"); } finally { setSubmitting(false); }
   };
 
   const handleCloseReceipt = () => {
@@ -201,7 +196,7 @@ export default function DueSalePage() {
     setCart([]);
     setDiscount("");
     setSelectedCustomer(null);
-    fetch("/api/products").then(res => res.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
+    safeFetch("/api/products").then(data => setProducts(Array.isArray(data) ? data : ((data as any).products || []))).catch(() => {});
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);

@@ -13,6 +13,7 @@ import {
   ResponsiveContainer, ComposedChart, Line, Legend
 } from "recharts";
 import { formatCurrency } from "@/lib/utils";
+import { safeFetch, ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui";
 
 function timeAgo(date: string | Date) {
@@ -99,11 +100,11 @@ export default function ExecutiveDashboard() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/dashboard/stats");
-      const json = await res.json();
+      const json = await safeFetch<any>("/api/dashboard/stats");
       setData(json);
     } catch (err) {
       console.error("Dashboard fetch error:", err);
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -117,8 +118,7 @@ export default function ExecutiveDashboard() {
     async function fetchChartData() {
       setChartLoading(true);
       try {
-        const res = await fetch(`/api/dashboard/stats?start=${chartStart}&end=${chartEnd}`);
-        const json = await res.json();
+        const json = await safeFetch<any>(`/api/dashboard/stats?start=${chartStart}&end=${chartEnd}`);
         const formatted = (json.dailyChartData || []).map((d: any) => ({
           ...d,
           day: formatDay(d.date),
@@ -129,6 +129,7 @@ export default function ExecutiveDashboard() {
         setChartData(formatted);
       } catch (err) {
         console.error("Chart fetch error:", err);
+        setChartData([]);
       } finally {
         setChartLoading(false);
       }
@@ -246,6 +247,10 @@ export default function ExecutiveDashboard() {
             {chartLoading ? (
               <div className="h-full flex items-center justify-center">
                 <div className="animate-pulse text-sm font-bold text-secondary">Loading chart data...</div>
+              </div>
+            ) : chartData.length === 0 ? (
+              <div className="h-full flex items-center justify-center rounded-lg border border-dashed border-border">
+                <p className="text-sm text-secondary font-medium">No chart data available</p>
               </div>
             ) : (
             <ResponsiveContainer width="100%" height="100%">

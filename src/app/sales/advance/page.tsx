@@ -30,6 +30,7 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { playBeep } from "@/lib/audio";
 import { ReceiptModal } from "@/components/invoice";
+import { safeFetch } from "@/lib/api-client";
 
 export default function AdvanceOrderPage() {
   const router = useRouter();
@@ -75,7 +76,7 @@ export default function AdvanceOrderPage() {
     setIsCompleting(true);
     setCompleteMessage(null);
     try {
-      const res = await fetch(`/api/advances/${selectedAdvance.id}/complete`, {
+      const data = await safeFetch(`/api/advances/${selectedAdvance.id}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -83,19 +84,14 @@ export default function AdvanceOrderPage() {
           method: completePaymentMethod
         })
       });
-      const data = await res.json();
-      if (res.ok) {
-        setCompleteMessage({ type: "success", text: "Order completed successfully!" });
-        setTimeout(() => {
-          setSelectedAdvance(null);
-          setCompletePayAmount("");
-          setCompleteMessage(null);
-          fetchAdvances();
-          fetch("/api/products").then(res => res.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
-        }, 1500);
-      } else {
-        setCompleteMessage({ type: "error", text: data.error || "Failed to complete" });
-      }
+      setCompleteMessage({ type: "success", text: "Order completed successfully!" });
+      setTimeout(() => {
+        setSelectedAdvance(null);
+        setCompletePayAmount("");
+        setCompleteMessage(null);
+        fetchAdvances();
+        safeFetch("/api/products").then(data => setProducts(Array.isArray(data) ? data : ((data as any).products || []))).catch(() => {});
+      }, 1500);
     } catch (err) {
       setCompleteMessage({ type: "error", text: "Connection error" });
     } finally {
@@ -106,9 +102,8 @@ export default function AdvanceOrderPage() {
   const fetchAdvances = async () => {
     setAdvancesLoading(true);
     try {
-      const res = await fetch("/api/advances");
-      const data = await res.json();
-      setAdvances(data);
+      const data = await safeFetch("/api/advances");
+      setAdvances(data as any);
     } catch (err) {
       console.error("Failed to fetch advances:", err);
     }
@@ -118,15 +113,14 @@ export default function AdvanceOrderPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [productsRes, storeRes, invoiceRes] = await Promise.all([
-          fetch("/api/products"),
-          fetch("/api/settings/store"),
-          fetch("/api/invoice-settings")
+        const [productsData, storeData, invoiceData] = await Promise.all([
+          safeFetch("/api/products"),
+          safeFetch("/api/settings/store"),
+          safeFetch("/api/invoice-settings")
         ]);
-        const productsData = await productsRes.json();
-        setProducts(Array.isArray(productsData) ? productsData : (productsData.products || []));
-        setCurrentStore(await storeRes.json());
-        setInvoiceSettings(await invoiceRes.json());
+        setProducts(Array.isArray(productsData) ? productsData : ((productsData as any).products || []));
+        setCurrentStore(storeData);
+        setInvoiceSettings(invoiceData);
       } catch (err) {
         console.error("Failed to fetch data", err);
       } finally {
@@ -138,7 +132,7 @@ export default function AdvanceOrderPage() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      fetch("/api/products").then(res => res.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
+      safeFetch("/api/products").then(data => setProducts(Array.isArray(data) ? data : ((data as any).products || []))).catch(() => {});
     }, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -146,9 +140,12 @@ export default function AdvanceOrderPage() {
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (customerSearch.length > 1) {
-        const res = await fetch(`/api/customers?query=${customerSearch}`);
-        const data = await res.json();
-        setCustomerResults(data.data || []);
+        try {
+          const data = await safeFetch<any>(`/api/customers?query=${customerSearch}`);
+          setCustomerResults(data.data || []);
+        } catch {
+          setCustomerResults([]);
+        }
       } else {
         setCustomerResults([]);
       }
@@ -234,21 +231,16 @@ export default function AdvanceOrderPage() {
 
   const handleAddCustomer = async () => {
     try {
-      const res = await fetch("/api/customers", {
+      const data = await safeFetch("/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newCustomer)
       });
-      const data = await res.json();
-      if (res.ok) {
-        setSelectedCustomer(data);
-        setIsAddingCustomer(false);
-        setNewCustomer({ name: "", phone: "", address: "" });
-      } else {
-        alert(data.error || "Failed to add customer");
-      }
-    } catch (err) {
-      console.error(err);
+      setSelectedCustomer(data);
+      setIsAddingCustomer(false);
+      setNewCustomer({ name: "", phone: "", address: "" });
+    } catch (err: any) {
+      alert(err?.body || "Failed to add customer");
     }
   };
 
@@ -276,21 +268,16 @@ export default function AdvanceOrderPage() {
     };
 
     try {
-      const res = await fetch("/api/sales", {
+      const data = await safeFetch("/api/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
-      if (res.ok) {
-        setLastSale(data);
-        setIsCheckoutOpen(false);
-        setShowReceipt(true);
-      } else {
-        setError(data.error || "Checkout failed");
-      }
-    } catch (err) {
-      setError("Checkout failed - connection error");
+      setLastSale(data);
+      setIsCheckoutOpen(false);
+      setShowReceipt(true);
+    } catch (err: any) {
+      setError(err?.body || "Checkout failed - connection error");
     } finally {
       setSubmitting(false);
     }
@@ -303,7 +290,7 @@ export default function AdvanceOrderPage() {
     setDiscount("");
     setSelectedCustomer(null);
     setPaidAmount("");
-    fetch("/api/products").then(res => res.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
+    safeFetch("/api/products").then(data => setProducts(Array.isArray(data) ? data : ((data as any).products || []))).catch(() => {});
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);

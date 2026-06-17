@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search, Trash2, Plus, Minus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, X, Truck, Package, Pencil } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
+import { safeFetch } from "@/lib/api-client";
 
 export default function WholesaleSalePage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -28,16 +29,16 @@ export default function WholesaleSalePage() {
 
   useEffect(() => { 
     Promise.all([
-      fetch("/api/products").then(r => r.json()),
-      fetch("/api/settings/store").then(r => r.json()),
-      fetch("/api/invoice-settings").then(r => r.json())
+      safeFetch<any>("/api/products"),
+      safeFetch<any>("/api/settings/store"),
+      safeFetch<any>("/api/invoice-settings")
     ]).then(([productsData, storeData, invoiceData]) => {
       setProducts(Array.isArray(productsData) ? productsData : (productsData.products || []));
       setCurrentStore(storeData);
       setInvoiceSettings(invoiceData);
-    }).finally(() => setLoading(false)); 
+    }).catch(() => {}).finally(() => setLoading(false)); 
   }, []);
-  useEffect(() => { if (customerSearch.length > 1) fetch(`/api/customers?query=${customerSearch}`).then(r => r.json()).then(d => setCustomerResults(d.data || [])); }, [customerSearch]);
+  useEffect(() => { if (customerSearch.length > 1) safeFetch<any>(`/api/customers?query=${customerSearch}`).then(d => setCustomerResults(d.data || [])).catch(() => {}); }, [customerSearch]);
 
   const addToCart = (product: any) => {
     const existing = cart.find(item => item.productId === product.id);
@@ -65,15 +66,11 @@ export default function WholesaleSalePage() {
     setSubmitting(true);
     const payload = { customerId: selectedCustomer?.id || null, items: cart, totalAmount: total, paidAmount: Number(paidAmount) || 0, dueAmount: Math.max(0, total - (Number(paidAmount) || 0)), discount: discountTotal, paymentMethod, saleType: "WHOLESALE" };
     try {
-      const res = await fetch("/api/sales", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await res.json();
-      if (res.ok) {
-        setLastSale(data);
-        setIsCheckoutOpen(false);
-        setShowReceipt(true);
-      }
-      else { setError(data.error); }
-    } catch { setError("Failed"); }
+      const data = await safeFetch<any>("/api/sales", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      setLastSale(data);
+      setIsCheckoutOpen(false);
+      setShowReceipt(true);
+    } catch (err: any) { setError(err.message || "Failed"); }
     finally { setSubmitting(false); }
   };
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Smartphone, CheckCircle2, Loader2, Copy, Check } from "lucide-react";
+import { safeFetch } from "@/lib/api-client";
 
 interface User {
   id: string;
@@ -31,8 +32,7 @@ function SetupContent() {
 
   async function fetchUsers() {
     try {
-      const res = await fetch("/api/setup/users");
-      const data = await res.json();
+      const data = await safeFetch<{ users: User[] }>("/api/setup/users");
       if (data.users) {
         setUsers(data.users);
       }
@@ -46,12 +46,11 @@ function SetupContent() {
   async function approveStore(storeId: string) {
     setApproving(storeId);
     try {
-      const res = await fetch("/api/setup/approve", {
+      const data = await safeFetch<{ success: boolean }>("/api/setup/approve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ storeId }),
       });
-      const data = await res.json();
       if (data.success) {
         setApproved(storeId);
         fetchUsers();

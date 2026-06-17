@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Save, Barcode, Ruler, Type, DollarSign, Package, QrCode, Shield, Check } from "lucide-react";
+import { safeFetch } from "@/lib/api-client";
 
 interface BarcodeSettings {
   barcodeType: string;
@@ -57,8 +58,7 @@ export default function BarcodeSettingsPage() {
   });
 
   useEffect(() => {
-    fetch("/api/barcode-settings")
-      .then(res => res.json())
+    safeFetch<BarcodeSettings>("/api/barcode-settings")
       .then(data => {
         setSettings({ ...settings, ...data });
         setLoading(false);

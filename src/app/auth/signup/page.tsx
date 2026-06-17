@@ -17,6 +17,7 @@ import {
   Store,
 } from "lucide-react";
 import { Button } from "@/components/ui";
+import { safeFetch, ApiError } from "@/lib/api-client";
 
 const BUSINESS_TYPES = [
   "Mobile Shop",
@@ -45,7 +46,7 @@ export default function SignUpPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/auth/signup", {
+      await safeFetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -59,26 +60,24 @@ export default function SignUpPage() {
         }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Something went wrong. Please try again.");
+      // Auto sign in after signup — proxy will redirect to /onboarding
+      const signInResult = await signIn("credentials", {
+        username,
+        password,
+        redirect: false,
+      });
+      if (signInResult?.error) {
+        router.push("/auth/signin?registered=true");
       } else {
-        // Auto sign in after signup — proxy will redirect to /onboarding
-        const signInResult = await signIn("credentials", {
-          username,
-          password,
-          redirect: false,
-        });
-        if (signInResult?.error) {
-          router.push("/auth/signin?registered=true");
-        } else {
-          router.push("/dashboard");
-          router.refresh();
-        }
+        router.push("/dashboard");
+        router.refresh();
       }
-    } catch {
-      setError("An unexpected error occurred. Please try again.");
+    } catch (err) {
+      if (err instanceof ApiError && err.body) {
+        try { setError(JSON.parse(err.body).error || "Something went wrong. Please try again."); } catch { setError("Something went wrong. Please try again."); }
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

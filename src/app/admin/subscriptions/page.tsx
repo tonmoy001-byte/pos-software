@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { FileText, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { safeFetch } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 
 const STATUS_OPTIONS = ["", "trial", "active", "cancelled", "expired"];
@@ -23,8 +24,7 @@ export default function AdminSubscriptionsPage() {
     if (statusFilter) params.set("status", statusFilter);
 
     try {
-      const res = await fetch(`/api/admin/subscriptions?${params}`);
-      const data = await res.json();
+      const data = await safeFetch<any>(`/api/admin/subscriptions?${params}`);
       setSubscriptions(data.subscriptions || []);
       setTotal(data.total || 0);
       setTotalPages(data.totalPages || 1);
@@ -36,8 +36,7 @@ export default function AdminSubscriptionsPage() {
 
   const fetchPlans = async () => {
     try {
-      const res = await fetch("/api/admin/plans");
-      const data = await res.json();
+      const data = await safeFetch<any>("/api/admin/plans");
       setPlans(data.plans || []);
     } catch {}
   };
@@ -50,16 +49,14 @@ export default function AdminSubscriptionsPage() {
   const handlePlanChange = async (subId: string) => {
     if (!editPlanId) return;
     try {
-      const res = await fetch(`/api/admin/subscriptions/${subId}`, {
+      await safeFetch<any>(`/api/admin/subscriptions/${subId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId: editPlanId }),
       });
-      if (res.ok) {
-        setEditingSub(null);
-        setEditPlanId("");
-        fetchSubscriptions();
-      }
+      setEditingSub(null);
+      setEditPlanId("");
+      fetchSubscriptions();
     } catch {}
   };
 
