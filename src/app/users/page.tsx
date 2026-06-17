@@ -26,7 +26,7 @@ export default function UsersPage() {
     name: "",
     username: "",
     password: "",
-    role: "STAFF"
+    role: "CASHIER"
   });
 
   const fetchUsers = async () => {

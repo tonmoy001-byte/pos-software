@@ -4,6 +4,7 @@ import "./globals.css";
 import { SidebarWrapper } from "@/components/layout/SidebarWrapper";
 import SWRegister from "@/components/sw-register";
 import { Providers } from "@/components/providers";
+import { AuthGate } from "@/components/auth";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const hindSiliguri = Hind_Siliguri({ 
@@ -45,11 +46,13 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable}`}>
       <body className="flex bg-background min-h-screen" suppressHydrationWarning>
         <Providers>
-          <SWRegister />
-          <SidebarWrapper />
-          <main className="flex-1 overflow-y-auto">
-            {children}
-          </main>
+          <AuthGate>
+            <SWRegister />
+            <SidebarWrapper />
+            <main className="flex-1 overflow-y-auto">
+              {children}
+            </main>
+          </AuthGate>
         </Providers>
       </body>
     </html>

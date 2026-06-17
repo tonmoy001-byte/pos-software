@@ -6,12 +6,15 @@ import { Sidebar } from "./sidebar";
 
 export function SidebarWrapper() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
-  // Hide sidebar on auth, admin, and suspended pages
+  if (status === "loading") return null;
+
   if (pathname?.startsWith("/auth") || pathname?.startsWith("/admin") || pathname?.startsWith("/suspended")) return null;
 
-  const userRole = session?.user?.role || "CASHIER";
+  const userRole = session?.user?.role ?? null;
+  if (!userRole) return null;
+
   const userId = (session?.user as any)?.id;
   const storeName = (session?.user as any)?.storeName;
 
