@@ -24,6 +24,7 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { playBeep } from "@/lib/audio";
 import { InvoiceRenderer, ReceiptModal } from "@/components/invoice";
+import { PriceOverrideModal } from "@/components/pos/PriceOverrideModal";
 import { safeFetch } from "@/lib/api-client";
 
 export default function POSPage() {
@@ -53,6 +54,7 @@ const [barcodeInput, setBarcodeInput] = useState("");
   const [currentStore, setCurrentStore] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   const [invoiceSettings, setInvoiceSettings] = useState<any>(null);
+  const [priceOverrideItem, setPriceOverrideItem] = useState<any>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -404,6 +406,18 @@ const [barcodeInput, setBarcodeInput] = useState("");
         settings={invoiceSettings}
       />
 
+      <PriceOverrideModal
+        isOpen={!!priceOverrideItem}
+        onClose={() => setPriceOverrideItem(null)}
+        onConfirm={(newPrice) => {
+          if (priceOverrideItem) {
+            setCart(cart.map(c => c.productId === priceOverrideItem.productId ? { ...c, price: newPrice } : c));
+          }
+        }}
+        productName={priceOverrideItem?.name ?? ""}
+        originalPrice={priceOverrideItem?.price ?? 0}
+      />
+
       <div className="flex-1 flex flex-col p-6 space-y-6 overflow-hidden">
         <div className="flex gap-4">
           <div className="relative flex-1">
@@ -593,13 +607,8 @@ const [barcodeInput, setBarcodeInput] = useState("");
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => {
-                      const newPrice = prompt("Enter new price:", item.price.toString());
-                      if (newPrice && !isNaN(Number(newPrice))) {
-                        setCart(cart.map(c => c.productId === item.productId ? { ...c, price: Number(newPrice) } : c));
-                      }
-                    }}
+                  <button
+                    onClick={() => setPriceOverrideItem(item)}
                     className="p-1 text-secondary hover:text-primary transition-colors"
                     title="Edit price"
                   >

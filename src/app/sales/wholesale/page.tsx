@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search, Trash2, Plus, Minus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, X, Truck, Package, Pencil } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
+import { PriceOverrideModal } from "@/components/pos/PriceOverrideModal";
 import { safeFetch } from "@/lib/api-client";
 
 export default function WholesaleSalePage() {
@@ -26,6 +27,7 @@ export default function WholesaleSalePage() {
   const [barcodeInput, setBarcodeInput] = useState("");
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const [currentStore, setCurrentStore] = useState<any>(null);
+  const [priceOverrideItem, setPriceOverrideItem] = useState<any>(null);
 
   useEffect(() => { 
     Promise.all([
@@ -116,6 +118,18 @@ export default function WholesaleSalePage() {
         settings={invoiceSettings}
       />
 
+      <PriceOverrideModal
+        isOpen={!!priceOverrideItem}
+        onClose={() => setPriceOverrideItem(null)}
+        onConfirm={(newPrice) => {
+          if (priceOverrideItem) {
+            setCart(cart.map(c => c.productId === priceOverrideItem.productId ? { ...c, price: newPrice } : c));
+          }
+        }}
+        productName={priceOverrideItem?.name ?? ""}
+        originalPrice={priceOverrideItem?.price ?? 0}
+      />
+
       <div className="flex-1 flex flex-col p-6 space-y-4">
         <h2 className="text-2xl font-black flex items-center gap-3"><Truck className="w-8 h-8" /> Wholesale Sale</h2>
         <div className="flex gap-4">
@@ -201,13 +215,8 @@ export default function WholesaleSalePage() {
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => {
-                      const newPrice = prompt("Enter new price:", item.price.toString());
-                      if (newPrice && !isNaN(Number(newPrice))) {
-                        setCart(cart.map(c => c.productId === item.productId ? { ...c, price: Number(newPrice) } : c));
-                      }
-                    }}
+                  <button
+                    onClick={() => setPriceOverrideItem(item)}
                     className="p-1 text-secondary hover:text-primary transition-colors"
                     title="Edit price"
                   >

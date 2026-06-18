@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { Search, Plus, Minus, Trash2, RefreshCw, Smartphone, X, ArrowRightLeft, Pencil } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
+import { PriceOverrideModal } from "@/components/pos/PriceOverrideModal";
 import { safeFetch } from "@/lib/api-client";
 
 export default function ExchangeSalePage() {
@@ -18,6 +19,7 @@ export default function ExchangeSalePage() {
   const [showReceipt,setShowReceipt]   = useState(false);
   const [lastSale,   setLastSale]      = useState<any>(null);
   const [invoiceSettings,setInvoiceSettings] = useState<any>(null);
+  const [priceOverrideItem, setPriceOverrideItem] = useState<any>(null);
 
   // ── Derived values (no const-in-JSX closure risk) ───────────────────────
   const cartTotal       = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
@@ -222,13 +224,8 @@ export default function ExchangeSalePage() {
                   <button onClick={() => updateCartQty(item.productId, item.quantity + 1)} className="w-7 h-7 bg-surface border border-border rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:border-primary"><Plus className="w-4 h-4" /></button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => {
-                      const newPrice = prompt("Enter new price:", item.price.toString());
-                      if (newPrice && !isNaN(Number(newPrice))) {
-                        setCart(cart.map(c => c.productId === item.productId ? { ...c, price: Number(newPrice) } : c));
-                      }
-                    }}
+                  <button
+                    onClick={() => setPriceOverrideItem(item)}
                     className="p-1 text-secondary hover:text-primary transition-colors"
                     title="Edit price"
                   >
@@ -271,6 +268,18 @@ export default function ExchangeSalePage() {
         onClose={handleCloseReceipt}
         data={lastSale}
         settings={invoiceSettings}
+      />
+
+      <PriceOverrideModal
+        isOpen={!!priceOverrideItem}
+        onClose={() => setPriceOverrideItem(null)}
+        onConfirm={(newPrice) => {
+          if (priceOverrideItem) {
+            setCart(cart.map(c => c.productId === priceOverrideItem.productId ? { ...c, price: newPrice } : c));
+          }
+        }}
+        productName={priceOverrideItem?.name ?? ""}
+        originalPrice={priceOverrideItem?.price ?? 0}
       />
     </div>
   );

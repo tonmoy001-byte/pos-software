@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search, Trash2, Plus, Minus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, X, Package, Truck, Pencil } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
+import { PriceOverrideModal } from "@/components/pos/PriceOverrideModal";
 import { safeFetch } from "@/lib/api-client";
 
 export default function OnlineSalePage() {
@@ -25,6 +26,7 @@ export default function OnlineSalePage() {
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [platform, setPlatform] = useState("BANGLAVISION");
   const [courier, setCourier] = useState("");
+  const [priceOverrideItem, setPriceOverrideItem] = useState<any>(null);
   const [trackingNumber, setTrackingNumber] = useState("");
   const [barcodeInput, setBarcodeInput] = useState("");
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -122,6 +124,18 @@ export default function OnlineSalePage() {
         settings={invoiceSettings}
       />
 
+      <PriceOverrideModal
+        isOpen={!!priceOverrideItem}
+        onClose={() => setPriceOverrideItem(null)}
+        onConfirm={(newPrice) => {
+          if (priceOverrideItem) {
+            setCart(cart.map(c => c.productId === priceOverrideItem.productId ? { ...c, price: newPrice } : c));
+          }
+        }}
+        productName={priceOverrideItem?.name ?? ""}
+        originalPrice={priceOverrideItem?.price ?? 0}
+      />
+
       <div className="flex-1 flex flex-col p-6 space-y-4">
         <div className="flex gap-4">
           <div className="relative flex-1"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary w-5" /><input type="text" placeholder="Search products..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-12 pr-4 py-4 rounded-2xl bg-surface border border-border" /></div>
@@ -212,13 +226,8 @@ export default function OnlineSalePage() {
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => {
-                      const newPrice = prompt("Enter new price:", item.price.toString());
-                      if (newPrice && !isNaN(Number(newPrice))) {
-                        setCart(cart.map(c => c.productId === item.productId ? { ...c, price: Number(newPrice) } : c));
-                      }
-                    }}
+                  <button
+                    onClick={() => setPriceOverrideItem(item)}
                     className="p-1 text-secondary hover:text-primary transition-colors"
                     title="Edit price"
                   >
