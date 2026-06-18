@@ -23,6 +23,7 @@ import { formatCurrency } from "@/lib/utils";
 import { playBeep } from "@/lib/audio";
 import { ThermalReceipt } from "@/components/pos/receipt";
 import { safeFetch, ApiError, ContentTypeError } from "@/lib/api-client";
+import { useTrialRestricted } from "@/components/trial/useTrialRestricted";
 
 export default function POSPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -44,6 +45,7 @@ export default function POSPage() {
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", address: "" });
+  const { checkAction, RestrictedModal } = useTrialRestricted();
   const [barcodeInput, setBarcodeInput] = useState("");
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const [currentStore, setCurrentStore] = useState<any>(null);
@@ -190,6 +192,7 @@ if (found) {
   };
 
   const handleCheckout = async () => {
+    if (!checkAction("create a sale")) return;
     setError(null);
     if (cart.length === 0) return setError("Cart is empty");
 
@@ -892,6 +895,7 @@ setPaidAmount(String(total));
           </button>
         </div>
       </div>
+      <RestrictedModal />
     </div>
   );
 }
