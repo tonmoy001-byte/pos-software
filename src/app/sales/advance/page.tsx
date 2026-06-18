@@ -349,7 +349,7 @@ export default function AdvanceOrderPage() {
                   <div className="space-y-3">
                     <label className="text-xs font-black text-secondary uppercase tracking-widest px-1">Payment Method</label>
                     <div className="grid grid-cols-2 gap-3">
-                      {["CASH", "BKASH", "Nagad", "ROCKET", "CARD", "BANK_TRANSFER"].map(m => (
+                      {["CASH", "BKASH", "NAGAD", "CARD", "BANK"].map(m => (
                         <button
                           key={m}
                           onClick={() => setPaymentMethod(m)}
@@ -357,9 +357,9 @@ export default function AdvanceOrderPage() {
                         >
                           {m === "CASH" && <Banknote className="w-4 h-4" />}
                           {m === "CARD" && <CreditCard className="w-4 h-4" />}
-                          {(m === "BKASH" || m === "Nagad" || m === "ROCKET") && <Wallet className="w-4 h-4" />}
-                          {m === "BANK_TRANSFER" && <Banknote className="w-4 h-4" />}
-                          {m === "BANK_TRANSFER" ? "BANK" : m}
+                          {(m === "BKASH" || m === "NAGAD") && <Wallet className="w-4 h-4" />}
+                          {m === "BANK" && <Banknote className="w-4 h-4" />}
+                          {m}
                         </button>
                       ))}
                     </div>
