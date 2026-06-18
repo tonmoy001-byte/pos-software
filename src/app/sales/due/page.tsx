@@ -36,6 +36,7 @@ export default function DueSalePage() {
   const [filterStatus, setFilterStatus] = useState<"ALL" | "PARTIAL" | "DUE">("ALL");
   const [selectedDue, setSelectedDue] = useState<any>(null);
   const [payAmount, setPayAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [submittingDue, setSubmittingDue] = useState(false);
   const [message, setMessage] = useState<{type: "success"|"error", text: string} | null>(null);
   const [dueStats, setDueStats] = useState<{totalOutstanding: number; expectedToday: number; lastMonthCollectionRate: number} | null>(null);
@@ -108,7 +109,7 @@ export default function DueSalePage() {
       const data = await safeFetch(`/api/dues/${selectedDue.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: payAmount, method: "CASH" })
+        body: JSON.stringify({ amount: payAmount, method: paymentMethod })
       });
       setMessage({ type: "success", text: "Payment collected successfully" });
       setSelectedDue(null);
@@ -287,6 +288,24 @@ export default function DueSalePage() {
                   placeholder="Enter amount to collect" 
                   className="w-full px-4 py-3 rounded-xl border border-border outline-none focus:border-primary font-bold" 
                 />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-secondary uppercase tracking-widest px-1">Payment Method</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {["CASH", "BKASH", "NAGAD", "CARD", "BANK"].map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setPaymentMethod(m)}
+                      className={`py-3 rounded-xl border-2 font-bold text-xs transition-all flex items-center justify-center gap-2 ${paymentMethod === m ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20' : 'border-border text-secondary hover:border-primary/30'}`}
+                    >
+                      {m === "CASH" && <Banknote className="w-4 h-4" />}
+                      {m === "CARD" && <CreditCard className="w-4 h-4" />}
+                      {(m === "BKASH" || m === "NAGAD") && <Wallet className="w-4 h-4" />}
+                      {m === "BANK" && <Banknote className="w-4 h-4" />}
+                      {m}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
             {message && (
@@ -581,7 +600,7 @@ export default function DueSalePage() {
                         </td>
                         <td className="px-6 py-5 text-right">
                           <button 
-                            onClick={() => { setSelectedDue(due); setPayAmount(due.dueAmount); setMessage(null); }}
+                            onClick={() => { setSelectedDue(due); setPayAmount(due.dueAmount); setPaymentMethod("CASH"); setMessage(null); }}
                             className="bg-primary text-white text-[10px] font-black px-4 py-2 rounded-xl hover:bg-primary/90 transition-all flex items-center gap-2 ml-auto shadow-lg shadow-primary/10"
                           >
                             <CreditCard className="w-3 h-3" />
