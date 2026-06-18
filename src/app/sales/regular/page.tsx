@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Search, Eye, RefreshCw, ShoppingCart, Clock, CreditCard, Calculator, Truck, Package, RotateCcw } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
 import { ReceiptModal } from "@/components/invoice";
+import { Pagination } from "@/components/products/Pagination";
 
 interface Sale {
   id: string;
@@ -43,11 +44,34 @@ export default function AllSalesPage() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [invoiceSettings, setInvoiceSettings] = useState<any>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  const fetchSales = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
+      const res = await fetch(`/api/sales?${params}`);
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (Array.isArray(data?.sales) ? data.sales : []);
+      setSales(list);
+      if (data?.pagination) {
+        setTotal(data.pagination.total || 0);
+        setTotalPages(data.pagination.totalPages || 0);
+      }
+    } catch (err) {
+      console.error("Failed to fetch sales", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, limit]);
 
   useEffect(() => {
     fetchSales();
     fetchInvoiceSettings();
-  }, []);
+  }, [fetchSales]);
 
   const fetchInvoiceSettings = async () => {
     try {
@@ -58,19 +82,9 @@ export default function AllSalesPage() {
     }
   };
 
-  const fetchSales = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/sales");
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : (Array.isArray(data?.sales) ? data.sales : []);
-      setSales(list);
-    } catch (err) {
-      console.error("Failed to fetch sales", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, saleTypeFilter, statusFilter, dateFilter, limit]);
 
   const getStatus = (sale: Sale) => {
     if (sale.discount > 0 && sale.totalAmount <= 0) return "refunded";
@@ -336,9 +350,15 @@ export default function AllSalesPage() {
           )}
         </div>
 
-        <div className="p-4 border-t border-border bg-background text-xs text-secondary flex items-center justify-between">
-          <span>{filteredSales.length} transactions</span>
-          <span>Showing {filteredSales.length} of {sales.length}</span>
+        <div className="p-4 border-t border-border bg-background">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            limit={limit}
+            onPageChange={setPage}
+            onLimitChange={setLimit}
+          />
         </div>
       </div>
       <ReceiptModal 
