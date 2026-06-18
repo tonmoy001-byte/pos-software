@@ -5,6 +5,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { getSession } from "@/lib/auth";
 import { hasPermission } from "@/lib/services";
+import { canWrite } from "@/lib/services/trialGuard";
 import type { Role } from "@prisma/client";
 
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -15,6 +16,13 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!hasPermission(session.user.role as Role, "product:create")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (session?.user?.storeId) {
+    const writeCheck = await canWrite(session.user.storeId, session.user.id);
+    if (!writeCheck.allowed) {
+      return NextResponse.json({ error: writeCheck.reason }, { status: 403 });
+    }
   }
 
   const form = await req.formData();

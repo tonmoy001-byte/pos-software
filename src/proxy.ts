@@ -23,8 +23,30 @@ export async function proxy(req: NextRequest) {
   const isAuthPage = pathname.startsWith("/auth");
   const isOnboardingPage = pathname.startsWith("/onboarding");
 
-  // API-specific headers — scope CORS to the app origin, not wildcard
+  // Suspended store check — block non-super-admin users if their store is suspended
+  const isSuperAdminUser = (process.env.SUPER_ADMIN_IDS ?? "").replace(/"/g, "").split(",").includes(token?.sub || "");
+
+  // Subscription write-blocking — enforce read-only for expired/suspended/cancelled/grace-period stores
   if (pathname.startsWith("/api/")) {
+    const subscriptionStatus = token?.subscriptionStatus as string | null;
+    const isWriteRequest = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method);
+    const blockedStatuses = ["EXPIRED", "SUSPENDED", "CANCELLED", "GRACE_PERIOD"];
+
+    if (
+      !isSuperAdminUser &&
+      isWriteRequest &&
+      !pathname.startsWith("/api/auth") &&
+      !pathname.startsWith("/api/trial") &&
+      subscriptionStatus &&
+      blockedStatuses.includes(subscriptionStatus)
+    ) {
+      return NextResponse.json(
+        { error: "Subscription expired. Read-only mode. Please renew." },
+        { status: 403 }
+      );
+    }
+
+    // API-specific headers — scope CORS to the app origin, not wildcard
     const appOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
     const response = NextResponse.next();
     response.headers.set("X-Request-ID", requestId);
@@ -74,8 +96,7 @@ export async function proxy(req: NextRequest) {
     );
   }
 
-  // Suspended store check — block non-super-admin users if their store is suspended
-  const isSuperAdminUser = (process.env.SUPER_ADMIN_IDS ?? "").replace(/"/g, "").split(",").includes(token?.sub || "");
+  // Suspended store check — block non-super-admin users if their store is suspended (non-API routes)
   if (
     !isSuperAdminUser &&
     token?.storeStatus === "suspended" &&

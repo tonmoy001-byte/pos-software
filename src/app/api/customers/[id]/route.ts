@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { hasPermission, eventStore, EventStoreData, logger } from "@/lib/services";
+import { canWrite } from "@/lib/services/trialGuard";
 import type { Role } from "@prisma/client";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -55,6 +56,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  if (session?.user?.storeId) {
+    const writeCheck = await canWrite(session.user.storeId, session.user.id);
+    if (!writeCheck.allowed) {
+      return NextResponse.json({ error: writeCheck.reason }, { status: 403 });
+    }
+  }
+
   try {
     const { name, phone, address } = await req.json();
 
@@ -94,6 +102,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!hasPermission(session.user.role as Role, "customer:delete")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (session?.user?.storeId) {
+    const writeCheck = await canWrite(session.user.storeId, session.user.id);
+    if (!writeCheck.allowed) {
+      return NextResponse.json({ error: writeCheck.reason }, { status: 403 });
+    }
   }
 
   const customer = await prisma.customer.findUnique({

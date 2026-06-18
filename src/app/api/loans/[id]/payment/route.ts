@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { LoanService, hasPermission, checkIdempotency, markIdempotent, createIdempotencyKey, completeIdempotencyKey, extractIdempotencyKey, logger } from "@/lib/services";
+import { canWrite } from "@/lib/services/trialGuard";
 import type { Role } from "@prisma/client";
 
 const loanService = new LoanService();
@@ -16,6 +17,13 @@ export async function POST(
   }
   if (!hasPermission(session.user.role as Role, "loan:update")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (session?.user?.storeId) {
+    const writeCheck = await canWrite(session.user.storeId, session.user.id);
+    if (!writeCheck.allowed) {
+      return NextResponse.json({ error: writeCheck.reason }, { status: 403 });
+    }
   }
 
   const idempotencyKey = extractIdempotencyKey(req);

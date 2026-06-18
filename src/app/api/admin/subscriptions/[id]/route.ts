@@ -53,7 +53,7 @@ export async function PATCH(
     data.planId = planId;
   }
   if (status) {
-    const validStatuses = ["trial", "active", "cancelled", "expired"];
+    const validStatuses = ["TRIAL", "ACTIVE", "CANCELLED", "EXPIRED", "GRACE_PERIOD", "SUSPENDED"];
     if (!validStatuses.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }

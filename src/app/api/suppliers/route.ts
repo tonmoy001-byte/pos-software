@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { SupplierService, hasPermission, logger } from "@/lib/services";
+import { canWrite } from "@/lib/services/trialGuard";
 import type { Role } from "@prisma/client";
 import { z } from "zod";
 
@@ -40,6 +41,13 @@ export async function POST(req: Request) {
   }
   if (!hasPermission(session.user.role as Role, "supplier:create")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (session?.user?.storeId) {
+    const writeCheck = await canWrite(session.user.storeId, session.user.id);
+    if (!writeCheck.allowed) {
+      return NextResponse.json({ error: writeCheck.reason }, { status: 403 });
+    }
   }
 
   try {
