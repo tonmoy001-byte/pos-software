@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Trash2, Plus, Minus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, X, Package, Truck, Pencil } from "lucide-react";
+import { Search, Trash2, Plus, Minus, Scan, Receipt, CreditCard, Banknote, Percent, Users, Smartphone, X, Package, Truck, Pencil, UserPlus } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
 import { PriceOverrideModal } from "@/components/pos/PriceOverrideModal";
@@ -27,6 +27,8 @@ export default function OnlineSalePage() {
   const [platform, setPlatform] = useState("BANGLAVISION");
   const [courier, setCourier] = useState("");
   const [priceOverrideItem, setPriceOverrideItem] = useState<any>(null);
+  const [isAddingCustomer, setIsAddingCustomer] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "" });
   const [trackingNumber, setTrackingNumber] = useState("");
   const [barcodeInput, setBarcodeInput] = useState("");
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -57,6 +59,24 @@ export default function OnlineSalePage() {
   };
   const removeFromCart = (productId: string) => setCart(cart.filter(item => item.productId !== productId));
   const openCheckout = () => { if (cart.length === 0) return setError("Cart is empty"); setPaidAmount(String(total)); setIsCheckoutOpen(true); };
+
+  const handleAddCustomer = async () => {
+    try {
+      const data = await safeFetch<any>("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newCustomer),
+      });
+      setSelectedCustomer(data);
+      setIsAddingCustomer(false);
+      setNewCustomer({ name: "", phone: "" });
+      setCustomerSearch("");
+      setCustomerResults([]);
+    } catch (err: any) {
+      alert(err?.body || "Failed to add customer");
+    }
+  };
+
   const handleCheckout = async () => {
     setError(null);
     if (cart.length === 0) return setError("Cart is empty");
@@ -194,6 +214,94 @@ export default function OnlineSalePage() {
       <div className="w-[350px] bg-surface border-l border-border p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-4"><h3 className="font-black text-lg">Online Order</h3><button onClick={() => setCart([])} className="text-red-500">Clear</button></div>
         {error && <div className="p-2 bg-red-50 text-red-600 rounded text-sm mb-4">{error}</div>}
+
+        {/* Customer Section */}
+        <div className="mb-4 space-y-3">
+          <div className="flex justify-between items-center">
+            <label className="text-xs font-black text-secondary uppercase tracking-widest">Customer</label>
+            <button
+              onClick={() => setIsAddingCustomer(!isAddingCustomer)}
+              className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+            >
+              <UserPlus className="w-3 h-3" />
+              {isAddingCustomer ? "Search Existing" : "New Customer"}
+            </button>
+          </div>
+
+          {isAddingCustomer ? (
+            <div className="p-3 bg-background rounded-xl border-2 border-primary/20 space-y-2">
+              <input
+                placeholder="Full Name"
+                value={newCustomer.name}
+                onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-border text-sm"
+              />
+              <input
+                placeholder="Phone Number"
+                value={newCustomer.phone}
+                onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-border text-sm"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsAddingCustomer(false)}
+                  className="flex-1 py-2 bg-secondary/10 text-secondary rounded-lg text-sm font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddCustomer}
+                  disabled={!newCustomer.name || !newCustomer.phone}
+                  className="flex-1 py-2 bg-primary text-white rounded-lg text-sm font-bold disabled:opacity-50"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          ) : selectedCustomer ? (
+            <div className="p-3 bg-primary/5 border-2 border-primary rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center text-xs font-black">
+                  {selectedCustomer.name[0]}
+                </div>
+                <div>
+                  <p className="font-bold text-sm">{selectedCustomer.name}</p>
+                  <p className="text-xs text-secondary">{selectedCustomer.phone}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedCustomer(null)} className="text-secondary hover:text-red-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary w-4 h-4" />
+              <input
+                value={customerSearch}
+                onChange={(e) => setCustomerSearch(e.target.value)}
+                placeholder="Search customer..."
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border-2 border-border focus:border-primary outline-none transition-all font-bold text-sm"
+              />
+              {customerResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 bg-surface border-2 border-border rounded-xl mt-1 overflow-hidden z-20 shadow-xl">
+                  {customerResults.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => { setSelectedCustomer(c); setCustomerSearch(""); setCustomerResults([]); }}
+                      className="w-full p-3 text-left hover:bg-primary/5 transition-colors border-b border-border last:border-0 flex items-center justify-between"
+                    >
+                      <div>
+                        <p className="font-bold text-sm">{c.name}</p>
+                        <p className="text-xs text-secondary">{c.phone}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="space-y-3 mb-4">
           {cart.map((item) => (
             <div key={item.productId} className="p-4 bg-background rounded-2xl border border-border group">
