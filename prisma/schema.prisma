@@ -81,6 +81,7 @@ model SubscriptionRequest {
   currentPlanId     String
   requestedPlanId   String
   status            SubscriptionRequestStatus @default(PENDING)
+  billingCycle      BillingCycle?
   paymentMethod     String?
   transactionId     String?
   amountPaid        Decimal?

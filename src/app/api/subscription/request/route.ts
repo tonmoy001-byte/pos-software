@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSuperAdmin } from "@/lib/services/tenant";
 import { z } from "zod";
+import { BillingCycle } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -95,12 +96,17 @@ export async function POST(req: Request) {
       storeId,
       currentPlanId: subscription.planId,
       requestedPlanId: planId,
+      billingCycle: billingCycle as BillingCycle,
       paymentMethod,
       transactionId: transactionId || null,
       amountPaid: amount,
       notes: notes || null,
     },
+    include: {
+      currentPlan: { select: { displayName: true } },
+      requestedPlan: { select: { displayName: true } },
+    },
   });
 
-  return NextResponse.json(request, { status: 201 });
+  return NextResponse.json({ request }, { status: 201 });
 }
