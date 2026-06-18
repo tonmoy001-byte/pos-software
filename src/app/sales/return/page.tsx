@@ -21,6 +21,7 @@ export default function ReturnRefundPage() {
   const [invoiceSettings, setInvoiceSettings] = useState<any>(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerResults, setCustomerResults] = useState<any[]>([]);
+  const [returnReason, setReturnReason] = useState("");
 
   useEffect(() => {
     async function fetchData() {
@@ -65,7 +66,13 @@ export default function ReturnRefundPage() {
     if (returnTotal === 0) return setError("No items selected for return");
     setSubmitting(true);
     try {
-      const payload = { saleId: selectedSale.id, items: returnItems.filter(i => i.return), refundAmount: returnTotal, refundMethod };
+      const payload = { 
+        saleId: selectedSale.id, 
+        items: returnItems.filter(i => i.return), 
+        refundAmount: returnTotal, 
+        refundMethod,
+        returnReason: returnReason || undefined
+      };
       const data = await safeFetch("/api/sales/return", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       setLastSale(data);
       setShowReceipt(true);
@@ -82,6 +89,7 @@ export default function ReturnRefundPage() {
     setSuccess("Return processed!");
     setReturnItems([]);
     setSelectedSale(null);
+    setReturnReason("");
     safeFetch<any[]>("/api/sales").then(d => setInvoices(Array.isArray(d) ? d : [])).catch(() => {});
   };
 
@@ -127,23 +135,23 @@ export default function ReturnRefundPage() {
         {success && <div className="p-3 bg-green-50 text-green-600 rounded-lg text-sm mb-4">{success}</div>}
 
         <div className="space-y-3 mb-6">
-          {selectedSale?.items?.map((item: any, idx: number) => (
-            <div key={idx} className="p-3 bg-background rounded-xl">
+          {returnItems.map((item: any, idx: number) => (
+            <div key={item.id || idx} className="p-3 bg-background rounded-xl">
               <div className="flex items-center justify-between mb-2">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={returnItems[idx]?.return || false} onChange={e => updateReturnItem(idx, "return", e.target.checked)} className="w-4 h-4" />
+                  <input type="checkbox" checked={item.return || false} onChange={e => updateReturnItem(idx, "return", e.target.checked)} className="w-4 h-4" />
                   <span className="font-bold text-sm">{item.name}</span>
                 </label>
                 <span className="text-sm">{formatCurrency(item.price * item.quantity)}</span>
               </div>
-              {returnItems[idx]?.return && (
+              {item.return && (
                 <div className="flex items-center gap-2">
                   <span className="text-xs">Qty:</span>
                   <input 
                     type="number" 
                     min={1} 
                     max={item.quantity} 
-                    value={returnItems[idx]?.returnQty || 0} 
+                    value={item.returnQty || 0} 
                     onChange={(e) => {
                       const val = Math.min(item.quantity, Math.max(1, Number(e.target.value)));
                       updateReturnItem(idx, "returnQty", val);
@@ -166,6 +174,17 @@ export default function ReturnRefundPage() {
                   <button key={m} onClick={() => setRefundMethod(m)} className={`py-2 rounded-lg text-sm ${refundMethod === m ? 'bg-primary text-white' : 'bg-background border border-border'}`}>{m}</button>
                 ))}
               </div>
+            </div>
+
+            <div className="space-y-3 mb-4">
+              <label className="text-sm font-bold">Return Reason</label>
+              <textarea
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
+                placeholder="Enter reason for return (optional)"
+                className="w-full p-3 border rounded-lg text-sm resize-none"
+                rows={3}
+              />
             </div>
 
             <div className="border-t border-border pt-4 mb-4">

@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const { saleId, items, refundAmount, refundMethod } = body;
+  const { saleId, items, refundAmount, refundMethod, returnReason } = body;
   if (!saleId)          return NextResponse.json({ error: "saleId is required." },     { status: 400 });
   if (!items?.length)   return NextResponse.json({ error: "At least one return item is required." }, { status: 400 });
   if (refundAmount == null || refundAmount <= 0)
@@ -92,7 +92,10 @@ export async function POST(req: Request) {
         );
         await tx.saleItem.update({
           where: { id: saleItem.id },
-          data: { returnedQuantity: { increment: qtyToReturn } },
+          data: { 
+            returnedQuantity: { increment: qtyToReturn },
+            ...(returnReason && { returnReason })
+          },
         });
       }
 
