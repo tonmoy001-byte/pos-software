@@ -328,6 +328,7 @@ export class SaleService {
       include: {
         customer: true,
         items: { include: { product: true } },
+        exchangeItems: true,
         payments: { orderBy: { date: "desc" } },
       },
     });
