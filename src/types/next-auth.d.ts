@@ -9,6 +9,8 @@ declare module "next-auth" {
       storeName: string;
       storeStatus?: string;
       onboardingComplete: boolean;
+      subscriptionStatus?: string | null;
+      trialEndsAt?: string | null;
     } & DefaultSession["user"];
   }
 
@@ -18,6 +20,8 @@ declare module "next-auth" {
     storeName: string;
     storeStatus?: string;
     onboardingComplete: boolean;
+    subscriptionStatus?: string | null;
+    trialEndsAt?: string | null;
   }
 }
 
@@ -28,5 +32,7 @@ declare module "next-auth/jwt" {
     storeName: string;
     storeStatus?: string;
     onboardingComplete: boolean;
+    subscriptionStatus?: string | null;
+    trialEndsAt?: string | null;
   }
 }

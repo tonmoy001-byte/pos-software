@@ -82,11 +82,15 @@ export const authOptions: NextAuthOptions = {
       if (token.storeId) {
         const store = await prisma.store.findUnique({
           where: { id: token.storeId as string },
-          select: { onboardingComplete: true, status: true },
+          include: {
+            subscription: { select: { status: true, trialEndsAt: true } },
+          },
         });
         if (store) {
           token.onboardingComplete = store.onboardingComplete;
           token.storeStatus = store.status;
+          token.subscriptionStatus = store.subscription?.status || null;
+          token.trialEndsAt = store.subscription?.trialEndsAt?.toISOString() || null;
         }
       }
 
@@ -100,6 +104,8 @@ export const authOptions: NextAuthOptions = {
         session.user.storeName = token.storeName;
         session.user.storeStatus = token.storeStatus;
         session.user.onboardingComplete = token.onboardingComplete;
+        session.user.subscriptionStatus = token.subscriptionStatus;
+        session.user.trialEndsAt = token.trialEndsAt;
       }
       return session;
     },

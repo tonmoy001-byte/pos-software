@@ -5,6 +5,7 @@ import { SidebarWrapper } from "@/components/layout/SidebarWrapper";
 import SWRegister from "@/components/sw-register";
 import { Providers } from "@/components/providers";
 import { AuthGate } from "@/components/auth";
+import { TrialBanner } from "@/components/trial/TrialBanner";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const hindSiliguri = Hind_Siliguri({ 
@@ -50,6 +51,7 @@ export default function RootLayout({
             <SWRegister />
             <SidebarWrapper />
             <main className="flex-1 overflow-y-auto">
+              <TrialBanner />
               {children}
             </main>
           </AuthGate>

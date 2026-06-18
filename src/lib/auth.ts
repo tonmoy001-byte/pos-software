@@ -10,6 +10,8 @@ export interface AppUser extends DefaultSession {
   storeName: string;
   storeStatus?: string;
   onboardingComplete?: boolean;
+  subscriptionStatus?: string;
+  trialEndsAt?: string | null;
 }
 
 export async function getSession() {

@@ -116,7 +116,7 @@ export async function POST(req: Request) {
   }
 
   if (session?.user?.storeId) {
-    const writeCheck = await canWrite(session.user.storeId);
+    const writeCheck = await canWrite(session.user.storeId, session.user.id);
     if (!writeCheck.allowed) {
       return NextResponse.json({ error: writeCheck.reason }, { status: 403 });
     }
