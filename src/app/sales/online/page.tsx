@@ -25,6 +25,7 @@ export default function OnlineSalePage() {
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [platform, setPlatform] = useState("BANGLAVISION");
   const [courier, setCourier] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState("");
   const [barcodeInput, setBarcodeInput] = useState("");
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
@@ -58,7 +59,7 @@ export default function OnlineSalePage() {
     setError(null);
     if (cart.length === 0) return setError("Cart is empty");
     setSubmitting(true);
-    const payload = { customerId: selectedCustomer?.id || null, items: cart, totalAmount: total, paidAmount: Number(paidAmount) || 0, dueAmount: Math.max(0, total - (Number(paidAmount) || 0)), discount: Number(discount) || 0, paymentMethod, saleType: "ONLINE", platform, courier };
+    const payload = { customerId: selectedCustomer?.id || null, items: cart, totalAmount: total, paidAmount: Number(paidAmount) || 0, dueAmount: Math.max(0, total - (Number(paidAmount) || 0)), discount: Number(discount) || 0, paymentMethod, saleType: "ONLINE", platform, courier, trackingNumber: trackingNumber || undefined };
     try {
       const data = await safeFetch<any>("/api/sales", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       setLastSale(data);
@@ -99,6 +100,10 @@ export default function OnlineSalePage() {
                 <option value="">Select Courier</option>
                 {couriers.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
+            </div>
+            <div className="space-y-3">
+              <label className="text-sm font-bold">Tracking Number</label>
+              <input type="text" value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} placeholder="Enter tracking number" className="w-full p-3 rounded-xl bg-background border border-border" />
             </div>
             <div className="bg-background p-4 rounded-xl space-y-2">
               <div className="flex justify-between"><span>Total</span><span className="font-bold">{formatCurrency(total)}</span></div>

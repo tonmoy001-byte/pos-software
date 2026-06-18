@@ -239,6 +239,11 @@ model Sale {
   downPayment     Decimal?   @db.Decimal(10, 2)
   monthlyAmount   Decimal?   @db.Decimal(10, 2)
 
+  // Online sale fields
+  platform        String?
+  courier         String?
+  trackingNumber  String?
+
   @@unique([invoiceId, storeId])
   @@index([storeId, status])
   @@index([storeId, createdAt])

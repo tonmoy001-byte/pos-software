@@ -35,11 +35,14 @@ interface SaleCreateInput {
   interestRate?: number;
   downPayment?: number;
   monthlyAmount?: number;
+  platform?: string;
+  courier?: string;
+  trackingNumber?: string;
 }
 
 export class SaleService {
   async create(input: SaleCreateInput, storeId: string, userId: string) {
-    const { items, customerId, customerName, totalAmount, paidAmount, dueAmount, paymentMethod, discount, saleType, deliveryDate, dueDate, exchangeItems, emiMonths, interestRate, downPayment, monthlyAmount } = input;
+    const { items, customerId, customerName, totalAmount, paidAmount, dueAmount, paymentMethod, discount, saleType, deliveryDate, dueDate, exchangeItems, emiMonths, interestRate, downPayment, monthlyAmount, platform, courier, trackingNumber } = input;
 
     return prisma.$transaction(async (tx) => {
       // 1. Fetch products and validate stock/existence
@@ -144,6 +147,9 @@ export class SaleService {
           interestRate: interestRate || null,
           downPayment: downPayment || null,
           monthlyAmount: monthlyAmount || null,
+          platform: platform || null,
+          courier: courier || null,
+          trackingNumber: trackingNumber || null,
           payments: paidAmount > 0
             ? {
                 create: {
