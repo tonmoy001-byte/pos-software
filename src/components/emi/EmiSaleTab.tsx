@@ -314,7 +314,7 @@ export function EmiSaleTab() {
             </label>
             <input
               type="number"
-              value={discount || undefined}
+              value={discount}
               onChange={(e) => setDiscount(e.target.value)}
               className="w-full bg-background border border-border rounded-xl py-2 px-3 text-sm outline-none focus:border-primary"
             />
@@ -325,7 +325,7 @@ export function EmiSaleTab() {
             </label>
             <input
               type="number"
-              value={interestRate || undefined}
+              value={interestRate}
               onChange={(e) => setInterestRate(e.target.value)}
               className="w-full bg-background border border-border rounded-xl py-2 px-3 text-sm outline-none focus:border-primary"
             />
@@ -336,7 +336,7 @@ export function EmiSaleTab() {
             </label>
             <input
               type="number"
-              value={downPayment || undefined}
+              value={downPayment}
               onChange={(e) => setDownPayment(e.target.value)}
               className="w-full bg-background border border-border rounded-xl py-2 px-3 text-sm outline-none focus:border-primary"
             />

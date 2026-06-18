@@ -10,7 +10,7 @@ export function SidebarWrapper() {
 
   if (status === "loading") return null;
 
-  if (pathname?.startsWith("/auth") || pathname?.startsWith("/admin") || pathname?.startsWith("/suspended")) return null;
+  if (pathname?.startsWith("/auth") || pathname?.startsWith("/admin") || pathname?.startsWith("/suspended") || pathname?.startsWith("/onboarding")) return null;
 
   const userRole = session?.user?.role ?? null;
   if (!userRole) return null;

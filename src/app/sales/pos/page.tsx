@@ -361,7 +361,7 @@ const [barcodeInput, setBarcodeInput] = useState("");
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-primary text-xl">৳</div>
                       <input 
                         type="number" 
-                        value={paidAmount || undefined}
+                        value={paidAmount}
                         onChange={(e) => setPaidAmount(e.target.value)}
                         placeholder="0"
                         className="w-full pl-10 pr-4 py-6 bg-surface rounded-2xl border-2 border-primary/20 text-3xl font-black text-primary outline-none focus:border-primary transition-all"
@@ -629,7 +629,7 @@ const [barcodeInput, setBarcodeInput] = useState("");
                 <Percent className="w-4 h-4" />
                 <span>Discount</span>
               </div>
-              <input type="number" value={discount || undefined} onChange={(e) => setDiscount(e.target.value)} className="w-20 text-right bg-transparent border-b border-border outline-none focus:border-primary text-foreground font-bold" />
+              <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} className="w-20 text-right bg-transparent border-b border-border outline-none focus:border-primary text-foreground font-bold" />
             </div>
             <div className="flex justify-between text-xl font-black text-foreground pt-2 border-t border-border/50">
               <span>Total Payable</span>

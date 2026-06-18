@@ -338,7 +338,7 @@ export default function AdvanceOrderPage() {
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-primary text-xl">৳</div>
                       <input 
                         type="number" 
-                        value={paidAmount || undefined}
+                        value={paidAmount}
                         onChange={(e) => setPaidAmount(e.target.value)}
                         placeholder="0"
                         className="w-full pl-10 pr-4 py-6 bg-surface rounded-2xl border-2 border-primary/20 text-3xl font-black text-primary outline-none focus:border-primary transition-all"
@@ -421,7 +421,7 @@ export default function AdvanceOrderPage() {
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-primary text-xl">৳</div>
                 <input 
                   type="number" 
-                  value={completePayAmount || undefined}
+                  value={completePayAmount}
                   onChange={(e) => setCompletePayAmount(e.target.value)}
                   placeholder="0"
                   className="w-full pl-10 pr-4 py-4 bg-background rounded-2xl border-2 border-border focus:border-primary outline-none font-bold text-xl"

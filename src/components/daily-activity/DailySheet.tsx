@@ -241,7 +241,7 @@ export default function DailySheet({ date, onDateChange }: DailySheetProps) {
             <p className="text-[10px] text-secondary font-bold uppercase tracking-widest">Actual Closing</p>
             <input
               type="number"
-              value={closingCash || undefined}
+              value={closingCash}
               onChange={(e) => setClosingCash(e.target.value)}
               placeholder="Enter closing cash"
               disabled={isLocked}
