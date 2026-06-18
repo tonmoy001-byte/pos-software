@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { EmiReceiptModal } from "./EmiReceiptModal";
+import { safeFetch, ApiError } from "@/lib/api-client";
 
 export function EmiSaleTab() {
   const [products, setProducts] = useState<any[]>([]);
@@ -37,8 +38,7 @@ export function EmiSaleTab() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch("/api/products?status=ACTIVE");
-      const data = await res.json();
+      const data = await safeFetch<any>("/api/products?status=ACTIVE");
       setProducts(data.products || []);
     } catch (err) {
       console.error("Failed to fetch products:", err);
@@ -51,10 +51,9 @@ export function EmiSaleTab() {
       return;
     }
     try {
-      const res = await fetch(
+      const data = await safeFetch<any>(
         `/api/customers?query=${encodeURIComponent(query)}`
       );
-      const data = await res.json();
       setCustomers(data.data || []);
     } catch (err) {
       console.error("Failed to search customers:", err);
@@ -128,7 +127,7 @@ export function EmiSaleTab() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/sales", {
+      const data = await safeFetch<any>("/api/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -151,9 +150,6 @@ export function EmiSaleTab() {
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
       setReceiptSale(data);
       setShowCheckout(false);
       setCart([]);
@@ -163,7 +159,11 @@ export function EmiSaleTab() {
       setSelectedCustomer(null);
       setCustomerSearch("");
     } catch (err: any) {
-      setError(err.message);
+      if (err instanceof ApiError) {
+        setError(err.body || "Checkout failed");
+      } else {
+        setError(err.message || "Checkout failed");
+      }
     } finally {
       setLoading(false);
     }

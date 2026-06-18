@@ -22,6 +22,7 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { playBeep } from "@/lib/audio";
 import { ThermalReceipt } from "@/components/pos/receipt";
+import { safeFetch, ApiError, ContentTypeError } from "@/lib/api-client";
 
 export default function POSPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -56,9 +57,8 @@ export default function POSPage() {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const res = await fetch("/api/products");
-        const json = await res.json();
-        setProducts(Array.isArray(json) ? json : (json.products || []));
+        const data = await safeFetch<any>("/api/products");
+        setProducts(Array.isArray(data) ? data : (data.products || []));
       } catch (err) {
         console.error("Failed to fetch products", err);
       } finally {
@@ -67,12 +67,10 @@ export default function POSPage() {
     }
     async function fetchStoreData() {
       try {
-        const [storeRes, configRes] = await Promise.all([
-          fetch("/api/settings/store"),
-          fetch("/api/invoice-settings"),
+        const [storeData, configData] = await Promise.all([
+          safeFetch<any>("/api/settings/store"),
+          safeFetch<any>("/api/invoice-settings"),
         ]);
-        const storeData = await storeRes.json();
-        const configData = await configRes.json();
         setCurrentStore(storeData);
         setInvoiceConfig(configData);
       } catch (err) {
@@ -86,9 +84,13 @@ export default function POSPage() {
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (customerSearch.length > 1) {
-        const res = await fetch(`/api/customers?query=${customerSearch}`);
-        const data = await res.json();
-        setCustomerResults(data);
+        try {
+          const data = await safeFetch<any[]>(`/api/customers?query=${customerSearch}`);
+          setCustomerResults(data);
+        } catch (err) {
+          console.error("Failed to search customers", err);
+          setCustomerResults([]);
+        }
       } else {
         setCustomerResults([]);
       }
@@ -163,21 +165,21 @@ if (found) {
 
   const handleAddCustomer = async () => {
     try {
-      const res = await fetch("/api/customers", {
+      const data = await safeFetch<any>("/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newCustomer)
       });
-      const data = await res.json();
-      if (res.ok) {
-        setSelectedCustomer(data);
-        setIsAddingCustomer(false);
-        setNewCustomer({ name: "", phone: "", address: "" });
-      } else {
-        alert(data.error || "Failed to add customer");
-      }
+      setSelectedCustomer(data);
+      setIsAddingCustomer(false);
+      setNewCustomer({ name: "", phone: "", address: "" });
     } catch (err) {
       console.error(err);
+      if (err instanceof ApiError) {
+        alert(err.body || "Failed to add customer");
+      } else {
+        alert("Failed to add customer");
+      }
     }
   };
 
@@ -207,7 +209,7 @@ if (found) {
     };
 
     try {
-      const res = await fetch("/api/sales", {
+      const data = await safeFetch<any>("/api/sales", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -215,29 +217,28 @@ if (found) {
         },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
-      if (res.ok) {
-        setLastSale(data);
-        setTimeout(() => {
-          window.print();
-          setCart([]);
-          setDiscount("");
-          setLastSale(null);
-          setIsCheckoutOpen(false);
-          setSelectedCustomer(null);
-          setPaidAmount("");
-          // Refresh products to update stock
-          fetch("/api/products").then(res => res.json()).then(data => setProducts(Array.isArray(data) ? data : (data.products || [])));
-        }, 500);
-      } else {
-        setError(data.error || "Checkout failed");
-        console.error("Checkout error:", data.error);
-      }
+      setLastSale(data);
+      setTimeout(() => {
+        window.print();
+        setCart([]);
+        setDiscount("");
+        setLastSale(null);
+        setIsCheckoutOpen(false);
+        setSelectedCustomer(null);
+        setPaidAmount("");
+        // Refresh products to update stock
+        safeFetch<any>("/api/products").then(data => setProducts(Array.isArray(data) ? data : (data.products || []))).catch(err => console.error("Failed to refresh products", err));
+      }, 500);
     } catch (err) {
-      // Network error - sale may have been created but response lost
-      // Check if sale was created by looking for recent sales with same total
-      setError("Network error - please check recent sales before retrying");
-      console.error("Checkout connection error:", err);
+      if (err instanceof ApiError) {
+        setError(err.body || "Checkout failed");
+        console.error("Checkout error:", err.body);
+      } else {
+        // Network error - sale may have been created but response lost
+        // Check if sale was created by looking for recent sales with same total
+        setError("Network error - please check recent sales before retrying");
+        console.error("Checkout connection error:", err);
+      }
     } finally {
       setSubmitting(false);
     }
