@@ -17,8 +17,10 @@ const saleItemSchema = z.object({
 });
 
 const exchangeItemSchema = z.object({
-  imei: z.string().optional(),
-  value: z.coerce.number().nonnegative(),
+  productId: z.string().optional(),
+  description: z.string().min(1, "Description is required"),
+  estimatedValue: z.coerce.number().nonnegative(),
+  condition: z.enum(["like-new", "good", "fair", "poor"]).default("good"),
 });
 
 const saleCreateSchema = z.object({
@@ -149,6 +151,7 @@ export async function POST(req: Request) {
       saleType: data.saleType,
       deliveryDate: data.deliveryDate || null,
       dueDate: data.dueDate || null,
+      exchangeItems: data.exchangeItems,
       emiMonths: data.emiMonths,
       interestRate: data.interestRate,
       downPayment: data.downPayment,

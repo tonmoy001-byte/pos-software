@@ -171,7 +171,8 @@ model Product {
   store     Store            @relation(fields: [storeId], references: [id])
   branchId  String?
   branch    Branch?  @relation(fields: [branchId], references: [id])
-  saleItems     SaleItem[]
+  saleItems      SaleItem[]
+  exchangeItems  ExchangeItem[]
   stockMovements StockMovement[]
 
   @@unique([barcode, storeId])
@@ -229,6 +230,7 @@ model Sale {
   branch           Branch?  @relation(fields: [branchId], references: [id])
   customer         Customer?  @relation(fields: [customerId], references: [id])
   items            SaleItem[]
+  exchangeItems    ExchangeItem[]
   emiSchedules     EMISchedule[]
 
   // EMI fields (null for non-EMI sales)
@@ -279,6 +281,21 @@ model SaleItem {
 
   @@index([productId])
   @@index([saleId])
+}
+
+model ExchangeItem {
+  id             String   @id @default(cuid())
+  saleId         String
+  sale           Sale     @relation(fields: [saleId], references: [id])
+  productId      String?
+  product        Product? @relation(fields: [productId], references: [id])
+  description    String
+  estimatedValue Float
+  condition      String   @default("good")
+  createdAt      DateTime @default(now())
+
+  @@index([saleId])
+  @@index([productId])
 }
 
 model Payment {

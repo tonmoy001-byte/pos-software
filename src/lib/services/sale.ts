@@ -25,6 +25,12 @@ interface SaleCreateInput {
   saleType?: string;
   deliveryDate?: string | null;
   dueDate?: string | null;
+  exchangeItems?: Array<{
+    productId?: string;
+    description: string;
+    estimatedValue: number;
+    condition?: string;
+  }>;
   emiMonths?: number;
   interestRate?: number;
   downPayment?: number;
@@ -33,7 +39,7 @@ interface SaleCreateInput {
 
 export class SaleService {
   async create(input: SaleCreateInput, storeId: string, userId: string) {
-    const { items, customerId, customerName, totalAmount, paidAmount, dueAmount, paymentMethod, discount, saleType, deliveryDate, dueDate, emiMonths, interestRate, downPayment, monthlyAmount } = input;
+    const { items, customerId, customerName, totalAmount, paidAmount, dueAmount, paymentMethod, discount, saleType, deliveryDate, dueDate, exchangeItems, emiMonths, interestRate, downPayment, monthlyAmount } = input;
 
     return prisma.$transaction(async (tx) => {
       // 1. Fetch products and validate stock/existence
@@ -155,6 +161,19 @@ export class SaleService {
         data: saleItemsData.map(item => ({ saleId: sale.id, ...item })),
       });
 
+      // 9.1. Create exchange items if present
+      if (exchangeItems && exchangeItems.length > 0) {
+        await tx.exchangeItem.createMany({
+          data: exchangeItems.map(item => ({
+            saleId: sale.id,
+            productId: item.productId || null,
+            description: item.description,
+            estimatedValue: item.estimatedValue,
+            condition: item.condition || "good",
+          })),
+        });
+      }
+
       // 9.5. Generate EMI schedule if EMI sale
       if (saleType === "EMI" && emiMonths && downPayment !== undefined) {
         await this.generateEmiSchedule(tx, sale.id, emiMonths, totalAmount, downPayment, sale.createdAt);
@@ -269,6 +288,7 @@ export class SaleService {
         where: { id: sale.id },
         include: {
           items: { include: { product: true } },
+          exchangeItems: true,
           customer: true,
           payments: true,
           emiSchedules: true,

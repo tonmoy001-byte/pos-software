@@ -21,7 +21,7 @@ export default function ExchangeSalePage() {
 
   // ── Derived values (no const-in-JSX closure risk) ───────────────────────
   const cartTotal       = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
-  const exchangeTotal   = useMemo(() => exchangeItems.reduce((sum, item) => sum + (Number(item.value) || 0), 0), [exchangeItems]);
+  const exchangeTotal   = useMemo(() => exchangeItems.reduce((sum, item) => sum + (Number(item.estimatedValue) || 0), 0), [exchangeItems]);
   const netPayable      = useMemo(() => Math.max(0, cartTotal - exchangeTotal), [cartTotal, exchangeTotal]);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export default function ExchangeSalePage() {
   }, [removeFromCart]);
 
   const addExchangeItem = useCallback(() => {
-    setExchangeItems(prev => [...prev, { imei: "", value: 0 }]);
+    setExchangeItems(prev => [...prev, { description: "", estimatedValue: 0, condition: "good" }]);
   }, []);
 
   const updateExchangeItem = useCallback((idx: number, field: string, value: any) => {
@@ -80,10 +80,10 @@ export default function ExchangeSalePage() {
     if (cart.length === 0) return setError("Select products to sell");
 
     // Validate exchange values
-    const invalidExchange = exchangeItems.find(i => !i.value || Number(i.value) <= 0);
-    if (invalidExchange) return setError("Enter a valid exchange value for all items.");
+    const invalidExchange = exchangeItems.find(i => !i.description || Number(i.estimatedValue) <= 0);
+    if (invalidExchange) return setError("Enter a description and valid trade-in value for all items.");
 
-    const exchangeValue = exchangeItems.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
+    const exchangeValue = exchangeItems.reduce((sum, item) => sum + (Number(item.estimatedValue) || 0), 0);
 
     setSubmitting(true);
     try {
@@ -95,7 +95,7 @@ export default function ExchangeSalePage() {
         discount:         0,
         paymentMethod:    "EXCHANGE",
         saleType:         "EXCHANGE",
-        exchangeItems:    exchangeItems.map(i => ({ imei: i.imei, value: Number(i.value) })),
+        exchangeItems:    exchangeItems.map(i => ({ description: i.description, estimatedValue: Number(i.estimatedValue), condition: i.condition })),
       };
       const data = await safeFetch<any>("/api/sales", {
         method: "POST",
@@ -172,19 +172,29 @@ export default function ExchangeSalePage() {
         {exchangeItems.map((item, idx) => (
           <div key={idx} className="p-3 bg-background rounded-xl mb-2">
             <input
-              placeholder="IMEI / Serial"
-              value={item.imei}
-              onChange={e => updateExchangeItem(idx, "imei", e.target.value)}
+              placeholder="Device description (e.g. Samsung Galaxy S23)"
+              value={item.description}
+              onChange={e => updateExchangeItem(idx, "description", e.target.value)}
               className="w-full mb-2 p-2 rounded border border-border text-sm"
             />
-            <div className="flex gap-2">
+            <div className="flex gap-2 mb-2">
+              <select
+                value={item.condition}
+                onChange={e => updateExchangeItem(idx, "condition", e.target.value)}
+                className="p-2 rounded border border-border text-sm"
+              >
+                <option value="like-new">Like New</option>
+                <option value="good">Good</option>
+                <option value="fair">Fair</option>
+                <option value="poor">Poor</option>
+              </select>
               <input
                 placeholder="Trade-in value (৳)"
                 type="number"
                 min="0"
                 step="0.01"
-                value={item.value || ""}
-                onChange={e => updateExchangeItem(idx, "value", e.target.value)}
+                value={item.estimatedValue || ""}
+                onChange={e => updateExchangeItem(idx, "estimatedValue", e.target.value)}
                 className="flex-1 p-2 rounded border border-border text-sm"
               />
               <button onClick={() => removeExchangeItem(idx)} className="text-red-500 px-2"><X className="w-5 h-5" /></button>
