@@ -38,6 +38,7 @@ export default function DueSalePage() {
   const [payAmount, setPayAmount] = useState("");
   const [submittingDue, setSubmittingDue] = useState(false);
   const [message, setMessage] = useState<{type: "success"|"error", text: string} | null>(null);
+  const [dueStats, setDueStats] = useState<{totalOutstanding: number; expectedToday: number; lastMonthCollectionRate: number} | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -90,6 +91,15 @@ export default function DueSalePage() {
     }
   };
 
+  const fetchDueStats = async () => {
+    try {
+      const stats = await safeFetch<any>("/api/dues?stats=true");
+      setDueStats(stats);
+    } catch (err) {
+      console.error("Failed to fetch due stats", err);
+    }
+  };
+
   const handleCollectDue = async () => {
     if (!selectedDue || !payAmount) return;
     setSubmittingDue(true);
@@ -104,6 +114,7 @@ export default function DueSalePage() {
       setSelectedDue(null);
       setPayAmount("");
       fetchDues();
+      fetchDueStats();
     } catch (err: any) {
       setMessage({ type: "error", text: err?.body || "Failed to collect payment" });
     } finally {
@@ -224,7 +235,7 @@ export default function DueSalePage() {
               New Sale
             </button>
             <button 
-              onClick={() => { setActiveTab("ledger"); fetchDues(); }}
+              onClick={() => { setActiveTab("ledger"); fetchDues(); fetchDueStats(); }}
               className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'ledger' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-secondary hover:text-foreground'}`}
             >
               Ledger
@@ -470,18 +481,18 @@ export default function DueSalePage() {
               </div>
               <div className="bg-surface p-6 rounded-2xl border border-border card-shadow border-t-4 border-t-blue-500">
                 <h3 className="text-secondary text-sm font-medium">Expected Today</h3>
-                <p className="text-3xl font-black text-foreground mt-1">{formatCurrency(totalOutstanding * 0.1)}</p>
+                <p className="text-3xl font-black text-foreground mt-1">{formatCurrency(dueStats?.expectedToday ?? 0)}</p>
                 <p className="text-xs text-blue-500 mt-2 font-bold flex items-center gap-1">
                   <ChevronRight className="w-3 h-3" />
-                  Based on installments
+                  Overdue &amp; due today
                 </p>
               </div>
               <div className="bg-surface p-6 rounded-2xl border border-border card-shadow border-t-4 border-t-green-500">
-                <h3 className="text-secondary text-sm font-medium">Collections</h3>
-                <p className="text-3xl font-black text-foreground mt-1">Healthy</p>
+                <h3 className="text-secondary text-sm font-medium">Collection Rate</h3>
+                <p className="text-3xl font-black text-foreground mt-1">{dueStats?.lastMonthCollectionRate ?? 0}%</p>
                 <p className="text-xs text-green-500 mt-2 font-bold flex items-center gap-1">
                   <Check className="w-3 h-3" />
-                  Recovery on track
+                  Last month recovery
                 </p>
               </div>
             </div>
