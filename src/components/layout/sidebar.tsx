@@ -37,7 +37,6 @@ const menuItems = [
     href: "/sales", 
     roles: ALL_ROLES,
     submenu: [
-      { label: "POS", href: "/sales/pos", roles: ALL_ROLES },
       { label: "All Sale", href: "/sales/regular", roles: ALL_ROLES },
       { label: "Advance Order", href: "/sales/advance", roles: ALL_ROLES },
       { label: "Due Sale", href: "/sales/due", roles: ADMIN_MANAGER },
