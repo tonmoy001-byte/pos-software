@@ -303,12 +303,45 @@ export class SaleService {
     });
   }
 
-  async findAll(storeId?: string, options?: { page?: number; limit?: number; status?: string }) {
-    const { page = 1, limit = 20, status } = options || {};
+  async findAll(storeId?: string, options?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+    saleType?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }) {
+    const { page = 1, limit = 20, status, search, saleType, dateFrom, dateTo } = options || {};
     const skip = (page - 1) * limit;
 
     const where: any = { storeId };
-    if (status) where.status = status;
+
+    if (status && status !== "all") {
+      where.status = status.toUpperCase();
+    }
+
+    if (saleType && saleType !== "all") {
+      where.saleType = saleType;
+    }
+
+    if (search) {
+      where.OR = [
+        { invoiceId: { contains: search } },
+        { customerName: { contains: search } },
+        { customer: { phone: { contains: search } } },
+      ];
+    }
+
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
 
     const [sales, total] = await Promise.all([
       prisma.sale.findMany({
@@ -326,6 +359,55 @@ export class SaleService {
     ]);
 
     return { sales, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async findAllStats(storeId?: string, options?: {
+    status?: string;
+    search?: string;
+    saleType?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }) {
+    const { status, search, saleType, dateFrom, dateTo } = options || {};
+
+    const where: any = { storeId };
+
+    if (status && status !== "all") {
+      where.status = status.toUpperCase();
+    }
+
+    if (saleType && saleType !== "all") {
+      where.saleType = saleType;
+    }
+
+    if (search) {
+      where.OR = [
+        { invoiceId: { contains: search } },
+        { customerName: { contains: search } },
+        { customer: { phone: { contains: search } } },
+      ];
+    }
+
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+
+    const stats = await prisma.sale.aggregate({
+      where,
+      _sum: { totalAmount: true, paidAmount: true, dueAmount: true },
+    });
+
+    return {
+      totalRevenue: Number(stats._sum.totalAmount || 0),
+      totalPaid: Number(stats._sum.paidAmount || 0),
+      totalDue: Number(stats._sum.dueAmount || 0),
+    };
   }
 
   async findById(id: string) {

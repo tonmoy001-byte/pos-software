@@ -58,8 +58,17 @@ export async function GET(req: Request) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
     const status = searchParams.get("status") || undefined;
+    const search = searchParams.get("search") || undefined;
+    const saleType = searchParams.get("saleType") || undefined;
+    const dateFrom = searchParams.get("dateFrom") || undefined;
+    const dateTo = searchParams.get("dateTo") || undefined;
 
-    const { sales, total, totalPages } = await saleService.findAll(storeId, { page, limit, status });
+    const filterOptions = { page, limit, status, search, saleType, dateFrom, dateTo };
+
+    const [{ sales, total, totalPages }, stats] = await Promise.all([
+      saleService.findAll(storeId, filterOptions),
+      saleService.findAllStats(storeId, { status, search, saleType, dateFrom, dateTo }),
+    ]);
     
     const formattedSales = sales.map((sale: any) => ({
       id: sale.id,
@@ -84,6 +93,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       sales: formattedSales,
+      stats,
       pagination: {
         page,
         limit,

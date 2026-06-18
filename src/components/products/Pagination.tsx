@@ -8,15 +8,16 @@ interface PaginationProps {
   totalPages: number;
   total: number;
   limit: number;
+  label?: string;
   onPageChange: (page: number) => void;
   onLimitChange: (limit: number) => void;
 }
 
-export function Pagination({ page, totalPages, total, limit, onPageChange, onLimitChange }: PaginationProps) {
+export function Pagination({ page, totalPages, total, limit, label = "items", onPageChange, onLimitChange }: PaginationProps) {
   return (
     <div className="flex items-center justify-between">
       <p className="text-sm text-secondary">
-        {total} product{total !== 1 ? "s" : ""} total
+        {total} {label}{total !== 1 ? "s" : ""} total
       </p>
       <div className="flex items-center gap-4">
         <select

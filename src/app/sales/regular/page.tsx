@@ -48,11 +48,35 @@ export default function AllSalesPage() {
   const [limit, setLimit] = useState(20);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalPaid, setTotalPaid] = useState(0);
+  const [totalDue, setTotalDue] = useState(0);
 
   const fetchSales = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      if (searchQuery) params.set("search", searchQuery);
+      if (saleTypeFilter !== "all") params.set("saleType", saleTypeFilter);
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (dateFilter !== "all") {
+        const now = new Date();
+        if (dateFilter === "today") {
+          params.set("dateFrom", now.toISOString().split("T")[0]);
+          params.set("dateTo", now.toISOString().split("T")[0]);
+        } else if (dateFilter === "week") {
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          params.set("dateFrom", weekAgo.toISOString().split("T")[0]);
+          params.set("dateTo", now.toISOString().split("T")[0]);
+        } else if (dateFilter === "month") {
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          params.set("dateFrom", monthStart.toISOString().split("T")[0]);
+          params.set("dateTo", now.toISOString().split("T")[0]);
+        }
+      }
       const res = await fetch(`/api/sales?${params}`);
       const data = await res.json();
       const list = Array.isArray(data) ? data : (Array.isArray(data?.sales) ? data.sales : []);
@@ -61,12 +85,17 @@ export default function AllSalesPage() {
         setTotal(data.pagination.total || 0);
         setTotalPages(data.pagination.totalPages || 0);
       }
+      if (data?.stats) {
+        setTotalRevenue(data.stats.totalRevenue || 0);
+        setTotalPaid(data.stats.totalPaid || 0);
+        setTotalDue(data.stats.totalDue || 0);
+      }
     } catch (err) {
       console.error("Failed to fetch sales", err);
     } finally {
       setLoading(false);
     }
-  }, [page, limit]);
+  }, [page, limit, searchQuery, saleTypeFilter, statusFilter, dateFilter]);
 
   useEffect(() => {
     fetchSales();
@@ -112,36 +141,6 @@ export default function AllSalesPage() {
     return `${typeInfo.hrefPrefix}?invoice=${sale.invoiceId}`;
   };
 
-  const filterSales = () => {
-    return sales.filter(sale => {
-      const searchMatch = !searchQuery || 
-        sale.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        sale.invoiceId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        sale.customerPhone?.includes(searchQuery);
-      
-      const status = getStatus(sale);
-      const statusMatch = statusFilter === "all" || status === statusFilter;
-      
-      const saleTypeMatch = saleTypeFilter === "all" || sale.saleType === saleTypeFilter;
-      
-      let dateMatch = true;
-      if (dateFilter !== "all") {
-        const saleDate = new Date(sale.createdAt);
-        const now = new Date();
-        if (dateFilter === "today") {
-          dateMatch = saleDate.toDateString() === now.toDateString();
-        } else if (dateFilter === "week") {
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          dateMatch = saleDate >= weekAgo;
-        } else if (dateFilter === "month") {
-          dateMatch = saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear();
-        }
-      }
-      
-      return searchMatch && statusMatch && saleTypeMatch && dateMatch;
-    });
-  };
-
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "-";
     const date = new Date(dateStr);
@@ -153,11 +152,6 @@ export default function AllSalesPage() {
     const date = new Date(dateStr);
     return date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   };
-
-  const filteredSales = filterSales();
-  const totalRevenue = filteredSales.reduce((sum, s) => sum + s.totalAmount, 0);
-  const totalPaid = filteredSales.reduce((sum, s) => sum + s.paidAmount, 0);
-  const totalDue = filteredSales.reduce((sum, s) => sum + s.dueAmount, 0);
 
   const saleTypeOptions = Object.keys(saleTypeConfig);
 
@@ -252,7 +246,7 @@ export default function AllSalesPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {filteredSales.length === 0 ? (
+          {sales.length === 0 ? (
             <div className="p-12 text-center text-secondary">
               <p className="text-sm">No sales found</p>
             </div>
@@ -273,7 +267,7 @@ export default function AllSalesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredSales.map((sale) => {
+                {sales.map((sale) => {
                   const status = getStatus(sale);
                   const statusBadge = getStatusBadge(status);
                   const typeInfo = getSaleTypeInfo(sale.saleType);
@@ -356,6 +350,7 @@ export default function AllSalesPage() {
             totalPages={totalPages}
             total={total}
             limit={limit}
+            label="sale"
             onPageChange={setPage}
             onLimitChange={setLimit}
           />

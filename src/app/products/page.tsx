@@ -205,6 +205,7 @@ export default function ProductsPage() {
           />
           <Pagination
             page={page} totalPages={totalPages} total={total} limit={limit}
+            label="product"
             onPageChange={setPage} onLimitChange={setLimit}
           />
         </>
