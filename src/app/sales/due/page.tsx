@@ -8,6 +8,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { playBeep } from "@/lib/audio";
 import { ReceiptModal } from "@/components/invoice";
 import { safeFetch } from "@/lib/api-client";
+import { useTrialRestricted } from "@/components/trial/useTrialRestricted";
 
 export default function DueSalePage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -40,6 +41,7 @@ export default function DueSalePage() {
   const [submittingDue, setSubmittingDue] = useState(false);
   const [message, setMessage] = useState<{type: "success"|"error", text: string} | null>(null);
   const [dueStats, setDueStats] = useState<{totalOutstanding: number; expectedToday: number; lastMonthCollectionRate: number} | null>(null);
+  const { checkAction, RestrictedModal } = useTrialRestricted();
 
   useEffect(() => {
     async function fetchData() {
@@ -102,6 +104,7 @@ export default function DueSalePage() {
   };
 
   const handleCollectDue = async () => {
+    if (!checkAction("collect due payment")) return;
     if (!selectedDue || !payAmount) return;
     setSubmittingDue(true);
     setMessage(null);
@@ -189,6 +192,7 @@ export default function DueSalePage() {
   const openCheckout = () => { if (cart.length === 0) return setError("Cart is empty"); setIsCheckoutOpen(true); };
 
   const handleCheckout = async () => {
+    if (!checkAction("create a sale")) return;
     setError(null);
     if (cart.length === 0) return setError("Cart is empty");
     if (!selectedCustomer) return setError("Customer required for due sale");
@@ -331,6 +335,8 @@ export default function DueSalePage() {
         data={lastSale}
         settings={invoiceSettings}
       />
+
+      <RestrictedModal />
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden">

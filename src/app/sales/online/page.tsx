@@ -6,6 +6,7 @@ import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
 import { PriceOverrideModal } from "@/components/pos/PriceOverrideModal";
 import { safeFetch } from "@/lib/api-client";
+import { useTrialRestricted } from "@/components/trial/useTrialRestricted";
 
 export default function OnlineSalePage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -30,6 +31,7 @@ export default function OnlineSalePage() {
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "" });
   const [trackingNumber, setTrackingNumber] = useState("");
+  const { checkAction, RestrictedModal } = useTrialRestricted();
   const [barcodeInput, setBarcodeInput] = useState("");
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,6 +94,7 @@ export default function OnlineSalePage() {
   };
 
   const handleCheckout = async () => {
+    if (!checkAction("create a sale")) return;
     setError(null);
     if (cart.length === 0) return setError("Cart is empty");
     setSubmitting(true);
@@ -169,6 +172,8 @@ export default function OnlineSalePage() {
         productName={priceOverrideItem?.name ?? ""}
         originalPrice={priceOverrideItem?.price ?? 0}
       />
+
+      <RestrictedModal />
 
       <div className="flex-1 flex flex-col p-6 space-y-4">
         <div className="flex gap-4">

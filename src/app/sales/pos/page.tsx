@@ -26,6 +26,7 @@ import { playBeep } from "@/lib/audio";
 import { InvoiceRenderer, ReceiptModal } from "@/components/invoice";
 import { PriceOverrideModal } from "@/components/pos/PriceOverrideModal";
 import { safeFetch } from "@/lib/api-client";
+import { useTrialRestricted } from "@/components/trial/useTrialRestricted";
 
 export default function POSPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -55,6 +56,7 @@ const [barcodeInput, setBarcodeInput] = useState("");
   const [mounted, setMounted] = useState(false);
   const [invoiceSettings, setInvoiceSettings] = useState<any>(null);
   const [priceOverrideItem, setPriceOverrideItem] = useState<any>(null);
+  const { checkAction, RestrictedModal } = useTrialRestricted();
 
   useEffect(() => {
     setMounted(true);
@@ -192,6 +194,7 @@ const [barcodeInput, setBarcodeInput] = useState("");
   };
 
   const handleCheckout = async () => {
+    if (!checkAction("create a sale")) return;
     setError(null);
     if (cart.length === 0) return setError("Cart is empty");
 
@@ -417,6 +420,8 @@ const [barcodeInput, setBarcodeInput] = useState("");
         productName={priceOverrideItem?.name ?? ""}
         originalPrice={priceOverrideItem?.price ?? 0}
       />
+
+      <RestrictedModal />
 
       <div className="flex-1 flex flex-col p-6 space-y-6 overflow-hidden">
         <div className="flex gap-4">

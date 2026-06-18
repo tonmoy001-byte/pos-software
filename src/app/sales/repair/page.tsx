@@ -5,6 +5,7 @@ import { Search, Plus, Trash2, Wrench, Smartphone, X, DollarSign } from "lucide-
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
 import { safeFetch } from "@/lib/api-client";
+import { useTrialRestricted } from "@/components/trial/useTrialRestricted";
 
 export default function RepairSalePage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -22,6 +23,7 @@ export default function RepairSalePage() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", address: "" });
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
+  const { checkAction, RestrictedModal } = useTrialRestricted();
 
   useEffect(() => {
     async function fetchData() {
@@ -66,6 +68,7 @@ export default function RepairSalePage() {
   };
 
   const handleSubmit = async () => {
+    if (!checkAction("create a sale")) return;
     if (cart.length === 0) return setError("Add repair services");
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     setSubmitting(true);
@@ -152,6 +155,8 @@ export default function RepairSalePage() {
         data={lastSale}
         settings={invoiceSettings}
       />
+
+      <RestrictedModal />
     </div>
   );
 }

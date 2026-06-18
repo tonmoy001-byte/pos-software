@@ -5,6 +5,7 @@ import { Search, Plus, Trash2, RotateCcw, X, Check, Receipt } from "lucide-react
 import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
 import { safeFetch } from "@/lib/api-client";
+import { useTrialRestricted } from "@/components/trial/useTrialRestricted";
 
 export default function ReturnRefundPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -22,6 +23,7 @@ export default function ReturnRefundPage() {
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [returnReason, setReturnReason] = useState("");
+  const { checkAction, RestrictedModal } = useTrialRestricted();
 
   useEffect(() => {
     async function fetchData() {
@@ -61,6 +63,7 @@ export default function ReturnRefundPage() {
   };
 
   const handleSubmit = async () => {
+    if (!checkAction("process return")) return;
     if (!selectedSale) return setError("Select a sale to return");
     const returnTotal = returnItems.filter(i => i.return).reduce((sum, i) => sum + (i.price * i.returnQty), 0);
     if (returnTotal === 0) return setError("No items selected for return");
@@ -203,6 +206,8 @@ export default function ReturnRefundPage() {
         data={lastSale}
         settings={invoiceSettings}
       />
+
+      <RestrictedModal />
     </div>
   );
 }

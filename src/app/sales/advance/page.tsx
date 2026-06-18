@@ -31,6 +31,7 @@ import { formatCurrency } from "@/lib/utils";
 import { playBeep } from "@/lib/audio";
 import { ReceiptModal } from "@/components/invoice";
 import { safeFetch } from "@/lib/api-client";
+import { useTrialRestricted } from "@/components/trial/useTrialRestricted";
 
 export default function AdvanceOrderPage() {
   const router = useRouter();
@@ -64,6 +65,7 @@ export default function AdvanceOrderPage() {
   const [advances, setAdvances] = useState<any[]>([]);
   const [advancesLoading, setAdvancesLoading] = useState(false);
   const [duesSearch, setDuesSearch] = useState("");
+  const { checkAction, RestrictedModal } = useTrialRestricted();
 
   const [selectedAdvance, setSelectedAdvance] = useState<any>(null);
   const [completePayAmount, setCompletePayAmount] = useState("");
@@ -250,6 +252,7 @@ export default function AdvanceOrderPage() {
   };
 
   const handleCheckout = async () => {
+    if (!checkAction("create a sale")) return;
     setError(null);
     if (cart.length === 0) return setError("Cart is empty");
 
@@ -414,6 +417,8 @@ export default function AdvanceOrderPage() {
         data={lastSale}
         settings={invoiceSettings}
       />
+
+      <RestrictedModal />
 
       {selectedAdvance && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">

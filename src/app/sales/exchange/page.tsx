@@ -6,6 +6,7 @@ import { formatCurrency } from "@/lib/utils";
 import { ReceiptModal } from "@/components/invoice";
 import { PriceOverrideModal } from "@/components/pos/PriceOverrideModal";
 import { safeFetch } from "@/lib/api-client";
+import { useTrialRestricted } from "@/components/trial/useTrialRestricted";
 
 export default function ExchangeSalePage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -25,6 +26,7 @@ export default function ExchangeSalePage() {
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "" });
+  const { checkAction, RestrictedModal } = useTrialRestricted();
 
   // ── Derived values (no const-in-JSX closure risk) ───────────────────────
   const cartTotal       = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
@@ -117,6 +119,7 @@ export default function ExchangeSalePage() {
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleSubmit = useCallback(async () => {
+    if (!checkAction("create a sale")) return;
     if (cart.length === 0) return setError("Select products to sell");
 
     // Validate exchange values
@@ -407,6 +410,8 @@ export default function ExchangeSalePage() {
         productName={priceOverrideItem?.name ?? ""}
         originalPrice={priceOverrideItem?.price ?? 0}
       />
+
+      <RestrictedModal />
     </div>
   );
 }
