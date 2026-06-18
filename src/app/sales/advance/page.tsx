@@ -346,6 +346,25 @@ export default function AdvanceOrderPage() {
                     </div>
                   </div>
 
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-secondary uppercase tracking-widest px-1">Payment Method</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {["CASH", "BKASH", "Nagad", "ROCKET", "CARD", "BANK_TRANSFER"].map(m => (
+                        <button
+                          key={m}
+                          onClick={() => setPaymentMethod(m)}
+                          className={`py-4 rounded-2xl border-2 font-bold text-xs transition-all flex items-center justify-center gap-2 ${paymentMethod === m ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20' : 'border-border text-secondary hover:border-primary/30'}`}
+                        >
+                          {m === "CASH" && <Banknote className="w-4 h-4" />}
+                          {m === "CARD" && <CreditCard className="w-4 h-4" />}
+                          {(m === "BKASH" || m === "Nagad" || m === "ROCKET") && <Wallet className="w-4 h-4" />}
+                          {m === "BANK_TRANSFER" && <Banknote className="w-4 h-4" />}
+                          {m === "BANK_TRANSFER" ? "BANK" : m}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="pt-4 border-t-2 border-border space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-bold text-secondary">Remaining Due</span>
