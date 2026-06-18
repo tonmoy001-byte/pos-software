@@ -39,9 +39,9 @@ const saleCreateSchema = z.object({
   interestRate: z.coerce.number().min(0).max(100).optional(),
   downPayment: z.coerce.number().nonnegative().optional(),
   monthlyAmount: z.coerce.number().nonnegative().optional(),
-  platform: z.string().optional(),
-  courier: z.string().optional(),
-  trackingNumber: z.string().optional(),
+  platform: z.string().max(50).optional(),
+  courier: z.string().max(50).optional(),
+  trackingNumber: z.string().max(100).optional(),
 });
 
 export async function GET(req: Request) {

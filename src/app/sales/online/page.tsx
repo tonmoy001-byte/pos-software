@@ -103,7 +103,7 @@ export default function OnlineSalePage() {
             </div>
             <div className="space-y-3">
               <label className="text-sm font-bold">Tracking Number</label>
-              <input type="text" value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} placeholder="Enter tracking number" className="w-full p-3 rounded-xl bg-background border border-border" />
+              <input type="text" value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} placeholder="Enter tracking number" maxLength={100} className="w-full p-3 rounded-xl bg-background border border-border" />
             </div>
             <div className="bg-background p-4 rounded-xl space-y-2">
               <div className="flex justify-between"><span>Total</span><span className="font-bold">{formatCurrency(total)}</span></div>
