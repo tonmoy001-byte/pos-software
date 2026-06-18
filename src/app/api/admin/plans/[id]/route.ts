@@ -45,7 +45,7 @@ export async function DELETE(
   const { id } = await params;
 
   const activeSubs = await prisma.subscription.count({
-    where: { planId: id, status: { in: ["trial", "active"] } },
+    where: { planId: id, status: { in: ["TRIAL", "ACTIVE"] } },
   });
 
   if (activeSubs > 0) {

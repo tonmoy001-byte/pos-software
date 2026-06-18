@@ -410,9 +410,9 @@ export class SaleService {
     };
   }
 
-  async findById(id: string) {
+  async findById(id: string, storeId?: string) {
     return prisma.sale.findUnique({
-      where: { id },
+      where: storeId ? { id, storeId } : { id },
       include: {
         customer: true,
         items: { include: { product: true } },

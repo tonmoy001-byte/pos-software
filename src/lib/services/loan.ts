@@ -63,8 +63,10 @@ export class LoanService {
     });
   }
 
-  async findById(id: string) {
-    return prisma.loan.findUnique({ where: { id } });
+  async findById(id: string, storeId?: string) {
+    return prisma.loan.findUnique({
+      where: storeId ? { id, storeId } : { id },
+    });
   }
 
   async payment(id: string, data: LoanPaymentInput, userId: string, storeId: string) {

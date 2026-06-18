@@ -31,35 +31,105 @@ model Branch {
 }
 
 model Plan {
-  id           String         @id @default(uuid())
-  name         String         @unique
-  displayName  String
-  maxProducts  Int            @default(100)
-  maxUsers     Int            @default(3)
-  maxBranches  Int            @default(1)
-  features     String         @default("[]")
-  isActive     Boolean        @default(true)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  subscriptions Subscription[]
+  id               String                 @id @default(uuid())
+  name             String                 @unique
+  displayName      String
+  maxProducts      Int                    @default(100)
+  maxUsers         Int                    @default(3)
+  maxBranches      Int                    @default(1)
+  features         String                 @default("[]")
+  priceMonthly     Int                    @default(0)
+  priceYearly      Int                    @default(0)
+  trialDays        Int                    @default(14)
+  isCustomPricing  Boolean                @default(false)
+  isActive         Boolean                @default(true)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  subscriptions    Subscription[]
+  currentPlanRequests   SubscriptionRequest[] @relation("CurrentPlanRequests")
+  requestedPlanRequests SubscriptionRequest[] @relation("RequestedPlanRequests")
 }
 
 model Subscription {
-  id                 String    @id @default(uuid())
-  storeId            String    @unique
+  id                 String               @id @default(uuid())
+  storeId            String               @unique
   planId             String
-  status             String    @default("trial")
+  status             SubscriptionStatus   @default(TRIAL)
   trialEndsAt        DateTime?
   currentPeriodStart DateTime?
   currentPeriodEnd   DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  store              Store     @relation(fields: [storeId], references: [id])
-  plan               Plan      @relation(fields: [planId], references: [id])
+  subscriptionPrice  Int?                 // purchased price snapshot
+  billingCycle       BillingCycle?        // MONTHLY or YEARLY
+  gracePeriodEnds    DateTime?            // 3-day read-only after expiry
+  last30DayWarningAt DateTime?
+  last7DayWarningAt  DateTime?
+  last3DayWarningAt  DateTime?
+  last1DayWarningAt  DateTime?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  store              Store                @relation(fields: [storeId], references: [id])
+  plan               Plan                 @relation(fields: [planId], references: [id])
 
   @@index([storeId])
   @@index([planId])
   @@index([status])
+}
+
+model SubscriptionRequest {
+  id                String                    @id @default(uuid())
+  storeId           String
+  currentPlanId     String
+  requestedPlanId   String
+  status            SubscriptionRequestStatus @default(PENDING)
+  paymentMethod     String?
+  transactionId     String?
+  amountPaid        Decimal?
+  notes             String?
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  store             Store                     @relation(fields: [storeId], references: [id])
+  currentPlan       Plan                      @relation("CurrentPlanRequests", fields: [currentPlanId], references: [id])
+  requestedPlan     Plan                      @relation("RequestedPlanRequests", fields: [requestedPlanId], references: [id])
+
+  @@index([storeId])
+  @@index([status])
+}
+
+model SubscriptionAuditLog {
+  id              String                   @id @default(uuid())
+  storeId         String
+  subscriptionId  String?
+  action          SubscriptionAuditAction
+  previousStatus  SubscriptionStatus?
+  newStatus       SubscriptionStatus?
+  previousPlanId  String?
+  newPlanId       String?
+  performedBy     String
+  performedByType String
+  notes           String?
+  createdAt       DateTime                 @default(now())
+  store           Store                    @relation(fields: [storeId], references: [id])
+
+  @@index([storeId, createdAt])
+  @@index([subscriptionId])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  storeId   String
+  userId    String?
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  store     Store            @relation(fields: [storeId], references: [id])
+
+  @@index([storeId, isRead])
+  @@index([userId])
 }
 
 model EmailVerification {
@@ -113,7 +183,10 @@ model Store {
   accounts            Account[]
   journalEntries      JournalEntry[]
   branches            Branch[]
-  subscription        Subscription?
+  subscription              Subscription?
+  subscriptionRequests      SubscriptionRequest[]
+  subscriptionAuditLogs     SubscriptionAuditLog[]
+  notifications             Notification[]
 }
 
 model InvoiceSettings {
@@ -635,4 +708,44 @@ enum TransactionStatus {
   PENDING
   COMPLETED
   CANCELLED
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+  GRACE_PERIOD
+  SUSPENDED
+  CANCELLED
+}
+
+enum SubscriptionRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionAuditAction {
+  CREATED
+  UPDATED
+  APPROVED
+  REJECTED
+  EXPIRED
+  GRACE_PERIOD_START
+  CANCELLED
+  RENEWED
+}
+
+enum NotificationType {
+  SUBSCRIPTION_EXPIRING
+  SUBSCRIPTION_EXPIRED
+  SUBSCRIPTION_APPROVED
+  SUBSCRIPTION_REJECTED
+  PAYMENT_RECEIVED
+  GRACE_PERIOD_STARTING
 }

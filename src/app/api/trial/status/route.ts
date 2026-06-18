@@ -71,7 +71,7 @@ export async function GET(): Promise<NextResponse<TrialStatusResponse>> {
   let canWrite = true;
   let reason: string | undefined;
 
-  if (status === "trial" && trialEndsAt) {
+  if (status === "TRIAL" && trialEndsAt) {
     isExpired = now > trialEndsAt;
     const diffMs = trialEndsAt.getTime() - now.getTime();
     daysRemaining = isExpired ? 0 : Math.ceil(diffMs / (1000 * 60 * 60 * 24));
@@ -79,10 +79,10 @@ export async function GET(): Promise<NextResponse<TrialStatusResponse>> {
     if (isExpired) {
       reason = "Trial has expired. Please upgrade to continue.";
     }
-  } else if (status === "suspended") {
+  } else if (status === "SUSPENDED") {
     canWrite = false;
     reason = "Store is suspended";
-  } else if (status === "cancelled") {
+  } else if (status === "CANCELLED") {
     canWrite = false;
     reason = "Subscription has been cancelled";
   }

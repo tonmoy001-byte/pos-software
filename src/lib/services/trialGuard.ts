@@ -12,9 +12,9 @@ export async function isTrialExpired(storeId: string): Promise<boolean> {
   });
 
   if (!subscription) return false;
-  if (subscription.status === "active") return false;
-  if (subscription.status === "cancelled") return true;
-  if (subscription.status === "trial" && subscription.trialEndsAt) {
+  if (subscription.status === "ACTIVE") return false;
+  if (subscription.status === "CANCELLED") return true;
+  if (subscription.status === "TRIAL" && subscription.trialEndsAt) {
     return new Date() > subscription.trialEndsAt;
   }
 
@@ -34,11 +34,11 @@ export async function canWrite(storeId: string, userId?: string): Promise<{ allo
 
   if (!subscription) return { allowed: true };
 
-  if (subscription.status === "suspended") {
+  if (subscription.status === "SUSPENDED") {
     return { allowed: false, reason: "Store is suspended" };
   }
 
-  if (subscription.status === "trial" && subscription.trialEndsAt) {
+  if (subscription.status === "TRIAL" && subscription.trialEndsAt) {
     if (new Date() > subscription.trialEndsAt) {
       return { allowed: false, reason: "Trial has expired. Please upgrade to continue." };
     }

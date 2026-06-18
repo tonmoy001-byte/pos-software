@@ -45,7 +45,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     // Pre-check: verify there are due sales before starting transaction
     const dueSalesCheck = await prisma.sale.findMany({
-      where: { customerId: id, dueAmount: { gt: 0 } },
+      where: { customerId: id, dueAmount: { gt: 0 }, storeId: session.user.storeId },
       select: { id: true },
     });
     if (dueSalesCheck.length === 0) {
@@ -55,7 +55,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const result = await prisma.$transaction(async (tx) => {
       // 1. Find all due sales for this customer (oldest first)
       const dueSales = await tx.sale.findMany({
-        where: { customerId: id, dueAmount: { gt: 0 } },
+        where: { customerId: id, dueAmount: { gt: 0 }, storeId: session.user.storeId },
         orderBy: { createdAt: "asc" },
       });
 
@@ -88,7 +88,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
       // 3. Recalculate customer due from remaining sale dues
       const remainingDues = await tx.sale.aggregate({
-        where: { customerId: id, dueAmount: { gt: 0 } },
+        where: { customerId: id, dueAmount: { gt: 0 }, storeId: session.user.storeId },
         _sum: { dueAmount: true },
       });
 

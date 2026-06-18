@@ -26,7 +26,7 @@ export class SecureDocumentService {
     const encrypted = encryptStr(photoBase64);
 
     await prisma.secondHandRecord.update({
-      where: { id: recordId },
+      where: { id: recordId, storeId },
       data: {
         nidPhotoData: Buffer.from(encrypted.ciphertext, "base64"),
         encryptionIv: encrypted.iv,
@@ -43,9 +43,9 @@ export class SecureDocumentService {
     } as EventStoreData);
   }
 
-  async downloadNidDocument(recordId: string): Promise<Uint8Array | null> {
+  async downloadNidDocument(recordId: string, storeId?: string): Promise<Uint8Array | null> {
     const record = await prisma.secondHandRecord.findUnique({
-      where: { id: recordId },
+      where: storeId ? { id: recordId, storeId } : { id: recordId },
       select: { nidPhotoData: true },
     });
 
@@ -95,9 +95,9 @@ export class SecondHandService {
     });
   }
 
-  async findById(id: string) {
+  async findById(id: string, storeId?: string) {
     return prisma.secondHandRecord.findUnique({
-      where: { id },
+      where: storeId ? { id, storeId } : { id },
     });
   }
 

@@ -123,7 +123,7 @@ export async function POST(req: Request) {
         data: {
           storeId: store.id,
           planId: plan.id,
-          status: "trial",
+          status: "TRIAL",
           trialEndsAt,
         },
       });

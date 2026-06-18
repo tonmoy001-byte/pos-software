@@ -21,14 +21,9 @@ export async function GET(
   const { id } = await params;
 
   try {
-    const sale = await saleService.findById(id);
+    const sale = await saleService.findById(id, session.user.storeId);
     if (!sale) {
       return NextResponse.json({ error: "Sale not found" }, { status: 404 });
-    }
-    
-    // Security: Validate storeId matches session
-    if (sale.storeId !== session.user.storeId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
     
     return NextResponse.json(sale);
@@ -66,12 +61,9 @@ export async function POST(
     }
 
     // Security: Validate storeId matches session before payment
-    const sale = await saleService.findById(id);
+    const sale = await saleService.findById(id, session.user.storeId);
     if (!sale) {
       return NextResponse.json({ error: "Sale not found" }, { status: 404 });
-    }
-    if (sale.storeId !== session.user.storeId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     if (amount > Number(sale.dueAmount)) {
