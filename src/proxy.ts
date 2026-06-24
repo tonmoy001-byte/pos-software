@@ -86,6 +86,11 @@ export async function proxy(req: NextRequest) {
   }
 
   if (!isAuth) {
+    // API routes get JSON 401, page routes get redirected to sign-in
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     let from = pathname;
     if (req.nextUrl.search) {
       from += req.nextUrl.search;
@@ -102,12 +107,18 @@ export async function proxy(req: NextRequest) {
     token?.storeStatus === "suspended" &&
     !pathname.startsWith("/suspended")
   ) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Store suspended" }, { status: 403 });
+    }
     return NextResponse.redirect(new URL("/suspended", req.url));
   }
 
   // Admin routes require SUPER_ADMIN_IDS
   if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
     if (!isSuperAdminUser) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
   }
@@ -116,6 +127,9 @@ export async function proxy(req: NextRequest) {
   const adminRoutes = ["/users", "/activity", "/settings"];
 
   if (adminRoutes.some(route => pathname.startsWith(route)) && role !== "ADMIN") {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
