@@ -72,6 +72,7 @@ export async function GET() {
           billingCycle: subscription.billingCycle ?? null,
           subscriptionPrice: subscription.subscriptionPrice ?? null,
           gracePeriodEnds: subscription.gracePeriodEnds?.toISOString() ?? null,
+          createdAt: subscription.createdAt.toISOString(),
         }
       : null,
     plan: subscription?.plan
@@ -79,6 +80,7 @@ export async function GET() {
           id: subscription.plan.id,
           name: subscription.plan.name,
           displayName: subscription.plan.displayName,
+          description: subscription.plan.description,
           maxProducts: subscription.plan.maxProducts,
           maxUsers: subscription.plan.maxUsers,
           maxBranches: subscription.plan.maxBranches,
@@ -92,6 +94,7 @@ export async function GET() {
       id: p.id,
       name: p.name,
       displayName: p.displayName,
+      description: p.description,
       maxProducts: p.maxProducts,
       maxUsers: p.maxUsers,
       maxBranches: p.maxBranches,
