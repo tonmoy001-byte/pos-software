@@ -22,8 +22,8 @@ export async function GET() {
 
     if (isSuperAdmin(session.user.id)) {
       const plans = await prisma.plan.findMany({
-        where: { isActive: true, name: { not: "trial" } },
-        orderBy: { createdAt: "asc" },
+        where: { isActive: true, name: { in: ["basic", "pro"] } },
+        orderBy: { priceMonthly: "asc" },
       });
 
       return NextResponse.json({
@@ -58,8 +58,8 @@ export async function GET() {
     });
 
     const plans = await prisma.plan.findMany({
-      where: { isActive: true, name: { not: "trial" } },
-      orderBy: { createdAt: "asc" },
+      where: { isActive: true, name: { in: ["basic", "pro"] } },
+      orderBy: { priceMonthly: "asc" },
     });
 
     let daysRemaining: number | null = null;
