@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   CreditCard,
   Check,
@@ -113,11 +113,7 @@ export default function SubscriptionPage() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     const [subRes, reqRes] = await Promise.allSettled([
       safeFetch<SubscriptionData>("/api/subscription").catch((err) => {
@@ -139,7 +135,18 @@ export default function SubscriptionPage() {
       setRequests(reqRes.value.requests);
     }
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Auto-clear message after 5 seconds
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(null), 5000);
+    return () => clearTimeout(timer);
+  }, [message]);
 
   const openModal = (plan: PlanOption) => {
     setSelectedPlan(plan);
@@ -161,7 +168,7 @@ export default function SubscriptionPage() {
     setMessage(null);
 
     try {
-      const res = await fetch("/api/subscription/request", {
+      await safeFetch("/api/subscription/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -172,26 +179,17 @@ export default function SubscriptionPage() {
           notes: notes || undefined,
         }),
       });
-
-      if (res.ok) {
-        setMessage({
-          type: "success",
-          text: "Request submitted successfully! We'll review it shortly.",
-        });
-        closeModal();
-        fetchData();
-      } else {
-        const err = await res.json().catch(() => null);
-        setMessage({
-          type: "error",
-          text:
-            typeof err?.error === "string"
-              ? err.error
-              : "Failed to submit request",
-        });
-      }
-    } catch {
-      setMessage({ type: "error", text: "Failed to submit request" });
+      setMessage({
+        type: "success",
+        text: "Request submitted successfully! We'll review it shortly.",
+      });
+      closeModal();
+      fetchData();
+    } catch (err: any) {
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to submit request",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -565,13 +563,17 @@ export default function SubscriptionPage() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={closeModal}
+          onKeyDown={(e) => { if (e.key === "Escape") closeModal(); }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="subscription-modal-title"
         >
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <div
             className="relative bg-surface rounded-2xl border border-border shadow-xl w-full max-w-lg p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold text-foreground mb-1">
+            <h3 id="subscription-modal-title" className="text-lg font-semibold text-foreground mb-1">
               Request Plan Upgrade
             </h3>
             <p className="text-sm text-secondary mb-6">
