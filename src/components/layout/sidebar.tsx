@@ -19,7 +19,8 @@ import {
   ChevronDown,
   ChevronRight,
   Building2,
-  LogOut
+  LogOut,
+  Wrench
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -33,26 +34,51 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", roles: ALL_ROLES },
   { 
     icon: ShoppingCart, 
-    label: "Sales", 
-    href: "/sales", 
+    label: "POS", 
+    href: "/pos", 
     roles: ALL_ROLES,
     submenu: [
-      { label: "All Sale", href: "/sales/regular", roles: ALL_ROLES },
-      { label: "Advance Order", href: "/sales/advance", roles: ALL_ROLES },
+      { label: "New Sale", href: "/pos", roles: ALL_ROLES },
       { label: "Due Sale", href: "/sales/due", roles: ADMIN_MANAGER },
       { label: "Exchange Sale", href: "/sales/exchange", roles: ADMIN_MANAGER },
-      { label: "Repair Sale", href: "/sales/repair", roles: ADMIN_MANAGER },
-      { label: "Online Sale", href: "/sales/online", roles: ADMIN_MANAGER },
-      { label: "Wholesale Sale", href: "/sales/wholesale", roles: ADMIN_MANAGER },
       { label: "Return & Refund", href: "/sales/return", roles: ADMIN_MANAGER },
+      { label: "Wholesale Sale", href: "/sales/wholesale", roles: ADMIN_MANAGER },
+    ]
+  },
+  { 
+    icon: Package, 
+    label: "Orders", 
+    href: "/sales/advance", 
+    roles: ALL_ROLES,
+    submenu: [
+      { label: "Advance Orders", href: "/sales/advance", roles: ALL_ROLES },
+      { label: "Online Orders", href: "/sales/online", roles: ADMIN_MANAGER },
+    ]
+  },
+  { 
+    icon: Wrench, 
+    label: "Repair", 
+    href: "/sales/repair", 
+    roles: ADMIN_MANAGER,
+    submenu: [
+      { label: "Repair Sales", href: "/sales/repair", roles: ADMIN_MANAGER },
     ]
   },
   { icon: Package, label: "Products", href: "/products", roles: ALL_ROLES },
   { icon: CreditCard, label: "EMI", href: "/emi", roles: ADMIN_MANAGER },
   { icon: Users, label: "Customers", href: "/customers", roles: ALL_ROLES },
+  { 
+    icon: Smartphone, 
+    label: "Second-Hand", 
+    href: "/second-hand", 
+    roles: ALL_ROLES,
+    submenu: [
+      { label: "Buy Used Phone", href: "/second-hand", roles: ALL_ROLES },
+      { label: "Sell Used Phone", href: "/second-hand/sell", roles: ALL_ROLES },
+    ]
+  },
   { icon: Wallet, label: "Hawlat", href: "/loans", roles: ADMIN_MANAGER },
   { icon: Calculator, label: "Suppliers", href: "/suppliers", roles: ADMIN_MANAGER },
-  { icon: Smartphone, label: "Second Hand", href: "/second-hand", roles: ALL_ROLES },
   { icon: FileText, label: "Reports", href: "/reports", roles: ADMIN_MANAGER },
   { icon: UserPlus, label: "Users", href: "/users", roles: ADMIN_ONLY },
   { 
@@ -78,13 +104,16 @@ const menuItems = [
       { label: "Users", href: "/admin/users", roles: ["SUPER_ADMIN"] },
       { label: "Plans", href: "/admin/plans", roles: ["SUPER_ADMIN"] },
       { label: "Subscriptions", href: "/admin/subscriptions", roles: ["SUPER_ADMIN"] },
+      { label: "Requests", href: "/admin/subscriptions/requests", roles: ["SUPER_ADMIN"] },
+      { label: "Audit Log", href: "/admin/subscriptions/audit", roles: ["SUPER_ADMIN"] },
+      { label: "Statistics", href: "/admin/revenue", roles: ["SUPER_ADMIN"] },
     ]
   },
 ];
 
 export function Sidebar({ userRole, userId, storeName }: { userRole: string; userId?: string; storeName?: string }) {
   const pathname = usePathname();
-  const [expandedMenu, setExpandedMenu] = useState<string | null>("/sales");
+  const [expandedMenu, setExpandedMenu] = useState<string | null>("/pos");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const superAdminIds = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPER_ADMIN_IDS) || "";
@@ -101,28 +130,13 @@ export function Sidebar({ userRole, userId, storeName }: { userRole: string; use
         <p className="text-xs text-secondary font-medium">Retail Management</p>
       </div>
 
-      <div className="px-4 mb-4">
-        <Link
-          href="/sales/pos"
-          className={cn(
-            "flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold transition-all duration-200",
-            pathname === "/sales/pos"
-              ? "bg-primary text-white shadow-lg shadow-primary/20" 
-              : "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20"
-          )}
-        >
-          <ShoppingCart className="w-5 h-5" />
-          POS
-        </Link>
-      </div>
-      
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
         {menuItems.filter(item => {
   if (item.roles.includes("SUPER_ADMIN")) return isSuperAdmin;
   return item.roles.includes(userRole);
 }).map((item) => {
-          const isActive = pathname === item.href;
           const hasSubmenu = item.submenu && item.submenu.length > 0;
+          const isActive = pathname === item.href || (hasSubmenu && item.submenu!.some(sub => pathname === sub.href));
           const isExpanded = expandedMenu === item.href;
 
           return (
