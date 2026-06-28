@@ -12,6 +12,8 @@ interface TrialStatusResponse {
   daysRemaining: number | null;
   trialEndsAt: string | null;
   reason: string | null;
+  gracePeriodEnds: string | null;
+  graceDaysRemaining: number | null;
 }
 
 interface TrialGuardContextType {
@@ -21,6 +23,8 @@ interface TrialGuardContextType {
   daysRemaining: number | null;
   trialEndsAt: string | null;
   reason: string | null;
+  gracePeriodEnds: string | null;
+  graceDaysRemaining: number | null;
   isLoading: boolean;
   refresh: () => Promise<void>;
 }
@@ -38,6 +42,8 @@ export function TrialGuardProvider({ children }: { children: React.ReactNode }) 
     daysRemaining: null,
     trialEndsAt: null,
     reason: null,
+    gracePeriodEnds: null,
+    graceDaysRemaining: null,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -79,6 +85,8 @@ export function TrialGuardProvider({ children }: { children: React.ReactNode }) 
     daysRemaining: isSuperAdmin ? null : state.daysRemaining,
     trialEndsAt: isSuperAdmin ? null : state.trialEndsAt,
     reason: isSuperAdmin ? null : state.reason,
+    gracePeriodEnds: isSuperAdmin ? null : state.gracePeriodEnds,
+    graceDaysRemaining: isSuperAdmin ? null : state.graceDaysRemaining,
     isLoading,
     refresh,
   };

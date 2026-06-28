@@ -115,9 +115,9 @@ export async function POST(req: Request) {
         });
       }
 
-      // 5. Create subscription (14-day trial)
+      // 5. Create subscription (7-day trial)
       const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+      trialEndsAt.setDate(trialEndsAt.getDate() + 7);
 
       await tx.subscription.create({
         data: {

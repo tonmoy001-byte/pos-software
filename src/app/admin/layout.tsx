@@ -10,6 +10,9 @@ import {
   Users,
   CreditCard,
   FileText,
+  ClipboardList,
+  ScrollText,
+  BarChart3,
   Menu,
   X,
   ChevronDown,
@@ -24,6 +27,9 @@ const navItems = [
   { icon: Users, label: "Users", href: "/admin/users" },
   { icon: CreditCard, label: "Plans", href: "/admin/plans" },
   { icon: FileText, label: "Subscriptions", href: "/admin/subscriptions" },
+  { icon: ClipboardList, label: "Requests", href: "/admin/subscriptions/requests" },
+  { icon: ScrollText, label: "Audit Log", href: "/admin/subscriptions/audit" },
+  { icon: BarChart3, label: "Statistics", href: "/admin/revenue" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
