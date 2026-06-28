@@ -10,7 +10,10 @@ export type EventAggregateType =
   | "Transaction"
   | "SecondHandRecord"
   | "DailyBalance"
-  | "Store";
+  | "Store"
+  | "Purchase"
+  | "SupplierPayment"
+  | "SupplierReturn";
 
 export type EventType =
   | "CREATED"

@@ -2,6 +2,9 @@ export { TransactionService, CapitalService } from "./transaction";
 export { SupplierService } from "./supplier";
 export { LoanService } from "./loan";
 export { SaleService } from "./sale";
+export { PurchaseService } from "./purchase";
+export { SupplierPaymentService } from "./supplierPayment";
+export { SupplierReturnService } from "./supplierReturn";
 export { DailyActivityService, dailyActivityService } from "./dailyActivity";
 export { EventStore, eventStore, calculateProfit, applyEventToState, replayEvents } from "./eventStore";
 export { TenantService, tenantService, validateTenantAccess, getTenantFilter, getAdminFilter, isSuperAdmin } from "./tenant";
@@ -10,7 +13,7 @@ export { SecureDocumentService, SecondHandService, secureDocumentService, second
 export { OptimisticUIStore, OptimisticRollbackManager, optimisticStore, rollbackManager, resolveConflict, createOptimisticResponse, createRollbackResponse } from "./optimisticUI";
 export { checkIdempotency, markIdempotent, extractIdempotencyKey, createIdempotencyKey, completeIdempotencyKey } from "./idempotency";
 export { recordStockMovement } from "./stockMovement";
-export { postSaleEntry, postRefundEntry, postTransactionEntry, postDueCollectionEntry } from "./posting";
+export { postSaleEntry, postRefundEntry, postTransactionEntry, postDueCollectionEntry, postPurchaseEntry, postSupplierPaymentEntry, postSupplierReturnEntry } from "./posting";
 export { checkRateLimit } from "./rateLimiter";
 export { logger } from "./logger";
 export { createBackup, listBackups } from "./backup";

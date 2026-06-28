@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Save, X, Info, Plus, Hash, Package, DollarSign, Truck, Image as ImageIcon, X as XIcon } from "lucide-react";
+import { Save, X, Info, Package, DollarSign, Truck, Image as ImageIcon, Hash, Cpu } from "lucide-react";
 import {
   PageHeader, FormSectionCard, TextInput, NumberInput, SelectInput,
   TextareaInput, CheckboxInput, ImageUploader, Button,
@@ -18,24 +18,18 @@ type MetadataResponse = {
   categories: string[];
   brands: string[];
   suppliers: SelectOption[];
-  warehouses: SelectOption[];
   units: SelectOption[];
-  productTypes: SelectOption[];
-  conditions: SelectOption[];
-  ramOptions: string[];
-  storageOptions: string[];
-  networkOptions: string[];
   statuses: SelectOption[];
 };
 
 const EMPTY_VALUES: ProductFormValues = {
   name: "", sku: "", barcode: "", brand: "", category: "",
-  productType: "SERIALIZED", modelNumber: "", condition: undefined,
+  productType: "NON_SERIALIZED", modelNumber: "", condition: undefined,
   ram: "", storage: "", network: "", color: "", description: "",
-  costPrice: "", sellingPrice: "", taxVat: "", unit: "PIECE",
-  openingStock: "", openingCost: "", warehouse: "", minStockAlert: "", reorderQuantity: "", trackImei: false,
+  costPrice: "", sellingPrice: "", unit: "PIECE",
+  minStockAlert: "", reorderQuantity: "", trackImei: false,
   defaultSupplier: "", purchaseWarrantyMonths: "", salesWarrantyMonths: "",
-  imageUrl: "", status: "ACTIVE", tags: [],
+  imageUrl: "", status: "ACTIVE",
 };
 
 export default function AddNewProductPage() {
@@ -47,7 +41,6 @@ export default function AddNewProductPage() {
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [meta, setMeta] = useState<MetadataResponse | null>(null);
   const [metaLoading, setMetaLoading] = useState(true);
-  const [tagInput, setTagInput] = useState("");
 
   useEffect(() => {
     safeFetch<MetadataResponse>("/api/products/metadata")
@@ -61,28 +54,23 @@ export default function AddNewProductPage() {
     if (errors[k]) setErrors((e) => ({ ...e, [k]: undefined }));
   };
 
-  useEffect(() => {
-    const stock = Number(values.openingStock) || 0;
-    const cost = Number(values.costPrice) || 0;
-    if (stock > 0 && cost > 0) {
-      setValues((p) => {
-        const calculated = Number((Number(p.openingStock) * Number(p.costPrice)).toFixed(2));
-        if (Number(p.openingCost) === calculated) return p;
-        return { ...p, openingCost: calculated };
-      });
-    }
-  }, [values.openingStock, values.costPrice]);
-
-  const addTag = () => {
-    const t = tagInput.trim();
-    if (!t) return;
-    if (values.tags && values.tags.length >= 20) return;
-    if (values.tags?.includes(t)) { setTagInput(""); return; }
-    set("tags", [...(values.tags || []), t]);
-    setTagInput("");
+  const autoGenerateSku = (name: string) => {
+    if (!name) return "";
+    const words = name.trim().split(/\s+/);
+    const code = words.map(w => {
+      const first = w[0];
+      if (!first) return "";
+      if (/\d/.test(first)) return first;
+      return first.toUpperCase();
+    }).join("");
+    return code.slice(0, 5);
   };
 
-  const removeTag = (t: string) => set("tags", (values.tags || []).filter(x => x !== t));
+  useEffect(() => {
+    if (values.name && !values.sku) {
+      set("sku", autoGenerateSku(values.name));
+    }
+  }, [values.name]);
 
   const validate = (): boolean => {
     const result = productFormSchema.safeParse(values);
@@ -122,11 +110,7 @@ export default function AddNewProductPage() {
         description: values.description || null,
         price: Number(values.sellingPrice) || 0,
         cost: Number(values.costPrice) || 0,
-        taxVat: Number(values.taxVat) || 0,
         unit: values.unit,
-        stock: Number(values.openingStock) || 0,
-        openingCost: Number(values.openingCost) || 0,
-        warehouse: values.warehouse || null,
         minStock: Number(values.minStockAlert) || 5,
         reorderQuantity: Number(values.reorderQuantity) || 0,
         trackImei: values.trackImei,
@@ -135,16 +119,15 @@ export default function AddNewProductPage() {
         salesWarrantyMonths: Number(values.salesWarrantyMonths) || 0,
         imageUrl: values.imageUrl || null,
         status: values.status,
-        tags: values.tags || [],
       };
-      const res = await safeFetch<{ id?: string; error?: string; field?: string }>("/api/products", {
+      await safeFetch<{ id?: string; error?: string; field?: string }>("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       setToast({ type: "success", text: "Product created successfully!" });
       startTransition(() => {
-        setTimeout(() => router.push("/inventory"), 800);
+        setTimeout(() => router.push("/products"), 800);
       });
     } catch (err: any) {
       if (err instanceof ApiError && err.body) {
@@ -167,8 +150,8 @@ export default function AddNewProductPage() {
   };
 
   const handleCancel = () => {
-    if (confirm("Discard all changes and go back to inventory?")) {
-      router.push("/inventory");
+    if (confirm("Discard all changes and go back?")) {
+      router.push("/products");
     }
   };
 
@@ -183,12 +166,12 @@ export default function AddNewProductPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <form onSubmit={handleSubmit} className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8" noValidate>
+      <form onSubmit={handleSubmit} className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8" noValidate>
         <PageHeader
           title="Add New Product"
           breadcrumbs={[
-            { label: "Dashboard", href: "/dashboard" },
-            { label: "Products", href: "/inventory" },
+            { label: "Dashboard", href: "/" },
+            { label: "Products", href: "/products" },
             { label: "Add New Product" },
           ]}
           actions={
@@ -221,12 +204,12 @@ export default function AddNewProductPage() {
               <p className="text-sm font-semibold">{toast.text}</p>
             </div>
             <button type="button" onClick={() => setToast(null)} className="p-1 hover:bg-black/5 rounded" aria-label="Dismiss">
-              <XIcon className="w-4 h-4" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="space-y-5">
           <FormSectionCard
             title="Basic Information"
             description="Core product details and classification."
@@ -236,19 +219,20 @@ export default function AddNewProductPage() {
               <TextInput
                 label="Product Name"
                 required
-                placeholder="e.g. iPhone 13 Pro"
+                placeholder="e.g. iPhone 15 Pro"
                 value={values.name}
                 onChange={(e) => set("name", e.target.value)}
                 error={errors.name}
                 containerClassName="sm:col-span-2"
               />
               <TextInput
-                label="SKU / Product Code"
+                label="Product Code"
                 required
-                placeholder="e.g. IP13PRO-128-BL"
+                placeholder="Auto-generated from name"
                 value={values.sku}
                 onChange={(e) => set("sku", e.target.value)}
                 error={errors.sku}
+                hint="Short code for stock tracking (e.g. IP15P)"
               />
               <TextInput
                 label="Barcode"
@@ -286,6 +270,26 @@ export default function AddNewProductPage() {
                 error={errors.modelNumber}
               />
               <SelectInput
+                label="Condition"
+                options={[
+                  { value: "NEW", label: "New" },
+                  { value: "USED", label: "Used" },
+                  { value: "REFURBISHED", label: "Refurbished" },
+                ]}
+                value={values.condition || ""}
+                onChange={(e) => set("condition", e.target.value as any)}
+                placeholder="Select condition"
+              />
+            </div>
+          </FormSectionCard>
+
+          <FormSectionCard
+            title="Specifications"
+            description="Technical specs and physical attributes."
+            icon={Cpu}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <SelectInput
                 label="RAM"
                 options={RAM_OPTIONS.map(r => ({ value: r, label: r }))}
                 value={values.ram || ""}
@@ -294,12 +298,23 @@ export default function AddNewProductPage() {
                 placeholder="Select RAM"
               />
               <SelectInput
-                label="Storage / Variant"
+                label="Storage"
                 options={STORAGE_OPTIONS.map(s => ({ value: s, label: s }))}
                 value={values.storage || ""}
                 onChange={(e) => set("storage", e.target.value)}
                 error={errors.storage}
                 placeholder="Select storage"
+              />
+              <SelectInput
+                label="Network"
+                options={[
+                  { value: "3G", label: "3G" },
+                  { value: "4G", label: "4G" },
+                  { value: "5G", label: "5G" },
+                ]}
+                value={values.network || ""}
+                onChange={(e) => set("network", e.target.value)}
+                placeholder="Select network"
               />
               <TextInput
                 label="Color"
@@ -321,16 +336,15 @@ export default function AddNewProductPage() {
           </FormSectionCard>
 
           <FormSectionCard
-            title="Pricing & Stock"
-            description="Set pricing, stock levels, and warehouse."
+            title="Pricing"
+            description="Set cost and selling prices."
             icon={DollarSign}
           >
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Pricing</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <NumberInput
                 label="Cost Price"
                 required
-                prefix="BDT"
+                prefix="৳"
                 min={0}
                 value={values.costPrice}
                 onChange={(v) => set("costPrice", v)}
@@ -340,23 +354,13 @@ export default function AddNewProductPage() {
               <NumberInput
                 label="Selling Price"
                 required
-                prefix="BDT"
+                prefix="৳"
                 min={0}
                 value={values.sellingPrice}
                 onChange={(v) => set("sellingPrice", v)}
                 error={errors.sellingPrice}
                 placeholder="0.00"
                 hint="Must be ≥ cost price"
-              />
-              <NumberInput
-                label="Tax / VAT"
-                suffix="%"
-                min={0}
-                max={100}
-                value={values.taxVat}
-                onChange={(v) => set("taxVat", v)}
-                error={errors.taxVat}
-                placeholder="0"
               />
               <SelectInput
                 label="Unit"
@@ -367,36 +371,14 @@ export default function AddNewProductPage() {
                 error={errors.unit}
               />
             </div>
-            <hr className="border-border" />
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Stock & Inventory</h3>
+          </FormSectionCard>
+
+          <FormSectionCard
+            title="Inventory"
+            description="Stock levels and tracking settings."
+            icon={Hash}
+          >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <NumberInput
-                label="Opening Stock"
-                min={0}
-                value={values.openingStock}
-                onChange={(v) => set("openingStock", v)}
-                error={errors.openingStock}
-                placeholder="0"
-              />
-              <NumberInput
-                label="Opening Cost (Total)"
-                prefix="BDT"
-                min={0}
-                value={values.openingCost}
-                onChange={(v) => set("openingCost", v)}
-                error={errors.openingCost}
-                placeholder="0.00"
-                hint="Auto-calculated from stock × cost"
-              />
-              <SelectInput
-                label="Warehouse / Store"
-                options={meta?.warehouses || []}
-                value={values.warehouse || ""}
-                onChange={(e) => set("warehouse", e.target.value)}
-                error={errors.warehouse}
-                placeholder="Select warehouse"
-                disabled={metaLoading}
-              />
               <NumberInput
                 label="Minimum Stock Alert"
                 min={0}
@@ -405,10 +387,18 @@ export default function AddNewProductPage() {
                 error={errors.minStockAlert}
                 placeholder="5"
               />
+              <NumberInput
+                label="Reorder Quantity"
+                min={0}
+                value={values.reorderQuantity}
+                onChange={(v) => set("reorderQuantity", v)}
+                error={errors.reorderQuantity}
+                placeholder="0"
+              />
               <div className="sm:col-span-2 pt-2 border-t border-border/60">
                 <CheckboxInput
                   label="Track By IMEI / Serial Number"
-                  description="Enables serialized tracking. IMEI numbers are recorded during purchase and stock receiving."
+                  description="Enable when receiving stock — each unit gets a unique tracking number."
                   checked={values.trackImei}
                   onChange={(e) => set("trackImei", e.target.checked)}
                 />
@@ -432,7 +422,7 @@ export default function AddNewProductPage() {
             description="Default supplier and warranty periods."
             icon={Truck}
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <SelectInput
                 label="Default Supplier"
                 options={meta?.suppliers || []}
@@ -441,7 +431,7 @@ export default function AddNewProductPage() {
                 error={errors.defaultSupplier}
                 placeholder="Select supplier"
                 disabled={metaLoading}
-                containerClassName="sm:col-span-2"
+                containerClassName="sm:col-span-3"
               />
               <NumberInput
                 label="Purchase Warranty"
@@ -461,15 +451,6 @@ export default function AddNewProductPage() {
                 error={errors.salesWarrantyMonths}
                 placeholder="0"
               />
-            </div>
-          </FormSectionCard>
-
-          <FormSectionCard
-            title="Additional Information"
-            description="Status and tags for organizing products."
-            icon={Info}
-          >
-            <div className="space-y-4">
               <SelectInput
                 label="Product Status"
                 options={meta?.statuses || []}
@@ -477,43 +458,6 @@ export default function AddNewProductPage() {
                 onChange={(e) => set("status", e.target.value as any)}
                 error={errors.status}
               />
-              <div>
-                <label className="text-sm font-semibold text-foreground block mb-1.5">Tags</label>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <TextInput
-                      placeholder="Add a tag and press Enter..."
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
-                    />
-                  </div>
-                  <Button type="button" variant="secondary" onClick={addTag} size="md">
-                    <Plus className="w-4 h-4" /> Add
-                  </Button>
-                </div>
-                {values.tags && values.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {values.tags.map((t) => (
-                      <span
-                        key={t}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary text-sm font-semibold rounded-full"
-                      >
-                        <Hash className="w-3 h-3" />
-                        {t}
-                        <button
-                          type="button"
-                          onClick={() => removeTag(t)}
-                          className="ml-1 hover:bg-primary/20 rounded-full p-0.5"
-                          aria-label={`Remove tag ${t}`}
-                        >
-                          <XIcon className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           </FormSectionCard>
         </div>

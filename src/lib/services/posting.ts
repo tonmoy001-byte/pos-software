@@ -186,6 +186,10 @@ export async function postTransactionEntry(
         lines.push({ accountId: cashId, debit: 0, credit: amount });
       }
       break;
+    case "PURCHASE_RETURN":
+      lines.push({ accountId: accountMap.get("2000")!, debit: amount, credit: 0 });
+      lines.push({ accountId: accountMap.get("1100")!, debit: 0, credit: amount });
+      break;
     case "SECONDHAND_BUY":
       lines.push({ accountId: accountMap.get("1100")!, debit: amount, credit: 0 });
       lines.push({ accountId: cashId, debit: 0, credit: amount });
@@ -242,6 +246,106 @@ export async function postDueCollectionEntry(
       description: `Due collection ${paymentId}`,
       referenceId: paymentId,
       referenceType: "Payment",
+      storeId,
+      lines: { create: lines },
+    },
+  });
+}
+
+export async function postPurchaseEntry(
+  purchaseId: string,
+  totalAmount: number,
+  paidAmount: number,
+  mode: string,
+  description: string,
+  storeId: string,
+  tx: Prisma.TransactionClient
+) {
+  await ensureAccounts(storeId, tx);
+  const accountMap = await getAccountMap(storeId, tx);
+
+  const lines: { accountId: string; debit: number; credit: number }[] = [];
+
+  // Dr Inventory (1100) for total amount
+  lines.push({ accountId: accountMap.get("1100")!, debit: totalAmount, credit: 0 });
+
+  // Cr Cash/Bank for paid portion
+  if (paidAmount > 0) {
+    const cashAccountCode = getAccountCode(mode);
+    const cashId = accountMap.get(cashAccountCode)!;
+    lines.push({ accountId: cashId, debit: 0, credit: paidAmount });
+  }
+
+  // Cr Accounts Payable for due portion
+  const dueAmount = totalAmount - paidAmount;
+  if (dueAmount > 0) {
+    lines.push({ accountId: accountMap.get("2000")!, debit: 0, credit: dueAmount });
+  }
+
+  await tx.journalEntry.create({
+    data: {
+      date: new Date(),
+      description,
+      referenceId: purchaseId,
+      referenceType: "Purchase",
+      storeId,
+      lines: { create: lines },
+    },
+  });
+}
+
+export async function postSupplierPaymentEntry(
+  paymentId: string,
+  amount: number,
+  mode: string,
+  description: string,
+  storeId: string,
+  tx: Prisma.TransactionClient
+) {
+  await ensureAccounts(storeId, tx);
+  const accountMap = await getAccountMap(storeId, tx);
+
+  const cashAccountCode = getAccountCode(mode);
+  const cashId = accountMap.get(cashAccountCode)!;
+
+  const lines: { accountId: string; debit: number; credit: number }[] = [
+    { accountId: cashId, debit: amount, credit: 0 },
+    { accountId: accountMap.get("2000")!, debit: 0, credit: amount },
+  ];
+
+  await tx.journalEntry.create({
+    data: {
+      date: new Date(),
+      description,
+      referenceId: paymentId,
+      referenceType: "SupplierPayment",
+      storeId,
+      lines: { create: lines },
+    },
+  });
+}
+
+export async function postSupplierReturnEntry(
+  returnId: string,
+  amount: number,
+  description: string,
+  storeId: string,
+  tx: Prisma.TransactionClient
+) {
+  await ensureAccounts(storeId, tx);
+  const accountMap = await getAccountMap(storeId, tx);
+
+  const lines: { accountId: string; debit: number; credit: number }[] = [
+    { accountId: accountMap.get("2000")!, debit: amount, credit: 0 },
+    { accountId: accountMap.get("1100")!, debit: 0, credit: amount },
+  ];
+
+  await tx.journalEntry.create({
+    data: {
+      date: new Date(),
+      description,
+      referenceId: returnId,
+      referenceType: "SupplierReturn",
       storeId,
       lines: { create: lines },
     },

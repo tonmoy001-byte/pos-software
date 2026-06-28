@@ -64,7 +64,16 @@ const menuItems = [
       { label: "Repair Sales", href: "/sales/repair", roles: ADMIN_MANAGER },
     ]
   },
-  { icon: Package, label: "Products", href: "/products", roles: ALL_ROLES },
+  { 
+    icon: Package, 
+    label: "Inventory", 
+    href: "/products", 
+    roles: ALL_ROLES,
+    submenu: [
+      { label: "Products", href: "/products", roles: ALL_ROLES },
+      { label: "Purchases", href: "/purchases", roles: ADMIN_MANAGER },
+    ]
+  },
   { icon: CreditCard, label: "EMI", href: "/emi", roles: ADMIN_MANAGER },
   { icon: Users, label: "Customers", href: "/customers", roles: ALL_ROLES },
   { 

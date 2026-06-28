@@ -24,11 +24,7 @@ export const productFormSchema = z.object({
   description: z.string().max(2000).optional().or(z.literal("")),
   costPrice: z.coerce.number({ message: "Cost price is required" }).min(0, "Cost price cannot be negative"),
   sellingPrice: z.coerce.number({ message: "Selling price is required" }).min(0, "Selling price cannot be negative"),
-  taxVat: z.coerce.number().min(0).max(100).optional().default(0),
   unit: z.enum(UNITS).default("PIECE"),
-  openingStock: z.coerce.number().int("Stock must be a whole number").min(0, "Stock cannot be negative").optional().default(0),
-  openingCost: z.coerce.number().min(0).optional().default(0),
-  warehouse: z.string().max(80).optional().or(z.literal("")),
   minStockAlert: z.coerce.number().int().min(0).optional().default(5),
   reorderQuantity: z.coerce.number().int().min(0).optional().default(0),
   trackImei: z.boolean().optional().default(false),
@@ -37,7 +33,6 @@ export const productFormSchema = z.object({
   salesWarrantyMonths: z.coerce.number().int().min(0, "Warranty cannot be negative").optional().default(0),
   imageUrl: z.string().optional().or(z.literal("")).nullable(),
   status: z.enum(PRODUCT_STATUSES).default("ACTIVE"),
-  tags: z.array(z.string().max(40)).max(20).optional().default([]),
 }).refine((d) => d.sellingPrice >= d.costPrice, {
   message: "Selling price must be greater than or equal to cost price",
   path: ["sellingPrice"],
@@ -47,7 +42,7 @@ type RawProductFormValues = z.infer<typeof productFormSchema>;
 
 export type ProductFormValues = {
   [K in keyof RawProductFormValues]:
-    K extends "costPrice" | "sellingPrice" | "taxVat" | "openingStock" | "openingCost"
+    K extends "costPrice" | "sellingPrice"
     | "minStockAlert" | "reorderQuantity" | "purchaseWarrantyMonths" | "salesWarrantyMonths"
     ? number | ""
     : RawProductFormValues[K];

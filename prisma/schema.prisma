@@ -218,6 +218,13 @@ model Store {
   subscriptionPayments      SubscriptionPayment[]
   subscriptionAuditLogs     SubscriptionAuditLog[]
   notifications             Notification[]
+  purchases                 Purchase[]
+  purchaseItems             PurchaseItem[]
+  purchaseReceives          PurchaseReceive[]
+  stockUnits                StockUnit[]
+  supplierPayments          SupplierPayment[]
+  supplierReturns           SupplierReturn[]
+  auditLogs                 AuditLog[]
 }
 
 model InvoiceSettings {
@@ -278,6 +285,8 @@ model Product {
   saleItems      SaleItem[]
   exchangeItems  ExchangeItem[]
   stockMovements StockMovement[]
+  purchaseItems  PurchaseItem[]
+  supplierReturns SupplierReturn[]
 
   @@unique([barcode, storeId])
   @@index([storeId])
@@ -471,6 +480,9 @@ model Supplier {
   store        Store               @relation(fields: [storeId], references: [id])
   transactions Transaction[]
   products     SupplierProduct[]
+  purchases    Purchase[]
+  payments     SupplierPayment[]
+  returns      SupplierReturn[]
 
   @@index([storeId])
   @@index([phone])
@@ -485,6 +497,139 @@ model SupplierProduct {
   supplier    Supplier @relation(fields: [supplierId], references: [id])
   
   @@unique([supplierId, productName])
+}
+
+model Purchase {
+  id              String          @id @default(uuid())
+  purchaseId      String          @unique
+  supplierId      String
+  supplier        Supplier        @relation(fields: [supplierId], references: [id])
+  totalAmount     Decimal         @default(0)
+  paidAmount      Decimal         @default(0)
+  dueAmount       Decimal         @default(0)
+  status          PurchaseStatus  @default(DRAFT)
+  notes           String?
+  storeId         String
+  store           Store           @relation(fields: [storeId], references: [id])
+  userId          String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  items           PurchaseItem[]
+  payments        SupplierPayment[]
+  returns         SupplierReturn[]
+  receives        PurchaseReceive[]
+
+  @@index([storeId, createdAt])
+  @@index([supplierId])
+  @@index([status])
+}
+
+model PurchaseItem {
+  id                String            @id @default(uuid())
+  purchaseId        String
+  purchase          Purchase          @relation(fields: [purchaseId], references: [id])
+  productId         String?
+  product           Product?          @relation(fields: [productId], references: [id])
+  productName       String
+  quantity          Int               @default(1)
+  receivedQuantity  Int               @default(0)
+  unitCost          Decimal
+  totalCost         Decimal
+  storeId           String
+  store             Store             @relation(fields: [storeId], references: [id])
+  imeis             StockUnit[]
+  receives          PurchaseReceive[]
+
+  @@index([purchaseId])
+  @@index([productId])
+}
+
+model StockUnit {
+  id              String          @id @default(uuid())
+  purchaseItemId  String
+  purchaseItem    PurchaseItem    @relation(fields: [purchaseItemId], references: [id])
+  trackingNumber  String          @unique
+  imei            String?
+  status          StockUnitStatus @default(RECEIVED)
+  soldViaSaleId   String?
+  storeId         String
+  store           Store           @relation(fields: [storeId], references: [id])
+  createdAt       DateTime        @default(now())
+
+  @@index([purchaseItemId])
+  @@index([trackingNumber])
+  @@index([status])
+  @@index([storeId])
+}
+
+model PurchaseReceive {
+  id          String        @id @default(uuid())
+  purchaseId  String
+  purchase    Purchase      @relation(fields: [purchaseId], references: [id])
+  itemId      String
+  item        PurchaseItem  @relation(fields: [itemId], references: [id])
+  quantity    Int
+  storeId     String
+  store       Store         @relation(fields: [storeId], references: [id])
+  userId      String?
+  createdAt   DateTime      @default(now())
+
+  @@index([purchaseId])
+}
+
+model SupplierPayment {
+  id          String          @id @default(uuid())
+  supplierId  String
+  supplier    Supplier        @relation(fields: [supplierId], references: [id])
+  purchaseId  String?
+  purchase    Purchase?       @relation(fields: [purchaseId], references: [id])
+  amount      Decimal
+  mode        TransactionMode @default(CASH)
+  notes       String?
+  storeId     String
+  store       Store           @relation(fields: [storeId], references: [id])
+  userId      String?
+  createdAt   DateTime        @default(now())
+
+  @@index([supplierId])
+  @@index([storeId, createdAt])
+}
+
+model SupplierReturn {
+  id          String   @id @default(uuid())
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id])
+  purchaseId  String?
+  purchase    Purchase? @relation(fields: [purchaseId], references: [id])
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id])
+  productName String
+  quantity    Int      @default(1)
+  unitCost    Decimal
+  totalCost   Decimal
+  reason      String?
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id])
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  @@index([supplierId])
+  @@index([storeId, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  entity    String
+  entityId  String
+  userId    String?
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id])
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([storeId, createdAt])
+  @@index([entity, entityId])
 }
 
 model DailyBalance {
@@ -786,4 +931,19 @@ enum NotificationType {
   SUBSCRIPTION_REJECTED
   PAYMENT_RECEIVED
   GRACE_PERIOD_STARTING
+}
+
+enum PurchaseStatus {
+  DRAFT
+  PENDING
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+enum StockUnitStatus {
+  PENDING
+  RECEIVED
+  SOLD
+  RETURNED
 }
