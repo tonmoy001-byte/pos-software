@@ -1,3 +1,76 @@
+<!-- BEGIN:agent-skill-system -->
+# Agent Skill System
+
+This project uses a skill-driven execution model. Skills are structured workflows that extend the agent's capabilities.
+
+## Core Rules
+
+- If a task matches a skill, you MUST invoke it
+- Skills are located in `skills/<skill-name>/SKILL.md`
+- Never implement directly if a skill applies
+- Always follow the skill instructions exactly (do not partially apply them)
+
+## Skill Discovery
+
+All skills live in:
+
+```
+skills/<skill-name>/SKILL.md
+```
+
+The agent should detect when a skill applies and invoke it using the `skill` tool.
+
+## Intent → Skill Mapping
+
+The agent should automatically map user intent to skills:
+
+- Feature / new functionality → `spec-driven-development`, then `incremental-implementation`, `test-driven-development`
+- Planning / breakdown → `planning-and-task-breakdown`
+- Bug / failure / unexpected behavior → `debugging-and-error-recovery`
+- Code review → `code-review-and-quality`
+- Refactoring / simplification → `code-simplification`
+- API or interface design → `api-and-interface-design`
+- UI work → `frontend-ui-engineering`
+- Security concerns → `security-and-hardening`
+- Performance issues → `performance-optimization`
+- Git workflow → `git-workflow-and-versioning`
+- CI/CD → `ci-cd-and-automation`
+- Documentation → `documentation-and-adrs`
+- Shipping / deployment → `shipping-and-launch`
+
+## Lifecycle Mapping (Implicit Commands)
+
+The development lifecycle is encoded implicitly:
+
+- DEFINE → `spec-driven-development`
+- PLAN → `planning-and-task-breakdown`
+- BUILD → `incremental-implementation` + `test-driven-development`
+- VERIFY → `debugging-and-error-recovery`
+- REVIEW → `code-review-and-quality`
+- SHIP → `shipping-and-launch`
+
+## Execution Model
+
+For every request:
+
+1. Determine if any skill applies (even 1% chance)
+2. Invoke the appropriate skill using the `skill` tool
+3. Follow the skill workflow strictly
+4. Only proceed to implementation after required steps (spec, plan, etc.) are complete
+
+## Anti-Rationalization
+
+The following thoughts are incorrect and must be ignored:
+
+- "This is too small for a skill"
+- "I can just quickly implement this"
+- "I'll gather context first"
+
+Correct behavior:
+
+- Always check for and use skills first
+<!-- END:agent-skill-system -->
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
